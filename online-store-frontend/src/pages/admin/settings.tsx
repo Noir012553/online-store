@@ -132,6 +132,8 @@ const r2AccountRoleKeys = ['R2_ACCOUNT_ROLE', ...['GENERAL', 'PRODUCT', 'MAIN', 
 const aiModelKeys = ['CLOUDFLARE_AI_MODEL', ...Array.from({ length: 13 }, (_, index) => `CLOUDFLARE_AI_MODEL_${index + 1}`)];
 const cloudflareAccountKeys = ['CLOUDFLARE_ACCOUNT_ID', ...Array.from({ length: 13 }, (_, index) => `CLOUDFLARE_ACCOUNT_ID_${index + 1}`)];
 const cloudflareTokenKeys = ['CLOUDFLARE_API_TOKEN', ...Array.from({ length: 13 }, (_, index) => `CLOUDFLARE_API_TOKEN_${index + 1}`)];
+const cloudflareAiAccountSlots = Array.from({ length: 13 }, (_, index) => String(index + 1));
+const defaultCloudflareAiModel = '@cf/meta/llama-3-8b-instruct';
 const runtimeSecretKeys = [
   'EMAIL_PASSWORD', 'SENDGRID_API_KEY', 'VNPAY_HASH_SECRET',
   ...r2NumberedKeys('R2_ACCESS_KEY_ID'), ...r2NumberedKeys('R2_SECRET_ACCESS_KEY'),
@@ -247,6 +249,7 @@ function SettingsPage() {
   const [runtimeActionErrors, setRuntimeActionErrors] = useState<Record<string, string>>({});
   const [copiedSettingKey, setCopiedSettingKey] = useState('');
   const [focusSettingKey, setFocusSettingKey] = useState('');
+  const [selectedCloudflareAiSlot, setSelectedCloudflareAiSlot] = useState('1');
   const [valuesLoading, setValuesLoading] = useState(true);
   const [valuesError, setValuesError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -682,6 +685,11 @@ function SettingsPage() {
   const cloudflareTone = status ? r2Tone === 'danger' || aiTone === 'danger' ? 'danger' : r2Tone === 'warning' || aiTone === 'warning' || !status.cloudflareOperations.tunnelManaged || !status.cloudflareOperations.dnsManaged ? 'warning' : 'good' : 'neutral';
   const securityReady = Boolean(status?.security.encryptedSecretStoreAvailable);
   const selectedGroups = settingsGroups.filter(group => group.section === activeSection && group.title !== 'Mô hình Cloudflare AI');
+  const cloudflareAiAccountIdKey = `CLOUDFLARE_ACCOUNT_ID_${selectedCloudflareAiSlot}`;
+  const cloudflareAiApiTokenKey = `CLOUDFLARE_API_TOKEN_${selectedCloudflareAiSlot}`;
+  const cloudflareAiModelKey = `CLOUDFLARE_AI_MODEL_${selectedCloudflareAiSlot}`;
+  const cloudflareAiModelOptions = Array.from(new Set([defaultCloudflareAiModel, ...(status?.cloudflareAi.models ?? []), values[cloudflareAiModelKey] ?? ''].filter(Boolean)));
+  const selectedCloudflareAiSlotConfigured = Boolean(values[cloudflareAiAccountIdKey]?.trim() || values[cloudflareAiModelKey]?.trim() || isSecretConfigured(cloudflareAiApiTokenKey));
   const applyInProgress = Boolean(applyJob && ['queued', 'claimed', 'applying', 'rolling-back'].includes(applyJob.status));
 
   const renderR2RuntimeSettings = () => {
@@ -745,6 +753,45 @@ function SettingsPage() {
           </div>
         </div>
       ))}
+      {embedded && activeSection === 'ai' && <section className="mb-6 rounded-lg border border-gray-200 p-4" aria-labelledby="cloudflare-ai-account-manager-title">
+        <h4 id="cloudflare-ai-account-manager-title" className="text-sm font-semibold text-gray-900">Quản lý tài khoản Cloudflare AI</h4>
+        <p className="mt-1 text-xs text-gray-500">Chọn slot để thêm hoặc chỉnh sửa. Token được lưu trong cấu hình mã hóa; nếu xóa cấu hình quản lý, biến môi trường trên máy chủ vẫn có thể được sử dụng.</p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <label className="block space-y-1.5 text-sm font-medium text-gray-700">Tài khoản
+            <select value={selectedCloudflareAiSlot} disabled={saveLoading || applyInProgress} onChange={event => setSelectedCloudflareAiSlot(event.target.value)} className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-800 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100">
+              {cloudflareAiAccountSlots.map(slot => {
+                const accountKey = slot === '1' ? 'CLOUDFLARE_ACCOUNT_ID' : `CLOUDFLARE_ACCOUNT_ID_${slot}`;
+                const tokenKey = slot === '1' ? 'CLOUDFLARE_API_TOKEN' : `CLOUDFLARE_API_TOKEN_${slot}`;
+                const configured = Boolean(values[accountKey]?.trim() || isSecretConfigured(tokenKey));
+                return <option key={slot} value={slot}>Tài khoản {slot} · {configured ? 'Đã cấu hình' : 'Trống'}</option>;
+              })}
+            </select>
+          </label>
+          <label className="block space-y-1.5 text-sm font-medium text-gray-700" htmlFor="cloudflare-ai-account-id">Account ID
+            <input id="cloudflare-ai-account-id" type="text" maxLength={32} autoComplete="off" value={values[cloudflareAiAccountIdKey] ?? ''} disabled={saveLoading || applyInProgress} onChange={event => setFieldValue(cloudflareAiAccountIdKey, event.target.value)} className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 font-mono text-xs text-gray-800 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100" placeholder="32 ký tự hex" />
+          </label>
+          <label className="block space-y-1.5 text-sm font-medium text-gray-700" htmlFor="cloudflare-ai-model">Mô hình AI
+            <select id="cloudflare-ai-model" value={values[cloudflareAiModelKey] ?? ''} disabled={saveLoading || applyInProgress} onChange={event => setFieldValue(cloudflareAiModelKey, event.target.value)} className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-800 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100">
+              <option value="">Mặc định của Cloudflare AI</option>
+              {cloudflareAiModelOptions.map(model => <option key={model} value={model}>{model}</option>)}
+            </select>
+          </label>
+          <div className="space-y-3">
+            <SecretDataField icon={KeyRound} label="API token hiện tại" configured={isRuntimeSecretConfigured(cloudflareAiApiTokenKey)} value={revealedSecrets[cloudflareAiApiTokenKey]} revealed={Object.hasOwn(revealedSecrets, cloudflareAiApiTokenKey)} loading={secretRevealLoading[cloudflareAiApiTokenKey] ?? false} error={secretRevealErrors[cloudflareAiApiTokenKey] ?? ''} onToggle={() => void toggleSecretReveal(cloudflareAiApiTokenKey)} />
+            <input type="password" autoComplete="new-password" aria-label="API token mới" value={secretInputs[cloudflareAiApiTokenKey] ?? ''} disabled={saveLoading || applyInProgress} onChange={event => {
+              setSecretInputs(current => ({ ...current, [cloudflareAiApiTokenKey]: event.target.value }));
+              setSecretResets(current => ({ ...current, [cloudflareAiApiTokenKey]: false }));
+            }} className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 font-mono text-xs outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100" placeholder={isSecretConfigured(cloudflareAiApiTokenKey) ? 'Đã cấu hình — để trống để giữ nguyên' : 'Nhập API token'} />
+          </div>
+        </div>
+        {selectedCloudflareAiSlotConfigured && <button type="button" disabled={saveLoading || applyInProgress} onClick={() => {
+          if (!window.confirm(`Gỡ cấu hình quản lý của tài khoản ${selectedCloudflareAiSlot}? Biến môi trường trên máy chủ vẫn có thể được sử dụng.`)) return;
+          setFieldValue(cloudflareAiAccountIdKey, '');
+          setFieldValue(cloudflareAiModelKey, '');
+          setSecretInputs(current => ({ ...current, [cloudflareAiApiTokenKey]: '' }));
+          setSecretResets(current => ({ ...current, [cloudflareAiApiTokenKey]: true }));
+        }} className="mt-4 text-sm font-medium text-red-700 underline disabled:opacity-50">Xóa cấu hình quản lý</button>}
+      </section>}
       <div className="mt-5 flex flex-col gap-3 border-t border-gray-100 pt-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2 text-sm">
