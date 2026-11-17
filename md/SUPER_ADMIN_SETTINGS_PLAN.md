@@ -184,3 +184,25 @@ Mục tiêu là biến `/admin/settings` thành khu vực quản lý các đối
 Việc mở rộng giao diện đa provider không được mở quyền sửa tùy ý biến môi trường. Mỗi provider phải có registry/allowlist, validation, quản lý secret an toàn, phân quyền Super Admin, audit và quy trình áp dụng/rollback phù hợp. Provider cần năng lực vận hành thật mới được cung cấp nút bật, kiểm tra kết nối, deploy hoặc áp dụng cấu hình.
 
 Các lựa chọn provider ngoài nhà cung cấp khởi đầu, phạm vi cụ thể của tích hợp Cloudflare Deploy, và vị trí quản lý Cloudflare AI cần được xác nhận trước khi triển khai CRUD/tích hợp tương ứng.
+
+### Form cấu hình theo yêu cầu từng nền tảng
+
+Giao diện Super Admin phải chọn bộ input theo provider và adapter đã chọn; không suy luận rằng mọi cổng thanh toán cần cùng một trường, cũng không để người dùng tự nhập tên environment key tùy ý. Backend giữ registry/schema tường minh cho từng adapter, gồm tên trường, loại dữ liệu, bắt buộc/tùy chọn, validation, độ nhạy, môi trường áp dụng và khả năng reload/restart. Frontend chỉ render schema được backend cho phép.
+
+Phân biệt rõ ba nhóm dữ liệu:
+
+- **Thông tin hồ sơ tham khảo**: tên, mô tả, trang quản lý và các ghi chú không nhạy cảm. Nhóm này không cấu hình hay kích hoạt tích hợp.
+- **Cấu hình tích hợp cố định**: credentials, môi trường, endpoint và callback URLs được adapter hỗ trợ. Secret dùng input che mặc định, chỉ đi qua kho mã hóa; không lưu secret trong danh sách thông tin tùy ý của hồ sơ đối tác.
+- **Dữ liệu từng giao dịch**: order/request ID, amount, redirect URL trả về từ cổng và signature sinh cho request. Adapter/backend tạo hoặc xử lý theo giao dịch; không yêu cầu Super Admin nhập các giá trị này như cấu hình dùng chung.
+
+Ví dụ bộ trường sandbox cần được xác nhận theo đúng sản phẩm/API adapter trước khi đưa vào registry:
+
+- **VNPay hiện tại**: `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET` (secret), endpoint, return URL và callback/IPN URL. Đây là bộ đang có trong registry dự án.
+- **PayPal Standard Checkout**: Client ID, Client Secret (secret) và chế độ sandbox. Backend dùng cặp credential để lấy OAuth access token; access token là dữ liệu runtime, không phải input lưu lâu dài. Dùng sandbox API host trong sandbox. Webhook ID chỉ cần khi adapter triển khai xác minh webhook. Client ID có thể cần cho PayPal JavaScript SDK ở frontend, còn Client Secret chỉ được dùng ở backend.
+- **MoMo**: `partnerCode`, `accessKey` (secret), `secretKey` (secret), endpoint/môi trường sandbox và các URL redirect/IPN cần cho luồng đã chọn. Các trường như `partnerName` hoặc `storeId` có thể phụ thuộc sản phẩm/API và hồ sơ merchant; xác nhận theo tài liệu/onboarding MoMo được cấp trước khi bắt buộc chúng.
+
+Mỗi cổng sandbox dùng credentials và endpoint sandbox riêng, không được dùng credential production để kiểm tra. Chữ ký được adapter tạo/xác minh theo thuật toán và canonical payload của từng cổng; không dùng chung cách ký URL của VNPay cho PayPal hoặc MoMo. Callback/IPN phải xác minh phía backend trước khi cập nhật đơn hàng; không tin riêng kết quả redirect trên trình duyệt.
+
+Chỉ hiển thị nút bật, kiểm tra kết nối hoặc đưa phương thức vào checkout khi adapter, validation, callback/IPN và xử lý trạng thái đã được triển khai. Provider chưa có adapter chỉ được lưu như hồ sơ tham khảo với trạng thái rõ ràng “Chưa tích hợp”. Nếu kho secret mã hóa không khả dụng, khóa lưu/apply và báo lỗi cụ thể; không fallback sang MongoDB plaintext hoặc trường thông tin tự do.
+
+Tham khảo tài liệu chính thức: [PayPal REST Authentication](https://developer.paypal.com/api/rest/authentication), [PayPal Checkout SPA](https://developer.paypal.com/docs/checkout/standard/customize/single-page-app/), [MoMo Payment API Init](https://developers.momo.vn/v3/docs/payment/api/payment-api/init/) và [MoMo Integration Process](https://developers.momo.vn/v3/docs/payment/onboarding/integration-process/). Các trường MoMo ngoài credential/endpoint cần đối chiếu lại với phiên bản API và merchant account được cấp.
