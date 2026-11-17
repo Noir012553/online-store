@@ -137,6 +137,13 @@ const runtimeSecretKeys = [
   ...r2NumberedKeys('R2_ACCESS_KEY_ID'), ...r2NumberedKeys('R2_SECRET_ACCESS_KEY'),
   ...cloudflareTokenKeys,
 ];
+const hiddenCloudflareAiSettingKeys = new Set([
+  'CLOUDFLARE_AI_MAX_TOKENS',
+  'CLOUDFLARE_RATE_LIMIT_COOLDOWN_MS',
+  'CLOUDFLARE_MAX_RATE_LIMIT_COOLDOWN_MS',
+  'CLOUDFLARE_COOLDOWN_WAIT_BUDGET_MS',
+  'CLOUDFLARE_MAX_PARALLEL_PER_KEY',
+]);
 
 // Keep this list explicit and in sync with the backend managed-draft allowlist.
 const settingsGroups: SettingsGroup[] = [
@@ -147,7 +154,7 @@ const settingsGroups: SettingsGroup[] = [
   { section: 'storage', title: 'Thông tin xác thực R2', keys: [...r2NumberedKeys('R2_ACCESS_KEY_ID'), ...r2NumberedKeys('R2_SECRET_ACCESS_KEY')] },
   { section: 'storage', title: 'Phân công tài khoản R2', keys: r2AccountRoleKeys },
   { section: 'ai', title: 'Tài khoản Cloudflare AI', keys: [...cloudflareAccountKeys, ...cloudflareTokenKeys] },
-  { section: 'ai', title: 'Chính sách Cloudflare AI', keys: ['CLOUDFLARE_AI_ENABLED', 'CLOUDFLARE_AI_MAX_REQUESTS_PER_DAY', 'CLOUDFLARE_AI_MAX_INPUT_CHARS_PER_DAY', 'CLOUDFLARE_AI_MAX_TOKENS', 'CLOUDFLARE_RATE_LIMIT_COOLDOWN_MS', 'CLOUDFLARE_MAX_RATE_LIMIT_COOLDOWN_MS', 'CLOUDFLARE_COOLDOWN_WAIT_BUDGET_MS', 'CLOUDFLARE_MAX_PARALLEL_PER_KEY', 'CLOUDFLARE_MAX_REQUESTS_PER_SEC', 'CLOUDFLARE_MAX_PARALLEL_REQUESTS'] },
+  { section: 'ai', title: 'Chính sách Cloudflare AI', keys: ['CLOUDFLARE_AI_ENABLED', 'CLOUDFLARE_AI_MAX_REQUESTS_PER_DAY', 'CLOUDFLARE_AI_MAX_INPUT_CHARS_PER_DAY', 'CLOUDFLARE_MAX_REQUESTS_PER_SEC', 'CLOUDFLARE_MAX_PARALLEL_REQUESTS'] },
   { section: 'ai', title: 'Mô hình Cloudflare AI', keys: aiModelKeys },
 ];
 const allowedKeys = new Set(settingsGroups.flatMap(group => group.keys));
@@ -160,9 +167,7 @@ const fieldLabels: Record<string, string> = {
   R2_MAX_UPLOAD_COUNT: 'Số tệp tối đa', R2_MAX_UPLOAD_BYTES: 'Dung lượng tối đa', R2_MAX_RETRIES: 'Số lần thử lại',
   R2_MAX_IMAGE_BYTES: 'Dung lượng ảnh tối đa', R2_MAX_VIDEO_BYTES: 'Dung lượng video tối đa', CLOUDFLARE_AI_ENABLED: 'Bật Cloudflare AI',
   CLOUDFLARE_AI_MAX_REQUESTS_PER_DAY: 'Số yêu cầu tối đa mỗi ngày', CLOUDFLARE_AI_MAX_INPUT_CHARS_PER_DAY: 'Số ký tự đầu vào tối đa mỗi ngày',
-  CLOUDFLARE_AI_MAX_TOKENS: 'Số token tối đa', CLOUDFLARE_RATE_LIMIT_COOLDOWN_MS: 'Thời gian chờ giới hạn tốc độ (ms)',
-  CLOUDFLARE_MAX_RATE_LIMIT_COOLDOWN_MS: 'Thời gian chờ giới hạn tối đa (ms)', CLOUDFLARE_COOLDOWN_WAIT_BUDGET_MS: 'Ngân sách thời gian chờ (ms)',
-  CLOUDFLARE_MAX_PARALLEL_PER_KEY: 'Số yêu cầu đồng thời tối đa mỗi khóa', CLOUDFLARE_MAX_REQUESTS_PER_SEC: 'Số yêu cầu tối đa mỗi giây',
+  CLOUDFLARE_MAX_REQUESTS_PER_SEC: 'Số yêu cầu tối đa mỗi giây',
   CLOUDFLARE_MAX_PARALLEL_REQUESTS: 'Số yêu cầu đồng thời tối đa', CLOUDFLARE_AI_MODEL: 'Mô hình AI',
 };
 
@@ -270,8 +275,9 @@ function SettingsPage() {
     setValuesError(false);
     try {
       const response = await apiCall<{ success: boolean; data: { settings: RuntimeSetting[] } }>('/admin/settings/values', { skipCache: true, skipErrorToast: true });
-      setRuntimeSettings(response.data.settings);
-      return response.data.settings;
+      const visibleSettings = response.data.settings.filter(setting => !hiddenCloudflareAiSettingKeys.has(setting.key));
+      setRuntimeSettings(visibleSettings);
+      return visibleSettings;
     } catch {
       setValuesError(true);
       return [];
@@ -305,13 +311,6 @@ function SettingsPage() {
       else if (!setting.secret && !secretKeys.has(setting.key)) liveValues[setting.key] = setting.value;
     });
     if (runtimeStatus) {
-      const cloudflareAiLimits = runtimeStatus.cloudflareAi?.limits;
-      if (cloudflareAiLimits) {
-        if (cloudflareAiLimits.maxOutputTokens !== undefined) liveValues.CLOUDFLARE_AI_MAX_TOKENS = String(cloudflareAiLimits.maxOutputTokens);
-        if (cloudflareAiLimits.rateLimitCooldownMs !== undefined) liveValues.CLOUDFLARE_RATE_LIMIT_COOLDOWN_MS = String(cloudflareAiLimits.rateLimitCooldownMs);
-        if (cloudflareAiLimits.cooldownWaitBudgetMs !== undefined) liveValues.CLOUDFLARE_COOLDOWN_WAIT_BUDGET_MS = String(cloudflareAiLimits.cooldownWaitBudgetMs);
-        if (cloudflareAiLimits.maxParallelPerKey !== undefined) liveValues.CLOUDFLARE_MAX_PARALLEL_PER_KEY = String(cloudflareAiLimits.maxParallelPerKey);
-      }
       liveValues.R2_UPLOAD_ENABLED = String(runtimeStatus.r2.uploadEnabled);
       if (runtimeStatus.r2.policyValid) {
         liveValues.R2_MAX_UPLOAD_COUNT = String(runtimeStatus.r2.policy.maxAssets);
