@@ -126,6 +126,7 @@ router.get('/status', protect, superAdmin, asyncHandler(async (_req, res) => {
         configuredCount: aiConfig.configCount,
         maxRequestsPerDay: aiPolicy.maxRequestsPerDay,
         maxInputCharsPerDay: aiPolicy.maxInputCharsPerDay,
+        limits: cloudflareAiService.getRuntimeLimits(),
         models: aiConfig.configs.map(config => config.model),
         accountIds: cloudflareAiService.configs.map(config => config.accountId),
         allCredentialsConfigured: aiConfig.configCount > 0

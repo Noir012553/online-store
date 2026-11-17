@@ -249,5 +249,11 @@ describe('Super-admin settings boundary', () => {
     expect(response.status).to.equal(200);
     expect(response.body.data.security).to.include({ secretsRevealOnDemand: true, applyWorkerAvailable: false });
     expect(response.body.data.security.applyWorkerUnavailableReason).to.be.a('string');
+    expect(response.body.data.cloudflareAi.limits).to.have.keys(
+      'maxOutputTokens', 'rateLimitCooldownMs', 'cooldownWaitBudgetMs', 'maxParallelPerKey',
+    );
+    Object.values(response.body.data.cloudflareAi.limits).forEach(value => {
+      expect(value).to.be.a('number').and.greaterThan(0);
+    });
   });
 });

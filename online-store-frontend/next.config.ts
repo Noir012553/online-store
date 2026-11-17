@@ -45,6 +45,7 @@ const nextConfig: NextConfig = {
    * Cấu hình cho Server Actions (cho phép gọi từ domain của bạn)
    */
   experimental: {
+    agentUpgrade: 'security',
     serverActions: {
       allowedOrigins: ['manln.online'],
     },
