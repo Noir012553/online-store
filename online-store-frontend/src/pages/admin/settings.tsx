@@ -179,6 +179,51 @@ const fieldLabels: Record<string, string> = {
   CLOUDFLARE_MAX_REQUESTS_PER_SEC: 'Số yêu cầu tối đa mỗi giây',
   CLOUDFLARE_MAX_PARALLEL_REQUESTS: 'Số yêu cầu đồng thời tối đa', CLOUDFLARE_AI_MODEL: 'Mô hình AI',
 };
+const settingHelpText: Record<string, string> = {
+  EMAIL_SERVICE: 'Chọn smtp hoặc sendgrid theo tài khoản gửi thư đang dùng.',
+  EMAIL_HOST: 'Tên máy chủ SMTP do nhà cung cấp email cung cấp; không nhập địa chỉ email.',
+  EMAIL_PORT: 'Số cổng SMTP theo hướng dẫn của nhà cung cấp email.',
+  EMAIL_SECURE: 'Chọn theo chế độ kết nối SMTP mà nhà cung cấp yêu cầu.',
+  EMAIL_USER: 'Tên đăng nhập SMTP, thường là địa chỉ email của tài khoản gửi.',
+  EMAIL_FROM: 'Địa chỉ người gửi đã được xác minh với nhà cung cấp email.',
+  EMAIL_PASSWORD: 'Mật khẩu SMTP hoặc app password do nhà cung cấp yêu cầu; không phải lúc nào cũng là mật khẩu đăng nhập email.',
+  SENDGRID_API_KEY: 'API key tạo trong tài khoản SendGrid; chỉ cần khi chọn SendGrid.',
+  VNPAY_ENDPOINT: 'Dùng endpoint sandbox do VNPay cấp cho môi trường thử nghiệm; không dùng endpoint production khi đang test.',
+  VNPAY_TMN_CODE: 'Mã terminal/merchant của tài khoản VNPay sandbox, lấy trong thông tin tích hợp của merchant.',
+  VNPAY_RETURN_URL: 'URL HTTPS công khai để khách hàng quay lại sau thanh toán; dùng đúng URL return đã cấu hình cho ứng dụng và đăng ký với VNPay.',
+  VNPAY_CALLBACK_URL: 'URL HTTPS công khai nhận kết quả server-to-server. Backend hiện nhận tại /api/payments/webhook/vnpay; URL phải trỏ đúng domain API đang chạy và được khai báo với VNPay.',
+  VNPAY_HASH_SECRET: 'Secret ký giao dịch của đúng tài khoản VNPay sandbox; không dùng secret production.',
+  GHN_API_TOKEN: 'Token lấy từ tài khoản GHN cùng môi trường đang cấu hình; giữ bí mật.',
+  GHN_SHOP_ID: 'Shop ID do GHN cấp cho cửa hàng; nhập dạng số, không tự đặt.',
+  GHN_WAREHOUSE_DISTRICT_ID: 'Mã quận/huyện của địa chỉ kho gửi đã đăng ký với GHN; lấy từ dữ liệu địa chỉ GHN, không đoán.',
+  GHN_WAREHOUSE_WARD_CODE: 'Mã phường/xã của cùng địa chỉ kho gửi theo dữ liệu GHN.',
+  GHN_MAX_INSURANCE_VALUE: 'Giới hạn giá trị bảo hiểm khai báo theo chính sách GHN áp dụng cho shop; nhập số tiền VND.',
+  R2_UPLOAD_ENABLED: 'Bật true hoặc false theo việc cho phép ứng dụng tải tệp lên R2.',
+  R2_MAX_UPLOAD_COUNT: 'Số lượng tệp tối đa được phép trong một lần tải lên.',
+  R2_MAX_UPLOAD_BYTES: 'Tổng dung lượng tối đa của một lần tải lên, tính bằng byte.',
+  R2_MAX_RETRIES: 'Số lần thử lại tối đa khi tải lên thất bại.',
+  R2_MAX_IMAGE_BYTES: 'Dung lượng ảnh tối đa cho mỗi tệp, tính bằng byte.',
+  R2_MAX_VIDEO_BYTES: 'Dung lượng video tối đa cho mỗi tệp, tính bằng byte.',
+  CLOUDFLARE_AI_ENABLED: 'Bật true chỉ khi đã cấu hình tài khoản và API token có quyền dùng Workers AI.',
+  CLOUDFLARE_AI_MAX_REQUESTS_PER_DAY: 'Giới hạn số yêu cầu AI mỗi ngày; nhập số nguyên.',
+  CLOUDFLARE_AI_MAX_INPUT_CHARS_PER_DAY: 'Giới hạn tổng số ký tự đầu vào AI mỗi ngày; nhập số nguyên.',
+  CLOUDFLARE_MAX_REQUESTS_PER_SEC: 'Giới hạn yêu cầu AI mỗi giây; nhập số nguyên theo giới hạn vận hành mong muốn.',
+  CLOUDFLARE_MAX_PARALLEL_REQUESTS: 'Giới hạn số yêu cầu AI chạy đồng thời; nhập số nguyên.',
+};
+const getSettingHelpText = (key: string) => settingHelpText[key]
+  ?? (key.startsWith('R2_ACCOUNT_ID') ? 'Account ID 32 ký tự hex trong trang tổng quan Cloudflare của tài khoản chứa bucket.'
+    : key.startsWith('R2_BUCKET_NAME') ? 'Tên bucket R2 đã tạo trong tài khoản Cloudflare tương ứng.'
+      : key.startsWith('R2_PUBLIC_BASE_URL') ? 'URL HTTPS công khai hoặc custom domain đã gắn với bucket để truy cập tệp.'
+        : key.startsWith('R2_ACCESS_KEY_ID') ? 'Access Key ID tạo cho R2 API token có quyền truy cập bucket này.'
+          : key.startsWith('R2_SECRET_ACCESS_KEY') ? 'Secret Access Key đi cùng Access Key ID phía trên; không dùng Cloudflare Global API Key.'
+            : key.startsWith('R2_ACCOUNT_ROLE') ? 'Chọn số slot R2 đã cấu hình ở trên; các slot được đánh số từ 1 đến 9.'
+              : key.startsWith('CLOUDFLARE_ACCOUNT_ID') ? 'Account ID trong Cloudflare dashboard của tài khoản Workers AI.'
+                : key.startsWith('CLOUDFLARE_API_TOKEN') ? 'API token tạo trong Cloudflare với quyền tối thiểu cần cho Workers AI; không dùng Global API Key.'
+                  : key.startsWith('CLOUDFLARE_AI_MODEL') ? 'Model identifier được Cloudflare Workers AI hỗ trợ cho tài khoản này; để trống nếu muốn dùng mặc định.'
+                    : key === 'CLOUDFLARE_AI_MAX_TOKENS' ? 'Số token đầu ra tối đa cho mỗi yêu cầu AI.'
+                      : key === 'CLOUDFLARE_RATE_LIMIT_COOLDOWN_MS' || key === 'CLOUDFLARE_MAX_RATE_LIMIT_COOLDOWN_MS' || key === 'CLOUDFLARE_COOLDOWN_WAIT_BUDGET_MS' ? 'Thời lượng tính bằng mili giây; chỉ thay đổi theo chính sách giới hạn tốc độ đã chọn.'
+                        : key === 'CLOUDFLARE_MAX_PARALLEL_PER_KEY' ? 'Số yêu cầu đồng thời tối đa cho mỗi API token.'
+                          : 'Nhập giá trị theo loại dữ liệu và giới hạn hiển thị; thông tin xác thực phải lấy từ tài khoản dịch vụ tương ứng.');
 
 const sections = [
   { id: 'overview', label: 'overview' },
@@ -767,12 +812,15 @@ function SettingsPage() {
           </label>
           <label className="block space-y-1.5 text-sm font-medium text-gray-700">Account ID
             <input type="text" maxLength={32} autoComplete="off" value={values[r2AccountIdKey] ?? ''} disabled={saveLoading || applyInProgress} onChange={event => setFieldValue(r2AccountIdKey, event.target.value)} className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 font-mono text-xs text-gray-800 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100" placeholder="32 ký tự hex" />
+            <span className="block text-xs font-normal text-gray-500">{getSettingHelpText(r2AccountIdKey)}</span>
           </label>
           <label className="block space-y-1.5 text-sm font-medium text-gray-700">Tên bucket
             <input type="text" maxLength={63} value={values[r2BucketNameKey] ?? ''} disabled={saveLoading || applyInProgress} onChange={event => setFieldValue(r2BucketNameKey, event.target.value)} className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 font-mono text-xs text-gray-800 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100" />
+            <span className="block text-xs font-normal text-gray-500">{getSettingHelpText(r2BucketNameKey)}</span>
           </label>
           <label className="block space-y-1.5 text-sm font-medium text-gray-700">URL công khai
             <input type="url" value={values[r2PublicBaseUrlKey] ?? ''} disabled={saveLoading || applyInProgress} onChange={event => setFieldValue(r2PublicBaseUrlKey, event.target.value)} className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-800 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100" placeholder="https://cdn.example.com" />
+            <span className="block text-xs font-normal text-gray-500">{getSettingHelpText(r2PublicBaseUrlKey)}</span>
           </label>
           {[{ key: r2AccessKeyIdKey, label: 'Access key ID' }, { key: r2SecretAccessKeyKey, label: 'Secret access key' }].map(({ key, label }) => <div key={key} className="space-y-2">
             <SecretDataField icon={KeyRound} label={`${label} hiện tại`} configured={isRuntimeSecretConfigured(key)} value={revealedSecrets[key]} revealed={Object.hasOwn(revealedSecrets, key)} loading={secretRevealLoading[key] ?? false} error={secretRevealErrors[key] ?? ''} onToggle={() => void toggleSecretReveal(key)} />
@@ -780,6 +828,7 @@ function SettingsPage() {
               setSecretInputs(current => ({ ...current, [key]: event.target.value }));
               setSecretResets(current => ({ ...current, [key]: false }));
             }} className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 font-mono text-xs text-gray-800 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100" placeholder={isSecretConfigured(key) ? 'Đã cấu hình — để trống để giữ nguyên' : 'Nhập secret'} />
+            <span className="block text-xs font-normal text-gray-500">{getSettingHelpText(key)}</span>
             {isSecretDraftConfigured(key) && <button type="button" disabled={saveLoading || applyInProgress} onClick={() => setSecretResets(current => ({ ...current, [key]: !current[key] }))} className="text-xs font-medium text-red-700 underline disabled:opacity-50">{secretResets[key] ? 'Hủy xóa' : 'Xóa cấu hình quản lý'}</button>}
           </div>)}
         </div>
@@ -808,6 +857,7 @@ function SettingsPage() {
                 {secret ? <div className="min-w-0 space-y-2">
                   {valuesLoading ? <p className="text-xs text-gray-500">Đang tải trạng thái secret runtime…</p> : valuesError ? <p role="alert" className="text-xs text-red-700">Không thể xác định trạng thái secret runtime.</p> : <SecretDataField icon={KeyRound} label="Secret runtime hiện tại" configured={isRuntimeSecretConfigured(key)} value={revealedSecrets[key]} revealed={Object.hasOwn(revealedSecrets, key)} loading={secretRevealLoading[key] ?? false} error={secretRevealErrors[key] ?? ''} onToggle={() => void toggleSecretReveal(key)} />}
                   {input}
+                  <p className="text-xs leading-5 text-gray-500">{getSettingHelpText(key)}</p>
                   {(secretResets[key] && !isSecretResetSaved(key)) || (!secretResets[key] && isSecretDraftConfigured(key)) ? <button type="button" disabled={saveLoading || applyInProgress} onClick={() => {
                     if (secretResets[key]) {
                       setSecretResets(current => ({ ...current, [key]: false }));
@@ -816,7 +866,7 @@ function SettingsPage() {
                       setSecretResets(current => ({ ...current, [key]: true }));
                     }
                   }} className="mt-1 text-xs font-medium text-red-700 underline disabled:opacity-50">{secretResets[key] ? 'Hủy xóa' : 'Xóa cấu hình quản lý'}</button> : null}
-                </div> : input}
+                </div> : <div className="min-w-0 space-y-1.5">{input}<p className="text-xs leading-5 text-gray-500">{getSettingHelpText(key)}</p></div>}
               </div>;
             })}
           </div>
@@ -838,12 +888,14 @@ function SettingsPage() {
           </label>
           <label className="block space-y-1.5 text-sm font-medium text-gray-700" htmlFor="cloudflare-ai-account-id">Account ID
             <input id="cloudflare-ai-account-id" type="text" maxLength={32} autoComplete="off" value={values[cloudflareAiAccountIdKey] ?? ''} disabled={saveLoading || applyInProgress} onChange={event => setFieldValue(cloudflareAiAccountIdKey, event.target.value)} className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 font-mono text-xs text-gray-800 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100" placeholder="32 ký tự hex" />
+            <span className="block text-xs font-normal text-gray-500">{getSettingHelpText(cloudflareAiAccountIdKey)}</span>
           </label>
           <label className="block space-y-1.5 text-sm font-medium text-gray-700" htmlFor="cloudflare-ai-model">Mô hình AI
             <select id="cloudflare-ai-model" value={values[cloudflareAiModelKey] ?? ''} disabled={saveLoading || applyInProgress} onChange={event => setFieldValue(cloudflareAiModelKey, event.target.value)} className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-800 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100">
               <option value="">Mặc định của Cloudflare AI</option>
               {cloudflareAiModelOptions.map(model => <option key={model} value={model}>{model}</option>)}
             </select>
+            <span className="block text-xs font-normal text-gray-500">{getSettingHelpText(cloudflareAiModelKey)}</span>
           </label>
           <div className="space-y-3">
             <SecretDataField icon={KeyRound} label="API token hiện tại" configured={isRuntimeSecretConfigured(cloudflareAiApiTokenKey)} value={revealedSecrets[cloudflareAiApiTokenKey]} revealed={Object.hasOwn(revealedSecrets, cloudflareAiApiTokenKey)} loading={secretRevealLoading[cloudflareAiApiTokenKey] ?? false} error={secretRevealErrors[cloudflareAiApiTokenKey] ?? ''} onToggle={() => void toggleSecretReveal(cloudflareAiApiTokenKey)} />
@@ -851,6 +903,7 @@ function SettingsPage() {
               setSecretInputs(current => ({ ...current, [cloudflareAiApiTokenKey]: event.target.value }));
               setSecretResets(current => ({ ...current, [cloudflareAiApiTokenKey]: false }));
             }} className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 font-mono text-xs outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100" placeholder={isSecretConfigured(cloudflareAiApiTokenKey) ? 'Đã cấu hình — để trống để giữ nguyên' : 'Nhập API token'} />
+            <p className="text-xs leading-5 text-gray-500">{getSettingHelpText(cloudflareAiApiTokenKey)}</p>
           </div>
         </div>
         {selectedCloudflareAiSlotConfigured && <button type="button" disabled={saveLoading || applyInProgress} onClick={() => {
