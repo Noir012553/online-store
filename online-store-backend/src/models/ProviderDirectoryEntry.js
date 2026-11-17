@@ -32,6 +32,13 @@ const providerDirectoryEntrySchema = new mongoose.Schema({
     trim: true,
     maxlength: 500,
   },
+  details: {
+    type: [{
+      label: { type: String, required: true, trim: true, maxlength: 80 },
+      value: { type: String, required: true, trim: true, maxlength: 500 },
+    }],
+    default: [],
+  },
   isDeleted: {
     type: Boolean,
     default: false,

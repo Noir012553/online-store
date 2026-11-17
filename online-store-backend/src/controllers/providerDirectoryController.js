@@ -11,6 +11,7 @@ const serialize = entry => ({
   name: entry.name,
   description: entry.description,
   managementUrl: entry.managementUrl,
+  details: entry.details || [],
   isDeleted: entry.isDeleted,
   isConnected: false,
   isOperational: false,
@@ -25,6 +26,14 @@ const normalizeProvider = body => {
   if (typeof body.name === 'string') provider.name = body.name.trim();
   if (typeof body.description === 'string') provider.description = body.description.trim();
   if (typeof body.managementUrl === 'string') provider.managementUrl = body.managementUrl.trim();
+  if (Array.isArray(body.details)) {
+    provider.details = body.details.map(detail => ({
+      label: typeof detail?.label === 'string' ? detail.label.trim() : '',
+      value: typeof detail?.value === 'string' ? detail.value.trim() : '',
+    }));
+  } else if (Object.hasOwn(body, 'details')) {
+    provider.details = null;
+  }
   return provider;
 };
 
@@ -48,6 +57,8 @@ const validateProvider = provider => {
   if (provider.name !== undefined && (provider.name.length < 2 || provider.name.length > 80)) return false;
   if (provider.description !== undefined && provider.description.length > 500) return false;
   if (provider.managementUrl !== undefined && (provider.managementUrl.length > 500 || !isValidManagementUrl(provider.managementUrl))) return false;
+  if (provider.details !== undefined && (!Array.isArray(provider.details) || provider.details.length > 20
+    || provider.details.some(detail => !detail.label || detail.label.length > 80 || !detail.value || detail.value.length > 500))) return false;
   return true;
 };
 

@@ -44,6 +44,7 @@ describe('provider directory controller', () => {
       name: 'Mail Provider',
       description: '',
       managementUrl: 'https://provider.example.com/login',
+      details: [{ label: 'Mã cửa hàng', value: 'shop-123' }],
       isDeleted: false,
       toString() { return this._id.toString(); },
     };
@@ -52,14 +53,28 @@ describe('provider directory controller', () => {
 
     await controller.createProvider({ body: {
       category: 'email', code: 'Mail-Provider', name: ' Mail Provider ',
-      managementUrl: 'https://provider.example.com/login', isOperational: true,
+      managementUrl: 'https://provider.example.com/login',
+      details: [{ label: 'Mã cửa hàng', value: ' shop-123 ' }],
+      isOperational: true,
     } }, res);
 
     expect(ProviderDirectoryEntry.create.firstCall.args[0]).to.deep.equal({
       category: 'email', code: 'mail-provider', name: 'Mail Provider', managementUrl: 'https://provider.example.com/login',
+      details: [{ label: 'Mã cửa hàng', value: 'shop-123' }],
     });
     expect(res.status.calledWith(201)).to.equal(true);
     expect(res.json.firstCall.args[0].data.provider.isOperational).to.equal(false);
+  });
+
+  it('rejects invalid or excessive partner-specific details', async () => {
+    const create = sandbox.stub(ProviderDirectoryEntry, 'create');
+    const res = { status: sandbox.stub().returnsThis(), json: sandbox.stub() };
+
+    await controller.createProvider({ body: { category: 'shipping', code: 'carrier-one', name: 'Carrier One', details: [{ label: '', value: 'x' }] } }, res);
+    await controller.createProvider({ body: { category: 'shipping', code: 'carrier-two', name: 'Carrier Two', details: Array.from({ length: 21 }, (_, index) => ({ label: `Thông tin ${index}`, value: 'x' })) } }, res);
+
+    expect(res.status.args.map(([status]) => status)).to.deep.equal([400, 400]);
+    expect(create.called).to.equal(false);
   });
 
   it('rejects unsupported categories and insecure management URLs', async () => {
@@ -89,9 +104,9 @@ describe('provider directory controller', () => {
     const update = sandbox.stub(ProviderDirectoryEntry, 'findOneAndUpdate').resolves(entry);
     const res = { status: sandbox.stub().returnsThis(), json: sandbox.stub() };
 
-    await controller.updateProvider({ params: { id }, body: { category: 'payment', code: 'other-pay', name: 'Carrier One Plus' } }, res);
+    await controller.updateProvider({ params: { id }, body: { category: 'payment', code: 'other-pay', name: 'Carrier One Plus', details: [{ label: 'Khu vực', value: 'Hà Nội' }] } }, res);
 
-    expect(update.firstCall.args[1]).to.deep.equal({ $set: { name: 'Carrier One Plus' } });
+    expect(update.firstCall.args[1]).to.deep.equal({ $set: { name: 'Carrier One Plus', details: [{ label: 'Khu vực', value: 'Hà Nội' }] } });
     expect(res.status.calledWith(200)).to.equal(true);
   });
 

@@ -100,6 +100,7 @@ type ProviderDirectoryEntry = {
   name: string;
   description: string;
   managementUrl: string;
+  details: Array<{ label: string; value: string }>;
   isDeleted: boolean;
   isConnected: false;
   isOperational: false;
@@ -456,7 +457,7 @@ function SettingsPage() {
     }
   };
 
-  const updateProviderEntry = async (id: string, updates: { name: string; description: string; managementUrl: string }) => {
+  const updateProviderEntry = async (id: string, updates: { name: string; description: string; managementUrl: string; details: Array<{ label: string; value: string }> }) => {
     setProviderSaving(true);
     setProviderEntriesError('');
     try {
@@ -859,18 +860,19 @@ function ProviderDirectoryManager({ category, entries, loading, saving, error, o
   saving: boolean;
   error: string;
   onCreate: (input: Omit<ProviderDirectoryEntry, 'id' | 'isDeleted' | 'isConnected' | 'isOperational'>) => Promise<boolean>;
-  onUpdate: (id: string, updates: { name: string; description: string; managementUrl: string }) => Promise<boolean>;
+  onUpdate: (id: string, updates: { name: string; description: string; managementUrl: string; details: Array<{ label: string; value: string }> }) => Promise<boolean>;
   onArchive: (entry: ProviderDirectoryEntry) => Promise<void>;
   onRestore: (entry: ProviderDirectoryEntry) => Promise<void>;
 }) {
   const [editingId, setEditingId] = useState('');
   const [selectedValue, setSelectedValue] = useState('');
-  const [form, setForm] = useState({ code: '', name: '', description: '', managementUrl: '' });
+  const [form, setForm] = useState({ code: '', name: '', description: '', managementUrl: '', details: [] as Array<{ label: string; value: string }> });
   const categoryEntries = entries.filter(entry => entry.category === category);
   const presets = providerPresets[category] ?? [];
   const selectedPreset = presets.find(preset => selectedValue === `preset:${preset.code}`);
   const selectedEntry = categoryEntries.find(entry => selectedValue === `entry:${entry.id}`);
   const selectedProvider = selectedPreset ?? selectedEntry;
+  const selectedDetails = selectedEntry?.details ?? [];
   const categoryLabel = category === 'payment' ? 'đối tác thanh toán' : category === 'shipping' ? 'nhà vận chuyển' : category === 'deployment' ? 'nền tảng triển khai' : category === 'storage' ? 'nhà cung cấp lưu trữ' : category === 'email' ? 'nhà cung cấp email' : 'đối tác';
   const managementUrl = (() => {
     const value = selectedProvider?.managementUrl;
@@ -884,13 +886,14 @@ function ProviderDirectoryManager({ category, entries, loading, saving, error, o
   })();
   const resetForm = () => {
     setEditingId('');
-    setForm({ code: '', name: '', description: '', managementUrl: '' });
+    setForm({ code: '', name: '', description: '', managementUrl: '', details: [] });
   };
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const details = form.details.filter(detail => detail.label.trim() && detail.value.trim());
     const saved = editingId
-      ? await onUpdate(editingId, { name: form.name, description: form.description, managementUrl: form.managementUrl })
-      : await onCreate({ category, code: form.code, name: form.name, description: form.description, managementUrl: form.managementUrl });
+      ? await onUpdate(editingId, { name: form.name, description: form.description, managementUrl: form.managementUrl, details })
+      : await onCreate({ category, code: form.code, name: form.name, description: form.description, managementUrl: form.managementUrl, details });
     if (saved) resetForm();
   };
 
@@ -899,15 +902,16 @@ function ProviderDirectoryManager({ category, entries, loading, saving, error, o
     {error && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
     <label className="block space-y-1 text-sm font-medium text-gray-700"><span>Chọn {categoryLabel}</span><select value={selectedValue} disabled={loading && presets.length === 0 && categoryEntries.length === 0} onChange={event => setSelectedValue(event.target.value)} className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm disabled:bg-gray-100"><option value="">{`Chọn ${categoryLabel}`}</option>{presets.length > 0 && <optgroup label="Đang tích hợp">{presets.map(preset => <option key={preset.code} value={`preset:${preset.code}`}>{preset.name}</option>)}</optgroup>}{categoryEntries.length > 0 && <optgroup label="Thông tin tham khảo — chưa kết nối">{categoryEntries.map(entry => <option key={entry.id} value={`entry:${entry.id}`}>{entry.name} · {entry.code}{entry.isDeleted ? ' (Đã ẩn)' : ''}</option>)}</optgroup>}</select></label>
     {selectedProvider && <div className={`rounded-lg border p-4 ${selectedEntry?.isDeleted ? 'border-gray-200 bg-gray-50' : 'border-gray-200'}`}>
-      <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h4 className="font-semibold text-gray-900">{selectedProvider.name}</h4><StatusBadge tone={selectedPreset ? 'good' : 'neutral'}>{selectedPreset?.statusLabel ?? 'Chưa kết nối'}</StatusBadge>{selectedEntry?.isDeleted && <StatusBadge tone="neutral">Đã ẩn</StatusBadge>}</div><p className="mt-1 text-sm text-gray-600">{selectedProvider.description || 'Chưa có mô tả'}</p><p className="mt-1 text-xs text-gray-400">Mã: {selectedProvider.code}</p>{managementUrl && <p className="mt-2 break-all text-xs text-gray-500">Trang đối tác: {managementUrl.host}</p>}</div>
-        <div className="flex flex-wrap gap-2">{managementUrl && !selectedEntry?.isDeleted && <a href={managementUrl.href} target="_blank" rel="noopener noreferrer" onClick={event => { if (!window.confirm(`Mở trang bên ngoài ${managementUrl.host}? Bạn sẽ tự đăng nhập trực tiếp với đối tác.`)) event.preventDefault(); }} className="inline-flex h-9 items-center rounded-lg border border-blue-200 px-3 text-sm font-semibold text-blue-700 hover:bg-blue-50">{category === 'deployment' ? 'Đăng nhập quản lý' : 'Mở trang đối tác'}</a>}{selectedEntry && (selectedEntry.isDeleted ? <button type="button" onClick={() => void onRestore(selectedEntry)} className="rounded-lg border border-gray-300 px-3 text-sm font-semibold text-gray-700 hover:bg-gray-50">Khôi phục</button> : <><button type="button" onClick={() => { setEditingId(selectedEntry.id); setForm({ code: selectedEntry.code, name: selectedEntry.name, description: selectedEntry.description, managementUrl: selectedEntry.managementUrl }); }} className="rounded-lg border border-gray-300 px-3 text-sm font-semibold text-gray-700 hover:bg-gray-50">Sửa</button><button type="button" onClick={() => void onArchive(selectedEntry)} className="rounded-lg border border-red-200 px-3 text-sm font-semibold text-gray-700 hover:bg-red-50">Ẩn</button></>)}</div>
+      <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h4 className="font-semibold text-gray-900">{selectedProvider.name}</h4><StatusBadge tone={selectedPreset ? 'good' : 'neutral'}>{selectedPreset?.statusLabel ?? 'Chưa kết nối'}</StatusBadge>{selectedEntry?.isDeleted && <StatusBadge tone="neutral">Đã ẩn</StatusBadge>}</div><p className="mt-1 text-sm text-gray-600">{selectedProvider.description || 'Chưa có mô tả'}</p><p className="mt-1 text-xs text-gray-400">Mã nội bộ: {selectedProvider.code}</p>{managementUrl && <p className="mt-2 break-all text-xs text-gray-500">Trang đối tác: {managementUrl.host}</p>}{selectedDetails.length > 0 && <dl className="mt-3 grid gap-2 sm:grid-cols-2">{selectedDetails.map((detail, index) => <div key={`${detail.label}-${index}`} className="min-w-0"><dt className="text-xs font-medium text-gray-500">{detail.label}</dt><dd className="break-all text-sm text-gray-800">{detail.value}</dd></div>)}</dl>}</div>
+        <div className="flex flex-wrap gap-2">{managementUrl && !selectedEntry?.isDeleted && <a href={managementUrl.href} target="_blank" rel="noopener noreferrer" onClick={event => { if (!window.confirm(`Mở trang bên ngoài ${managementUrl.host}? Bạn sẽ tự đăng nhập trực tiếp với đối tác.`)) event.preventDefault(); }} className="inline-flex h-9 items-center rounded-lg border border-blue-200 px-3 text-sm font-semibold text-blue-700 hover:bg-blue-50">{category === 'deployment' ? 'Đăng nhập quản lý' : 'Mở trang đối tác'}</a>}{selectedEntry && (selectedEntry.isDeleted ? <button type="button" onClick={() => void onRestore(selectedEntry)} className="rounded-lg border border-gray-300 px-3 text-sm font-semibold text-gray-700 hover:bg-gray-50">Khôi phục</button> : <><button type="button" onClick={() => { setEditingId(selectedEntry.id); setForm({ code: selectedEntry.code, name: selectedEntry.name, description: selectedEntry.description, managementUrl: selectedEntry.managementUrl, details: selectedEntry.details ?? [] }); }} className="rounded-lg border border-gray-300 px-3 text-sm font-semibold text-gray-700 hover:bg-gray-50">Sửa</button><button type="button" onClick={() => void onArchive(selectedEntry)} className="rounded-lg border border-red-200 px-3 text-sm font-semibold text-gray-700 hover:bg-red-50">Ẩn</button></>)}</div>
       </div>
     </div>}
     <form onSubmit={submit} className="grid gap-3 border-t border-gray-100 pt-4 sm:grid-cols-2">
-      <label className="space-y-1 text-sm font-medium text-gray-700"><span>{editingId ? 'Mã đối tác' : 'Mã đối tác'}</span><input required minLength={2} maxLength={40} pattern="[A-Za-z0-9][A-Za-z0-9-]+" value={form.code} disabled={Boolean(editingId) || saving} onChange={event => setForm(current => ({ ...current, code: event.target.value }))} placeholder="provider-code" className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm disabled:bg-gray-100" /></label>
+      <label className="space-y-1 text-sm font-medium text-gray-700"><span>Mã định danh nội bộ</span><input required minLength={2} maxLength={40} pattern="[A-Za-z0-9][A-Za-z0-9-]+" value={form.code} disabled={Boolean(editingId) || saving} onChange={event => setForm(current => ({ ...current, code: event.target.value }))} placeholder="ví dụ: ghn, vnpay, sendgrid" className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm disabled:bg-gray-100" /><span className="block text-xs font-normal text-gray-500">Tự đặt mã riêng, duy nhất trong nhóm này; không có một mã chung cho mọi nền tảng.</span></label>
       <label className="space-y-1 text-sm font-medium text-gray-700"><span>Tên đối tác</span><input required minLength={2} maxLength={80} value={form.name} disabled={saving} onChange={event => setForm(current => ({ ...current, name: event.target.value }))} placeholder="Tên hiển thị" className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm" /></label>
       <label className="space-y-1 text-sm font-medium text-gray-700 sm:col-span-2"><span>Mô tả</span><input maxLength={500} value={form.description} disabled={saving} onChange={event => setForm(current => ({ ...current, description: event.target.value }))} placeholder="Thông tin ngắn về đối tác" className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm" /></label>
       <label className="space-y-1 text-sm font-medium text-gray-700 sm:col-span-2"><span>Trang quản lý chính thức (HTTPS, không bắt buộc)</span><input type="url" pattern="https://.*" maxLength={500} value={form.managementUrl} disabled={saving} onChange={event => setForm(current => ({ ...current, managementUrl: event.target.value }))} placeholder="https://partner.example.com" className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm" /></label>
+      <div className="space-y-3 sm:col-span-2"><div className="flex flex-wrap items-center justify-between gap-2"><div><p className="text-sm font-semibold text-gray-800">Thông tin riêng của đối tác</p><p className="text-xs text-gray-500">Tùy nền tảng, thêm mục như mã cửa hàng, khu vực, phiên bản API hoặc tài khoản dự án. Không nhập mật khẩu, API key hay secret tại đây.</p></div><button type="button" disabled={saving} onClick={() => setForm(current => ({ ...current, details: [...current.details, { label: '', value: '' }] }))} className="h-9 rounded-lg border border-gray-300 px-3 text-sm font-semibold text-gray-700 hover:bg-gray-50">Thêm thông tin</button></div>{form.details.map((detail, index) => <div key={index} className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_auto]"><label className="space-y-1 text-sm font-medium text-gray-700"><span>Tên thông tin</span><input required maxLength={80} value={detail.label} disabled={saving} onChange={event => setForm(current => ({ ...current, details: current.details.map((item, itemIndex) => itemIndex === index ? { ...item, label: event.target.value } : item) }))} placeholder={category === 'shipping' ? 'Mã khách hàng / khu vực' : category === 'payment' ? 'Mã đơn vị / môi trường' : category === 'storage' ? 'Region / tên bucket' : category === 'deployment' ? 'Project / môi trường' : 'Tài khoản / phiên bản API'} className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm" /></label><label className="space-y-1 text-sm font-medium text-gray-700"><span>Giá trị</span><input required maxLength={500} value={detail.value} disabled={saving} onChange={event => setForm(current => ({ ...current, details: current.details.map((item, itemIndex) => itemIndex === index ? { ...item, value: event.target.value } : item) }))} placeholder="Giá trị riêng của đối tác" className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm" /></label><button type="button" disabled={saving} onClick={() => setForm(current => ({ ...current, details: current.details.filter((_, itemIndex) => itemIndex !== index) }))} className="h-10 self-end rounded-lg border border-gray-300 px-3 text-sm text-gray-700 hover:bg-gray-50">Xóa mục</button></div>)}</div>
       <div className="flex flex-wrap gap-2 sm:col-span-2"><button type="submit" disabled={saving} className="inline-flex h-10 items-center rounded-lg bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50">{saving ? 'Đang lưu…' : editingId ? 'Lưu thay đổi' : 'Thêm đối tác'}</button>{editingId && <button type="button" disabled={saving} onClick={resetForm} className="h-10 rounded-lg border border-gray-300 px-4 text-sm font-semibold text-gray-700">Hủy</button>}</div>
     </form>
   </section>;
