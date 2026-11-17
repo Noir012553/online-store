@@ -1,5 +1,38 @@
 const assert = require('node:assert/strict');
+const sinon = require('sinon');
+const axios = require('axios');
+const ShippingProvider = require('../models/ShippingProvider');
 const ghnService = require('../services/ghnService');
+
+describe('GHN encrypted runtime configuration', () => {
+  const originalToken = process.env.GHN_API_TOKEN;
+  const originalShopId = process.env.GHN_SHOP_ID;
+
+  afterEach(() => {
+    sinon.restore();
+    if (originalToken === undefined) delete process.env.GHN_API_TOKEN;
+    else process.env.GHN_API_TOKEN = originalToken;
+    if (originalShopId === undefined) delete process.env.GHN_SHOP_ID;
+    else process.env.GHN_SHOP_ID = originalShopId;
+  });
+
+  it('prefers encrypted runtime token and shop ID over legacy provider values', async () => {
+    process.env.GHN_API_TOKEN = 'managed-runtime-token';
+    process.env.GHN_SHOP_ID = '12345';
+    sinon.stub(ShippingProvider, 'getByCode').resolves({
+      apiKey: 'legacy-database-token',
+      token: 'legacy-database-shop',
+      apiUrl: 'https://sandbox.example.test',
+    });
+    const create = sinon.stub(axios, 'create').returns({});
+
+    await ghnService.getGhnClient();
+
+    assert.equal(create.firstCall.args[0].baseURL, 'https://sandbox.example.test');
+    assert.equal(create.firstCall.args[0].headers.Token, 'managed-runtime-token');
+    assert.equal(create.firstCall.args[0].headers.ShopId, '12345');
+  });
+});
 
 describe('GHN insurance value normalization', () => {
   const originalValue = process.env.GHN_MAX_INSURANCE_VALUE;

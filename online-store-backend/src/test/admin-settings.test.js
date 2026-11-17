@@ -29,6 +29,7 @@ const secretEnvironmentKeys = [
   'EMAIL_PASSWORD',
   'SENDGRID_API_KEY',
   'VNPAY_HASH_SECRET',
+  'GHN_API_TOKEN',
   'R2_ACCESS_KEY_ID',
   'R2_SECRET_ACCESS_KEY',
   'CLOUDFLARE_API_TOKEN_1',
@@ -57,6 +58,7 @@ describe('Super-admin settings boundary', () => {
       EMAIL_PASSWORD: 'email-test-secret',
       SENDGRID_API_KEY: 'sendgrid-test-secret',
       VNPAY_HASH_SECRET: 'vnpay-test-secret',
+      GHN_API_TOKEN: 'ghn-test-secret',
       R2_ACCESS_KEY_ID: 'r2-access-test-secret',
       R2_SECRET_ACCESS_KEY: 'r2-secret-test-secret',
       CLOUDFLARE_API_TOKEN_1: 'cloudflare-test-secret',
@@ -85,6 +87,7 @@ describe('Super-admin settings boundary', () => {
       EMAIL_PORT: '70000',
       EMAIL_SERVICE: 'unsupported',
       CLOUDFLARE_API_TOKEN_1: 'token-test-secret',
+      GHN_API_TOKEN: 'ghn-runtime-test-secret',
       CLOUDFLARE_API_TOKEN_14: 'unapproved',
       JWT_SECRET: 'jwt-test-secret',
       R2_ACCOUNT_ROLE_UNREVIEWED: '1',
@@ -95,6 +98,7 @@ describe('Super-admin settings boundary', () => {
     expect(runtimeSettingRegistry.EMAIL_PASSWORD).to.include({ group: 'email', type: 'secret', secret: true, restartRequired: true });
     expect(byKey.EMAIL_PASSWORD).to.include({ secret: true, configured: true, valid: true });
     expect(byKey.CLOUDFLARE_API_TOKEN_1).to.include({ group: 'cloudflare-ai', secret: true, configured: true, valid: true });
+    expect(byKey.GHN_API_TOKEN).to.include({ group: 'ghn', secret: true, configured: true, valid: true });
     expect(byKey.EMAIL_HOST).to.include({ group: 'email', type: 'string', value: 'smtp.example.test', valid: true });
     expect(byKey.EMAIL_PORT).to.include({ type: 'integer', valid: false, restartRequired: true });
     expect(byKey.EMAIL_SERVICE).to.include({ type: 'enum', valid: false });
@@ -108,6 +112,11 @@ describe('Super-admin settings boundary', () => {
   it('only allows explicitly editable setting groups and validates request values', () => {
     expect(editableSettingRegistry).to.have.property('EMAIL_PASSWORD');
     expect(editableSettingRegistry).to.have.property('VNPAY_HASH_SECRET');
+    expect(editableSettingRegistry).to.have.property('GHN_API_TOKEN');
+    expect(editableSettingRegistry).to.have.property('GHN_SHOP_ID');
+    expect(editableSettingRegistry).to.have.property('GHN_WAREHOUSE_DISTRICT_ID');
+    expect(editableSettingRegistry).to.have.property('GHN_WAREHOUSE_WARD_CODE');
+    expect(editableSettingRegistry).to.have.property('GHN_MAX_INSURANCE_VALUE');
     expect(editableSettingRegistry).to.have.property('R2_MAX_UPLOAD_BYTES');
     expect(editableSettingRegistry).to.have.property('R2_ACCOUNT_ID');
     expect(editableSettingRegistry).to.have.property('R2_BUCKET_NAME_2');
@@ -125,6 +134,11 @@ describe('Super-admin settings boundary', () => {
       EMAIL_PASSWORD: '',
       SENDGRID_API_KEY: null,
       VNPAY_CALLBACK_URL: null,
+      GHN_API_TOKEN: 'ghn-test-secret',
+      GHN_SHOP_ID: '12345',
+      GHN_WAREHOUSE_DISTRICT_ID: '1458',
+      GHN_WAREHOUSE_WARD_CODE: '21905',
+      GHN_MAX_INSURANCE_VALUE: '5000000',
       R2_MAX_UPLOAD_BYTES: '2048',
       R2_ACCESS_KEY_ID: 'r2-access-test-secret',
       R2_SECRET_ACCESS_KEY: 'r2-secret-test-secret',
@@ -136,6 +150,11 @@ describe('Super-admin settings boundary', () => {
       VNPAY_ENDPOINT: 'https://sandbox.vnpayment.vn/paygate',
       SENDGRID_API_KEY: null,
       VNPAY_CALLBACK_URL: null,
+      GHN_API_TOKEN: 'ghn-test-secret',
+      GHN_SHOP_ID: '12345',
+      GHN_WAREHOUSE_DISTRICT_ID: '1458',
+      GHN_WAREHOUSE_WARD_CODE: '21905',
+      GHN_MAX_INSURANCE_VALUE: '5000000',
       R2_MAX_UPLOAD_BYTES: '2048',
       R2_ACCESS_KEY_ID: 'r2-access-test-secret',
       R2_SECRET_ACCESS_KEY: 'r2-secret-test-secret',
@@ -143,8 +162,10 @@ describe('Super-admin settings boundary', () => {
       CLOUDFLARE_ACCOUNT_ID_1: '0123456789abcdef0123456789abcdef',
     });
     expect(() => settingsDraftStore.normalizeSettings({ JWT_SECRET: 'nope' })).to.throw(/not editable/);
-    expect(() => settingsDraftStore.normalizeSettings({ CLOUDFLARE_API_TOKEN_1: 'nope' })).to.throw(/not editable/);
+    expect(() => settingsDraftStore.normalizeSettings({ CLOUDFLARE_API_TOKEN_14: 'nope' })).to.throw(/not editable/);
     expect(() => settingsDraftStore.normalizeSettings({ EMAIL_PORT: '99999' })).to.throw(/invalid value/);
+    expect(() => settingsDraftStore.normalizeSettings({ GHN_SHOP_ID: '0' })).to.throw(/invalid value/);
+    expect(() => settingsDraftStore.normalizeSettings({ GHN_MAX_INSURANCE_VALUE: '-1' })).to.throw(/invalid value/);
     expect(() => settingsDraftStore.normalizeSettings({ VNPAY_ENDPOINT: 'http://example.test' })).to.throw(/invalid value/);
     expect(() => settingsDraftStore.normalizeSettings({ R2_BUCKET_NAME: 'ab..cd' })).to.throw(/invalid value/);
     expect(() => settingsDraftStore.normalizeSettings({ R2_BUCKET_NAME: '192.168.1.1' })).to.throw(/invalid value/);
@@ -204,6 +225,19 @@ describe('Super-admin settings boundary', () => {
     expect(response.text).not.to.include('jwt-test-secret');
   });
 
+  it('exposes only allowlisted setting metadata through the schema endpoint', async () => {
+    const token = authenticateAs('super-admin');
+    const response = await request(app)
+      .get('/api/admin/settings/schema')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).to.equal(200);
+    expect(response.body.data.settings.GHN_API_TOKEN).to.include({ group: 'ghn', type: 'secret', secret: true });
+    expect(response.body.data.settings.PAYPAL_CLIENT_SECRET).to.equal(undefined);
+    expect(response.text).not.to.include('ghn-runtime-test-secret');
+    expect(response.headers['cache-control']).to.equal('no-store, private');
+  });
+
   it('returns storage unavailable instead of persisting on an unverified host', async () => {
     const token = authenticateAs('super-admin');
     const availability = settingsDraftStore.getAvailability();
@@ -225,7 +259,7 @@ describe('Super-admin settings boundary', () => {
     const invalidKey = await request(app)
       .put('/api/admin/settings/draft')
       .set('Authorization', `Bearer ${token}`)
-      .send({ expectedVersion: 0, settings: { CLOUDFLARE_API_TOKEN_1: 'forbidden' } });
+      .send({ expectedVersion: 0, settings: { CLOUDFLARE_API_TOKEN_14: 'forbidden' } });
     expect(invalidKey.status).to.equal(400);
     expect(invalidKey.text).not.to.include('forbidden');
   });

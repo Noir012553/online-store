@@ -5,7 +5,7 @@ const asyncHandler = require('express-async-handler');
 const { protect, superAdmin } = require('../middleware/authMiddleware');
 const { getR2UploadPolicy, getR2Accounts } = require('../services/r2AssetService');
 const cloudflareAiService = require('../services/cloudflareAiService');
-const { getRuntimeSettings, runtimeSettingRegistry } = require('../services/adminSettingsRegistry');
+const { editableSettingRegistry, getRuntimeSettings, runtimeSettingRegistry } = require('../services/adminSettingsRegistry');
 const settingsDraftStore = require('../services/adminSettingsDraftStore');
 
 const router = express.Router();
@@ -27,6 +27,11 @@ const safePublicUrl = value => {
   }
 };
 const noStore = res => res.set({ 'Cache-Control': 'no-store, private', Pragma: 'no-cache' });
+
+router.get('/schema', protect, superAdmin, (_req, res) => {
+  noStore(res);
+  res.status(200).json({ success: true, data: { settings: editableSettingRegistry } });
+});
 
 router.get('/values', protect, superAdmin, asyncHandler(async (_req, res) => {
   const settings = getRuntimeSettings(environment);

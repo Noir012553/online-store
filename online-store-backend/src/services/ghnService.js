@@ -32,8 +32,11 @@ async function getGhnClient(lang) {
     throw new Error(getMessage(lang || getDefaultLanguage().code, 'shipping.ghnProviderNotConfigured'));
   }
 
+  const token = process.env.GHN_API_TOKEN || provider.apiKey;
+  if (!token) throw new Error(getMessage(lang || getDefaultLanguage().code, 'shipping.ghnProviderNotConfigured'));
+
   const headers = {
-    'Token': provider.apiKey,
+    'Token': token,
     'Content-Type': 'application/json',
   };
 
