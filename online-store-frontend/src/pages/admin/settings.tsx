@@ -729,16 +729,11 @@ function SettingsPage() {
               const isCloudflareCredential = key.startsWith('CLOUDFLARE_ACCOUNT_ID') || key.startsWith('CLOUDFLARE_API_TOKEN');
               const isConfigured = secret ? isSecretConfigured(key) : Boolean(values[key]?.trim());
               if (isCloudflareCredential && !isConfigured) return null;
-              const secretInputAllowed = key !== 'VNPAY_HASH_SECRET' && !key.startsWith('CLOUDFLARE_API_TOKEN');
               const label = fieldLabels[key] ?? (key.startsWith('R2_ACCOUNT_ID') ? 'Mã tài khoản R2' : key.startsWith('R2_BUCKET_NAME') ? 'Tên bucket R2' : key.startsWith('R2_PUBLIC_BASE_URL') ? 'URL công khai R2' : key.startsWith('CLOUDFLARE_AI_MODEL') ? 'Mô hình AI' : key);
               return <div key={key} className="grid gap-2 border-t border-gray-100 py-3 first:border-t-0 sm:grid-cols-[minmax(180px,0.8fr)_minmax(0,1.2fr)] sm:items-center">
-                <span className="min-w-0">{secretInputAllowed ? <label htmlFor={`settings-${key}`} className="block text-sm font-medium text-gray-700">{label}</label> : <span className="block text-sm font-medium text-gray-700">{label}</span>}<code className="break-all text-[11px] text-gray-400">{key}</code></span>
+                <span className="min-w-0"><span className="block text-sm font-medium text-gray-700">{label}</span><code className="break-all text-[11px] text-gray-400">{key}</code></span>
                 {secret ? <div className="min-w-0 space-y-2">
                   {valuesLoading ? <p className="text-xs text-gray-500">Đang tải trạng thái secret runtime…</p> : valuesError ? <p role="alert" className="text-xs text-red-700">Không thể xác định trạng thái secret runtime.</p> : <SecretDataField icon={KeyRound} label="Secret runtime hiện tại" configured={isRuntimeSecretConfigured(key)} value={revealedSecrets[key]} revealed={Object.hasOwn(revealedSecrets, key)} loading={secretRevealLoading[key] ?? false} error={secretRevealErrors[key] ?? ''} onToggle={() => void toggleSecretReveal(key)} />}
-                  {secretInputAllowed && <><input id={`settings-${key}`} type="password" autoComplete="new-password" aria-label={`${label} mới (${key})`} value={secretInputs[key] ?? ''} disabled={saveLoading || applyInProgress} onChange={event => {
-                    setSecretInputs(current => ({ ...current, [key]: event.target.value }));
-                    setSecretResets(current => ({ ...current, [key]: false }));
-                  }} className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 font-mono text-xs outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100" placeholder={isSecretConfigured(key) ? 'Đã cấu hình — để trống để giữ nguyên' : 'Nhập bí mật mới'} /><span className="block text-xs text-gray-500">{secretResets[key] ? 'Sẽ xóa bí mật được quản lý khi lưu; giá trị môi trường có thể được dùng lại.' : isSecretResetSaved(key) ? 'Override được quản lý đã bị xóa; giá trị môi trường có thể vẫn được dùng.' : isSecretConfigured(key) ? 'Trạng thái: đã cấu hình. Ô này chỉ dùng để nhập secret mới.' : 'Trạng thái: chưa cấu hình.'}</span></>}
                   {(secretResets[key] && !isSecretResetSaved(key)) || (!secretResets[key] && isSecretDraftConfigured(key)) ? <button type="button" disabled={saveLoading || applyInProgress} onClick={() => {
                     if (secretResets[key]) {
                       setSecretResets(current => ({ ...current, [key]: false }));
