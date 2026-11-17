@@ -352,9 +352,7 @@ function SettingsPage() {
       setSecretInputs({});
       setSecretResets({});
       setSecretConfigured(configuredSecrets);
-      setDraftLoadError(code === 'SETTINGS_STORE_UNAVAILABLE'
-        ? 'Không thể tải bản nháp vì kho lưu cấu hình bảo mật chưa được thiết lập trên máy chủ này. Cấu hình đang chạy vẫn được giữ nguyên.'
-        : 'Không tải được bản nháp đã lưu. Cấu hình đang chạy vẫn được giữ nguyên; hãy tải lại trước khi lưu thay đổi.');
+      setDraftLoadError(code === 'SETTINGS_STORE_UNAVAILABLE' ? '' : 'Không tải được bản nháp đã lưu. Cấu hình đang chạy vẫn được giữ nguyên; hãy tải lại trước khi lưu thay đổi.');
     }
   };
 
@@ -712,7 +710,6 @@ function SettingsPage() {
         <div><h3 id="editable-settings-title" className="text-lg font-bold text-gray-900">Cấu hình cần áp dụng</h3><p className="mt-1 text-sm text-gray-600">Các thay đổi được lưu riêng và chỉ có hiệu lực sau khi áp dụng. Cho đến lúc đó, hệ thống tiếp tục dùng cấu hình hiện tại. Secret đang chạy được che mặc định; ô nhập chỉ dùng khi cần thay secret.</p></div>
         <span className="w-fit rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">{draft ? `Bản nháp phiên bản ${draft.version}` : 'Chưa có thay đổi đã lưu'}</span>
       </div>}
-      {status && !securityReady && <p role="alert" className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">Chưa thể lưu cấu hình trên máy chủ này vì kho lưu bảo mật chưa sẵn sàng. Cấu hình đang chạy không bị thay đổi.</p>}
       {draftLoadError && <p role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">{draftLoadError}</p>}
       {valuesError && <p role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">Không thể tải giá trị cài đặt đang chạy. Hãy tải lại trước khi lưu để tránh ghi đè giá trị chưa tải.</p>}
       {selectedGroups.map(group => (
