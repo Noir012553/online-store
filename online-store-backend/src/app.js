@@ -4,9 +4,6 @@
  * Chạy trên port 5000 (hoặc PORT env)
  */
 require('dotenv').config();
-const settingsDraftStore = require('./services/adminSettingsDraftStore');
-const loadedSettings = settingsDraftStore.loadActiveOverrides();
-let activeSettingsVersion = loadedSettings.version;
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
@@ -37,9 +34,6 @@ const translationRoutes = require('./routes/translationRoutes');
 const languageRoutes = require('./routes/languageRoutes');
 const currencyRoutes = require('./routes/currencyRoutes');
 const exchangeRateRoutes = require('./routes/exchangeRateRoutes');
-const adminSettingsRoutes = require('./routes/adminSettingsRoutes');
-const adminPaymentMethodRoutes = require('./routes/adminPaymentMethodRoutes');
-const providerDirectoryRoutes = require('./routes/providerDirectoryRoutes');
 const paymentMethodService = require('./services/paymentMethodService');
 const healthRoutes = require('./routes/healthRoutes');
 const r2AssetRoutes = require('./routes/r2AssetRoutes');
@@ -245,7 +239,7 @@ let reconnectTimer = null;
 let connectionInProgress = false;
 let startupReady = false;
 let serverStarted = false;
-app.set('getStartupReadiness', () => ({ startupReady, activeSettingsVersion: startupReady ? activeSettingsVersion : null }));
+app.set('getStartupReadiness', () => ({ startupReady }));
 
 const scheduleReconnect = (delay) => {
   if (reconnectTimer) return;
@@ -446,7 +440,6 @@ app.get('/readyz', (req, res) => {
     status: ready ? 'ready' : 'not_ready',
     databaseConnected: mongoose.connection.readyState === 1,
     startupReady,
-    activeSettingsVersion: ready ? activeSettingsVersion : null,
     storage,
     assetStorage,
     timestamp: new Date().toISOString(),
@@ -516,9 +509,6 @@ app.use('/api/translations', translationRoutes); // Translation service (Cloudfl
 app.use('/api/languages', languageRoutes); // Language management (admin - Tier 3)
 app.use('/api/currencies', currencyRoutes); // Currency management (admin)
 app.use('/api/exchange-rates', exchangeRateRoutes); // Exchange rate management (admin)
-app.use('/api/admin/settings', adminSettingsRoutes);
-app.use('/api/admin/payment-methods', adminPaymentMethodRoutes);
-app.use('/api/admin/providers', providerDirectoryRoutes);
 app.use('/api/assets', r2AssetRoutes); // Backend-only Cloudflare R2 asset upload
 
 // ==================== Error Handling Middleware ====================
