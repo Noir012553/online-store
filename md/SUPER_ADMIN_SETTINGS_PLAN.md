@@ -6,7 +6,7 @@ Bản triển khai thử của `/admin/settings` và các API quản trị liên
 
 ## Mục tiêu
 
-Xây dựng khu vực quản lý tại `/admin/settings`, chỉ tài khoản `super-admin` được truy cập. Cho phép chỉnh một danh sách cấu hình môi trường đã duyệt (không phải toàn bộ environment), cấu hình thương hiệu/email/VNPay, Cloudflare Tunnel và DNS/domain. Admin thường và user không được xem hoặc thay đổi các cấu hình này.
+Xây dựng khu vực quản lý tại `/admin/settings`, chỉ tài khoản `super-admin` được truy cập. Cho phép chỉnh một danh sách cấu hình môi trường đã duyệt (không phải toàn bộ environment), cấu hình thương hiệu/email/VNPay, Cloudflare Tunnel và DNS/domain, cùng trang thông báo bảo trì website có công tắc bật/tắt. Admin thường và user không được xem hoặc thay đổi các cấu hình này.
 
 ## Nguyên tắc môi trường sandbox/non-production
 
@@ -30,14 +30,18 @@ Chỉ chấp nhận gói miễn phí; không dùng trial có tính phí sau kỳ
 1. **Thương hiệu và thông tin cửa hàng**
    - Logo chính, logo dùng trên nền tối, favicon nếu có, tên cửa hàng, email hỗ trợ/liên hệ.
    - Xem trước ảnh trước khi lưu; upload ảnh qua quy trình asset hiện có, kiểm tra loại file và dung lượng.
-2. **Email cửa hàng**
+2. **Thông báo bảo trì website**
+   - Có trang thông báo riêng với nội dung và thời gian bảo trì dự kiến, cùng công tắc bật/tắt chế độ bảo trì.
+   - Khi bật, khách truy cập storefront được chuyển tới trang thông báo; Super Admin vẫn truy cập được trang quản trị để tắt chế độ. Không chặn các API/callback/IPN/webhook và health check cần thiết cho an toàn giao dịch/vận hành.
+   - Ghi audit người bật/tắt và thời điểm; kiểm tra route/allowlist để tránh redirect loop hoặc khóa nhầm Super Admin.
+3. **Email cửa hàng**
    - Nhà cung cấp, SMTP host/port/TLS, tài khoản gửi, địa chỉ From/Reply-To.
    - Password SMTP hoặc API key có thể nhập/rotate; trong Read, secret được che mặc định và Siêu Admin có thể bấm icon mắt để xem/che lại giá trị. Trạng thái đã cấu hình và thời điểm cập nhật không được dùng thay cho giá trị secret.
    - Có thao tác gửi email thử tới địa chỉ được xác nhận.
-3. **VNPay**
+4. **VNPay**
    - Chỉ cấu hình môi trường sandbox cùng terminal/merchant code, endpoint, return URL, callback URL và hash secret sandbox.
    - Có kiểm tra cấu hình và hướng dẫn xác nhận sandbox; tuyệt đối không tạo giao dịch thật hoặc nhận credential production.
-4. **Cloudflare**
+5. **Cloudflare**
    - Tách riêng Cloudflare R2 (account, bucket, access key, secret, public base URL), Cloudflare AI (account ID, token, model/policy), Tunnel và DNS vì quyền/mục đích khác nhau.
    - Tunnel: xem tunnels/hostname routes đã chọn, cấu hình hostname/service/ingress đã cho phép; kiểm tra xung đột hostname và khả năng kết nối. Token được che mặc định; Siêu Admin bấm icon mắt để reveal/che lại qua API riêng có kiểm tra quyền, không cache và audit lượt reveal.
    - DNS/domain: quản lý zone được allowlist, xem/thêm/sửa DNS record; Super Admin có thể thêm hoặc chuyển ứng dụng sang domain mới đã có quyền sở hữu/quản lý. Mặc định không hỗ trợ xóa zone, chuyển nameserver, đổi registrar hoặc tắt proxy. Xác nhận riêng cho thay đổi có thể làm gián đoạn truy cập.
@@ -125,6 +129,8 @@ Chỉ chấp nhận gói miễn phí; không dùng trial có tính phí sau kỳ
 - Restart/port: port đang bị chiếm hoặc backend bind sai port thì job phải fail an toàn, không dừng tiến trình không thuộc service; health check và Tunnel origin phải xác nhận đúng host/port của backend mới.
 - Cloudflare: test quyền tối thiểu và allowlist; Tunnel ingress/hostname, DNS record validation, preview diff, apply, health check và rollback; xác minh upload/read R2; không log key/token.
 - Branding: upload file hợp lệ, từ chối file sai loại/quá dung lượng, preview và xác nhận logo dùng đúng ở header/email.
+- Bảo trì: kiểm tra bật/tắt chế độ, nội dung/thời gian hiển thị, Super Admin vẫn vào được quản trị, storefront được phục hồi khi tắt, callback/IPN/webhook/health check không bị chặn và không phát sinh redirect loop.
+- Provider Create: liên kết mở đúng portal HTTPS chính thức theo provider; credential chỉ được nhập trong form của ứng dụng sau khi Siêu Admin quay lại, không thu mật khẩu portal và chỉ tạo bản ghi sau khi lưu hợp lệ.
 - Không để demo credentials trong bất kỳ môi trường nào; đảm bảo tài khoản super-admin được bootstrap an toàn, không có mật khẩu mặc định dùng chung.
 
 ## Rủi ro và quyết định cần xác nhận trước khi code
@@ -161,6 +167,7 @@ Mục tiêu là biến `/admin/settings` thành khu vực quản lý các đối
 - **Nền tảng triển khai (Deploy)**: chấp nhận cả hai mô hình: (1) triển khai frontend và backend riêng, mỗi thành phần có thể ở cùng hoặc khác nền tảng; (2) triển khai/cung cấp frontend và backend thông qua Cloudflare Tunnel theo kiến trúc hiện tại. Super Admin có thể chọn mô hình phù hợp; ở mô hình riêng, chọn nền tảng cho từng thành phần. Phải phân biệt Tunnel là lớp kết nối/định tuyến với nơi build/chạy ứng dụng, và chỉ thể hiện thao tác build/deploy, cấu hình domain/DNS hoặc health check là được tích hợp khi adapter tương ứng thực sự tồn tại.
 - **Lưu trữ R2**: tách thành nhóm độc lập để quản lý tài khoản/bucket và chính sách tải lên; Read hiển thị đầy đủ trường, còn access key/secret được che mặc định và reveal qua icon mắt có kiểm tra quyền. Không gộp vào Deploy chỉ vì R2 thuộc Cloudflare.
 - **Bảo mật**: quản lý trạng thái kho bí mật, quyền truy cập, nhật ký kiểm toán và các thao tác nhạy cảm. Đây là nhóm bảo vệ xuyên suốt, không phải một nhà cung cấp dịch vụ.
+- **Thông báo bảo trì website**: trang công khai riêng và cấu hình/công tắc bật tắt trong admin; áp dụng đầy đủ quy tắc CRUD, phân quyền và audit.
 - **Thương hiệu cửa hàng**: tiếp tục là nhóm riêng cho thông tin nhận diện và liên hệ của cửa hàng.
 
 ### Nguyên tắc đa nhà cung cấp
@@ -175,8 +182,8 @@ Mục tiêu là biến `/admin/settings` thành khu vực quản lý các đối
 - Super Admin có thể thêm nhà cung cấp/phương thức qua form input riêng trong nhóm tương ứng. Form thu thập thông tin nhận diện và các trường cấu hình theo loại provider; không cho nhập tên biến môi trường tùy ý hoặc dùng một bộ trường chung cho mọi đối tác.
 - Chỉ cho phép cấu hình và kích hoạt provider có loại/adapter được backend hỗ trợ. Nếu Super Admin thêm thông tin cho loại chưa có adapter, có thể lưu như mục chưa kết nối nếu sản phẩm cần ghi nhận, nhưng phải hiển thị rõ chưa thể xử lý nghiệp vụ và không đưa vào checkout/luồng vận hành.
 - Secret được nhập hoặc xoay vòng qua form an toàn. Trong Read, secret bị che mặc định; icon mắt cho phép Siêu Admin reveal/che lại. Mỗi lần reveal phải gọi API riêng có kiểm tra quyền phía backend, response `no-store` và audit lượt xem; tuyệt đối không ghi plaintext vào log.
-- Nếu việc cấu hình/tích hợp quản lý tài khoản quá phức tạp hoặc chưa nằm trong phạm vi, mục provider có thể cung cấp liên kết mở trang quản lý chính thức để Super Admin tự đăng nhập/đăng ký và thay đổi thông tin tại nền tảng đối tác. Đây là phương án quản lý tài khoản bên ngoài, không thay thế tích hợp vận hành với cửa hàng.
-- Chỉ dùng URL HTTPS chính thức đã allowlist theo từng provider; mở ở tab mới với bảo vệ `noopener`/`noreferrer`. Không yêu cầu, nhận hoặc chuyển tiếp mật khẩu/secret của đối tác qua ứng dụng. Không đánh dấu provider đã kết nối chỉ vì Super Admin đã mở hoặc đăng nhập trang bên ngoài; trạng thái kết nối chỉ cập nhật qua kiểm tra tích hợp đáng tin cậy hoặc xác nhận thủ công được ghi rõ.
+- Trong luồng Create, form theo provider có liên kết/nút mở trang đăng nhập, đăng ký hoặc quản lý chính thức để Siêu Admin lấy credential ở phía đối tác; mở tab mới để người dùng quay lại form, điền đúng các trường schema và lưu tạo bản ghi. Chỉ tạo bản ghi sau khi validation thành công. Dùng `noopener`/`noreferrer`; ứng dụng không thu thập mật khẩu đăng nhập đối tác, không tự đọc credential từ portal và không đánh dấu đã kết nối chỉ vì người dùng mở/đăng nhập trang đó.
+- Chỉ dùng URL HTTPS chính thức đã allowlist theo từng provider. Sau khi lưu, trạng thái kết nối chỉ cập nhật qua kiểm tra tích hợp đáng tin cậy hoặc xác nhận thủ công được ghi rõ; liên kết portal không thay thế adapter vận hành.
 - Khi thiết kế hoặc nghiệm thu, phân biệt rõ ba trạng thái: nhà cung cấp được liệt kê, thông tin đã cấu hình, và dịch vụ thực sự có thể xử lý yêu cầu.
 
 ### Nhà cung cấp khởi đầu và hiện trạng tích hợp
