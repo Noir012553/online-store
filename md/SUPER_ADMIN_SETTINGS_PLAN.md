@@ -8,6 +8,10 @@ Bản triển khai thử của `/admin/settings` và các API quản trị liên
 
 Xây dựng khu vực quản lý tại `/admin/settings`, chỉ tài khoản `super-admin` được truy cập. Cho phép chỉnh một danh sách cấu hình môi trường đã duyệt (không phải toàn bộ environment), cấu hình thương hiệu/email/VNPay, Cloudflare Tunnel và DNS/domain. Admin thường và user không được xem hoặc thay đổi các cấu hình này.
 
+## Nguyên tắc môi trường sandbox/non-production
+
+Toàn bộ tích hợp được cấu hình, kiểm tra và vận hành trong phạm vi sandbox/test/staging/preview; không nhập hoặc sử dụng credential production, không tạo giao dịch thật và không thay đổi tài nguyên production. Với thanh toán và vận chuyển, dùng sandbox/staging chính thức cùng tài khoản/credential thử nghiệm riêng. Với dịch vụ không có sandbox riêng như email, R2, Cloudflare AI/Tunnel/DNS hoặc hosting/deploy, chỉ dùng tài khoản, bucket, tunnel, zone/domain, người nhận email và project preview/staging được cô lập khỏi production; nếu không thể cô lập an toàn thì không đưa vào phạm vi quản trị/thử nghiệm. Giao diện/API không cung cấp lựa chọn chuyển sang production trong phạm vi này.
+
 ## Hiện trạng liên quan
 
 - User model đã hỗ trợ role `user`, `admin`, `super-admin`.
@@ -29,8 +33,8 @@ Xây dựng khu vực quản lý tại `/admin/settings`, chỉ tài khoản `su
    - Password SMTP hoặc API key có thể nhập/rotate; khi đọc, Siêu Admin đã xác thực xem được đầy đủ giá trị hiện tại, không mask. Trạng thái đã cấu hình và thời điểm cập nhật không được dùng thay cho giá trị secret.
    - Có thao tác gửi email thử tới địa chỉ được xác nhận.
 3. **VNPay**
-   - Môi trường sandbox/production, terminal/merchant code, endpoint, return URL, callback URL và hash secret.
-   - Có kiểm tra cấu hình và hướng dẫn xác nhận sandbox; tuyệt đối không tạo giao dịch thật trong thao tác kiểm tra.
+   - Chỉ cấu hình môi trường sandbox cùng terminal/merchant code, endpoint, return URL, callback URL và hash secret sandbox.
+   - Có kiểm tra cấu hình và hướng dẫn xác nhận sandbox; tuyệt đối không tạo giao dịch thật hoặc nhận credential production.
 4. **Cloudflare**
    - Tách riêng Cloudflare R2 (account, bucket, access key, secret, public base URL), Cloudflare AI (account ID, token, model/policy), Tunnel và DNS vì quyền/mục đích khác nhau.
    - Tunnel: xem tunnels/hostname routes đã chọn, cấu hình hostname/service/ingress đã cho phép; kiểm tra xung đột hostname và khả năng kết nối. Siêu Admin đã xác thực xem được đầy đủ token/configuration đã lưu, không mask; API đọc phải có quyền riêng và không cache.
@@ -102,7 +106,7 @@ Xây dựng khu vực quản lý tại `/admin/settings`, chỉ tài khoản `su
 3. **Env runtime và tích hợp**: chuyển từng nhóm được duyệt sang config service; thêm validate/test connection, refresh adapter/client/cache, pending restart và rollback. Không ghi vào `.env` trong container.
 4. **Cloudflare Tunnel/DNS**: xác định API token scopes, allowlist account/zone/tunnel và agent update mechanism; triển khai preview diff, apply, health check và rollback.
 5. **Frontend admin**: thêm `/admin/settings` với các tab, trạng thái env, preview logo, nhập/rotate secrets, cảnh báo tác động và xác nhận hành động; ẩn khỏi admin thường nhưng vẫn bảo vệ server-side.
-6. **Phát hành**: migrate từng nhóm có thể rollback; chạy sandbox/staging trước production; chỉ bật các mục đã có validation và vận hành an toàn.
+6. **Phát hành thử nghiệm**: chỉ migrate các nhóm vào sandbox/staging/preview có thể rollback; không kết nối hoặc thao tác production trong phạm vi này; chỉ bật các mục đã có validation và vận hành an toàn.
 
 ## Kiểm thử và nghiệm thu
 
@@ -112,12 +116,12 @@ Xây dựng khu vực quản lý tại `/admin/settings`, chỉ tài khoản `su
 - Cấu hình secret sai hoặc kết nối thất bại không làm thay đổi cấu hình đang hoạt động; thao tác lưu không secret không xóa secret đang tồn tại.
 - Test rotate/xóa secret, versioning, audit trail, cache invalidation và nhiều backend instance.
 - Email: gửi thử thành công/thất bại, TLS/port, From/Reply-To và bảo đảm không làm lộ danh sách người nhận.
-- VNPay: kiểm tra sandbox, chữ ký, return/IPN URL; giữ callback đang chạy và không tạo giao dịch production trong test.
+- VNPay: chỉ kiểm tra sandbox, chữ ký, return/IPN URL; dùng tài khoản và callback thử nghiệm, không nhận credential hoặc tạo giao dịch production.
 - Env allowlist: key ngoài registry bị từ chối; test type/range/URL validation, Read không mask chỉ cho Siêu Admin, pending restart, invalid config giữ nguyên config hoạt động và rollback version.
 - Restart/port: port đang bị chiếm hoặc backend bind sai port thì job phải fail an toàn, không dừng tiến trình không thuộc service; health check và Tunnel origin phải xác nhận đúng host/port của backend mới.
 - Cloudflare: test quyền tối thiểu và allowlist; Tunnel ingress/hostname, DNS record validation, preview diff, apply, health check và rollback; xác minh upload/read R2; không log key/token.
 - Branding: upload file hợp lệ, từ chối file sai loại/quá dung lượng, preview và xác nhận logo dùng đúng ở header/email.
-- Gỡ hoặc vô hiệu hóa demo credentials ở môi trường production; đảm bảo tài khoản super-admin được bootstrap an toàn, không có mật khẩu mặc định dùng chung.
+- Không để demo credentials trong bất kỳ môi trường nào; đảm bảo tài khoản super-admin được bootstrap an toàn, không có mật khẩu mặc định dùng chung.
 
 ## Rủi ro và quyết định cần xác nhận trước khi code
 
