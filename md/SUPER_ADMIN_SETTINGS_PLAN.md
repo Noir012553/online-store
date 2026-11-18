@@ -12,6 +12,8 @@ Xây dựng khu vực quản lý tại `/admin/settings`, chỉ tài khoản `su
 
 Toàn bộ tích hợp được cấu hình, kiểm tra và vận hành trong phạm vi sandbox/test/staging/preview; không nhập hoặc sử dụng credential production, không tạo giao dịch thật và không thay đổi tài nguyên production. Với thanh toán và vận chuyển, dùng sandbox/staging chính thức cùng tài khoản/credential thử nghiệm riêng. Với dịch vụ không có sandbox riêng như email, R2, Cloudflare AI/Tunnel/DNS hoặc hosting/deploy, chỉ dùng tài khoản, bucket, tunnel, zone/domain, người nhận email và project preview/staging được cô lập khỏi production; nếu không thể cô lập an toàn thì không đưa vào phạm vi quản trị/thử nghiệm. Giao diện/API không cung cấp lựa chọn chuyển sang production trong phạm vi này.
 
+Chỉ chấp nhận gói miễn phí; không dùng trial có tính phí sau kỳ hạn, tính năng trả phí bắt buộc hoặc tài nguyên gây phát sinh chi phí. Trước khi chọn hosting, phải kiểm tra điều kiện sử dụng thương mại, quota, cold start, lưu trữ, khả năng cô lập dữ liệu và tương thích framework theo tài liệu chính thức. Vercel Hobby giới hạn cho mục đích cá nhân/phi thương mại nên không mặc định phù hợp với cửa hàng; Render Free có thể spin down và không có Preview Environments (tính năng này yêu cầu Pro), vì vậy không chọn Render Preview nếu yêu cầu là miễn phí. Nếu gói miễn phí không đáp ứng an toàn hoặc điều kiện sử dụng, loại phương án đó thay vì nâng gói.
+
 ## Hiện trạng liên quan
 
 - User model đã hỗ trợ role `user`, `admin`, `super-admin`.
