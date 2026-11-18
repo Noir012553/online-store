@@ -187,7 +187,11 @@ Các lựa chọn provider ngoài nhà cung cấp khởi đầu, phạm vi cụ 
 
 ### CRUD đầy đủ và quyền đọc của Siêu Admin
 
-Mọi loại cấu hình mà sản phẩm xác định là có thể quản lý phải có đủ Create, Read, Update và Delete; không gọi là CRUD nếu thiếu thao tác nào. Read phải trả và hiển thị đầy đủ toàn bộ dữ liệu đã lưu cho Siêu Admin đã xác thực, kể cả credential và secret, không che/mask. Chỉ tài khoản có quyền Siêu Admin mới được đọc hoặc thay đổi; API phải kiểm tra quyền ở backend, không cache response nhạy cảm, audit thao tác đọc/ghi/xóa và không ghi plaintext vào log. Delete phải có hành vi rõ ràng; nếu dữ liệu đang được giao dịch/lịch sử tham chiếu, dùng xóa mềm hoặc từ chối xóa để bảo toàn tính toàn vẹn.
+Mọi loại cấu hình mà sản phẩm xác định là có thể quản lý phải có đủ Create, Read, Update và Delete; không gọi là CRUD nếu thiếu thao tác nào. Read phải trả và hiển thị đầy đủ toàn bộ dữ liệu đã lưu cho Siêu Admin đã xác thực, kể cả credential và secret, không che/mask. Chỉ tài khoản có quyền Siêu Admin mới được đọc hoặc thay đổi; API phải kiểm tra quyền ở backend, không cache response nhạy cảm, audit thao tác đọc/ghi/xóa và không ghi plaintext vào log.
+
+Mọi danh sách CRUD đều phải có phân trang đầy đủ, với phân trang thực hiện ở backend, tổng số bản ghi, thứ tự sắp xếp ổn định và khả năng giữ bộ lọc/tìm kiếm khi chuyển trang. Các danh sách chọn dữ liệu liên quan cũng phải hỗ trợ phân trang hoặc tìm kiếm phân trang khi số lựa chọn có thể lớn; không tải toàn bộ dữ liệu không giới hạn chỉ để hiển thị một trang.
+
+Delete phải nêu rõ và hỗ trợ chính sách xóa mềm và xóa cứng. Xóa mềm giữ bản ghi cùng lịch sử kiểm toán, loại khỏi danh sách/luồng hoạt động mặc định và cho phép khôi phục nếu nghiệp vụ cần. Chỉ cho xóa cứng khi bản ghi không còn được giao dịch, lịch sử hoặc cấu hình khác tham chiếu, đồng thời không vi phạm yêu cầu lưu trữ; nếu còn tham chiếu thì từ chối xóa cứng hoặc chỉ cho xóa mềm. Backend phải thực thi các ràng buộc này, không chỉ ẩn/khóa thao tác trên giao diện. Update phải áp dụng validation theo schema chính thức của loại provider, kiểm tra quyền và quan hệ tham chiếu; không cho đổi loại cấu hình nếu làm sai lệch dữ liệu hoặc lịch sử.
 
 ### Form cấu hình theo yêu cầu từng nền tảng
 
