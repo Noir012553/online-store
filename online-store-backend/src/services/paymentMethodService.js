@@ -28,7 +28,6 @@ const ensurePaymentMethods = async () => {
   })));
 };
 
-const listPaymentMethods = () => PaymentMethod.find({ code: { $in: ['cod', 'vnpay'] } }).sort({ code: 1 }).lean();
 const getPaymentMethod = code => PaymentMethod.findOne({ code }).lean();
 
 const isPaymentMethodAvailable = async code => {
@@ -46,24 +45,9 @@ const listAvailablePaymentMethods = async () => {
     && (method.code !== 'vnpay' || paymentService.isGatewaySupported('vnpay')));
 };
 
-const updatePaymentMethod = (code, updates) => PaymentMethod.findOneAndUpdate(
-  { code },
-  { $set: updates },
-  { new: true, runValidators: true },
-).lean();
-
-const softDeletePaymentMethod = code => PaymentMethod.findOneAndUpdate(
-  { code },
-  { $set: { isEnabled: false, isDeleted: true } },
-  { new: true },
-).lean();
-
 module.exports = {
   ensurePaymentMethods,
-  listPaymentMethods,
   listAvailablePaymentMethods,
   isPaymentMethodAvailable,
   getPaymentMethod,
-  updatePaymentMethod,
-  softDeletePaymentMethod,
 };

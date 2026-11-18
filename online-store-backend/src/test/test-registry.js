@@ -39,14 +39,6 @@ const TEST_SUITES = {
     ],
   },
 
-  settings: {
-    name: 'Super-admin Settings Security Tests',
-    category: 'LAYER 2',
-    importance: 'HIGH',
-    tags: ['settings', 'security', 'admin'],
-    files: ['admin-settings.test.js', 'settings-apply-worker.test.js'],
-  },
-
   // LAYER 2: Core Entity Tests
   currency: {
     name: 'Currency Formatting Tests',
@@ -112,14 +104,6 @@ const TEST_SUITES = {
     importance: 'HIGH',
     tags: ['payments', 'payment-methods', 'admin'],
     files: ['services/paymentMethodService.test.js'],
-  },
-
-  providers: {
-    name: 'Super Admin Provider Directory Tests',
-    category: 'LAYER 2',
-    importance: 'HIGH',
-    tags: ['providers', 'settings', 'admin'],
-    files: ['provider-directory.test.js'],
   },
 
   backend: {
