@@ -2,7 +2,7 @@
 
 ## Trạng thái
 
-Kế hoạch đang triển khai. Đã có trang `/admin/settings`, status API và registry key tường minh, typed cho `/values`; response báo group, type, trạng thái hợp lệ và yêu cầu restart. `/status` và `/values` chỉ trả trạng thái cấu hình của secret; secret hiện tại chỉ được reveal theo yêu cầu qua endpoint riêng, sau kiểm tra quyền, và UI che mặc định. UI đánh dấu giá trị không hợp lệ và cảnh báo cấu hình cần restart; Save vẫn bị khóa. Suite kiểm thử allowlist, validation, redaction và quyền truy cập đã pass; frontend typecheck cũng pass. Đã chuẩn bị `online-store-backend/scripts/install-winsw-services.ps1` và helper DPAPI cho Tunnel nhưng chưa kiểm thử trên Windows hoặc chạy trên host. Versioned settings store, DPAPI persistence cho settings, API ghi/apply, audit log và restart/apply adapter chưa hoàn tất.
+Bản triển khai thử của `/admin/settings` và các API quản trị liên quan đã được gỡ theo quyết định; hiện không triển khai lại. Tài liệu này giữ yêu cầu và bài học cho lần thiết kế sau, không mô tả trạng thái code đang chạy. Tiêu chí mới: CRUD phải đầy đủ; Read cho Siêu Admin đã xác thực hiển thị toàn bộ thông tin đã lưu, bao gồm secret, không mask. Runtime adapters hiện có vẫn là phạm vi riêng và không bị gỡ cùng trang quản trị.
 
 ## Mục tiêu
 
@@ -26,18 +26,18 @@ Xây dựng khu vực quản lý tại `/admin/settings`, chỉ tài khoản `su
    - Xem trước ảnh trước khi lưu; upload ảnh qua quy trình asset hiện có, kiểm tra loại file và dung lượng.
 2. **Email cửa hàng**
    - Nhà cung cấp, SMTP host/port/TLS, tài khoản gửi, địa chỉ From/Reply-To.
-   - Password SMTP hoặc API key có thể nhập/rotate; giá trị hiện tại được che mặc định và có thể reveal riêng bằng icon mắt sau xác nhận quyền. Trạng thái đã cấu hình và thời điểm cập nhật không được dùng thay cho giá trị secret.
+   - Password SMTP hoặc API key có thể nhập/rotate; khi đọc, Siêu Admin đã xác thực xem được đầy đủ giá trị hiện tại, không mask. Trạng thái đã cấu hình và thời điểm cập nhật không được dùng thay cho giá trị secret.
    - Có thao tác gửi email thử tới địa chỉ được xác nhận.
 3. **VNPay**
    - Môi trường sandbox/production, terminal/merchant code, endpoint, return URL, callback URL và hash secret.
    - Có kiểm tra cấu hình và hướng dẫn xác nhận sandbox; tuyệt đối không tạo giao dịch thật trong thao tác kiểm tra.
 4. **Cloudflare**
    - Tách riêng Cloudflare R2 (account, bucket, access key, secret, public base URL), Cloudflare AI (account ID, token, model/policy), Tunnel và DNS vì quyền/mục đích khác nhau.
-   - Tunnel: xem tunnels/hostname routes đã chọn, cấu hình hostname/service/ingress đã cho phép; kiểm tra xung đột hostname và khả năng kết nối. Tunnel token được che mặc định; chỉ reveal qua endpoint riêng nếu key nằm trong allowlist và Super Admin được xác thực.
+   - Tunnel: xem tunnels/hostname routes đã chọn, cấu hình hostname/service/ingress đã cho phép; kiểm tra xung đột hostname và khả năng kết nối. Siêu Admin đã xác thực xem được đầy đủ token/configuration đã lưu, không mask; API đọc phải có quyền riêng và không cache.
    - DNS/domain: quản lý zone được allowlist, xem/thêm/sửa DNS record; Super Admin có thể thêm hoặc chuyển ứng dụng sang domain mới đã có quyền sở hữu/quản lý. Mặc định không hỗ trợ xóa zone, chuyển nameserver, đổi registrar hoặc tắt proxy. Xác nhận riêng cho thay đổi có thể làm gián đoạn truy cập.
    - Trước khi gắn/chuyển domain, xác minh quyền kiểm soát domain và DNS, kiểm tra bản ghi xung đột, TLS/HTTPS và khả năng truy cập. Hiển thị trước các thành phần bị ảnh hưởng (frontend, backend/API, CORS/cookie, callback thanh toán, email links và Tunnel ingress); chỉ chuyển primary domain sau khi cấu hình mới qua health check. Duy trì domain cũ trong giai đoạn chuyển tiếp và hỗ trợ rollback.
    - Domain mới ở đây là domain Super Admin đã sở hữu hoặc có thể xác minh quyền quản lý; không bao gồm mua, gia hạn hay chuyển quyền sở hữu domain tại registrar. DNS chỉ được thao tác qua provider/zone đã được cho phép.
-   - API trạng thái/danh sách chỉ hiển thị cấu hình đã có/chưa có, không trả key/token; secret được che mặc định và chỉ reveal riêng theo allowlist, sau xác thực Super Admin. Kiểm tra zone/account/permissions trước khi áp dụng.
+   - API trạng thái vận hành không thay thế Read. Read dành riêng cho Siêu Admin phải trả đầy đủ các trường đã lưu, gồm key/token, không mask; kiểm tra quyền ở backend, không cache và audit lượt đọc. Kiểm tra zone/account/permissions trước khi áp dụng.
 
 ## Kiến trúc đề xuất
 
@@ -45,18 +45,18 @@ Xây dựng khu vực quản lý tại `/admin/settings`, chỉ tài khoản `su
 
 - Tạo trang admin có metadata quyền `super-admin`; chỉ thêm link vào sidebar khi `user.role === 'super-admin'`.
 - Mọi endpoint cấu hình phải dùng `protect` rồi `superAdmin`; kiểm tra quyền ở server là hàng rào chính, không dựa vào việc ẩn link hoặc component frontend.
-- Các API lấy trạng thái chỉ trả dữ liệu đã lọc; không trả ciphertext, plaintext, access key đầy đủ hoặc giá trị bí mật trong lỗi.
+- API quản trị chỉ cho phép Siêu Admin đã xác thực. Endpoint Read trả đầy đủ dữ liệu đã lưu, kể cả secret, không mask; không trả ciphertext, không cache response nhạy cảm và không đưa secret vào lỗi hoặc log.
 - Thao tác xem/đổi secret cần xác nhận lại danh tính (re-authentication); nếu hệ thống có MFA thì yêu cầu xác nhận MFA cho các thay đổi nhạy cảm.
 
 ### Allowlist environment và secrets
 
 - Tạo registry phía backend cho phép chỉnh sửa từng key cụ thể: key, loại dữ liệu, nhóm chức năng, giá trị mặc định, validation, nhạy cảm hay không, có cần restart/redeploy không và trạng thái bật/tắt. Frontend không được tự gửi tên key env tùy ý.
-- Chỉ cho phép các key đã được rà soát, ví dụ store branding/contact, mail sender/SMTP, VNPay endpoint/mode/merchant settings, R2 upload policy/public metadata và Cloudflare resource identifiers. Secret chỉ được reveal theo yêu cầu cho từng key đã duyệt; không trả secret trong danh sách hoặc response tổng hợp.
+- Chỉ cho phép các key đã được rà soát, ví dụ store branding/contact, mail sender/SMTP, VNPay endpoint/mode/merchant settings, R2 upload policy/public metadata và Cloudflare resource identifiers. Read của Siêu Admin phải bao gồm toàn bộ giá trị của key đã duyệt, kể cả secret, không mask; API không được expose các giá trị này cho role khác.
 - Cấm tuyệt đối sửa qua giao diện các key nền tảng như MongoDB/Redis URLs, JWT/access-token/refresh-token secrets, encryption/KMS master key, CORS/trusted origins, public API base URLs, runtime ports, filesystem paths, deployment/build settings và các key không nằm trong registry.
 - Giao diện chỉnh sửa một cấu hình ứng dụng có allowlist, không ghi vào `process.env` hoặc file `.env`. Cấu hình không nhạy cảm lưu có version; secret mã hóa envelope trước khi persist, khóa gốc phải nằm ngoài database trong secret manager/KMS/backend deployment environment.
-- Runtime config service resolve `environment bootstrap → allowlisted persisted override`; trả trạng thái đã cấu hình/masking, không trả giá trị secret, ciphertext hay toàn bộ environment.
+- Runtime config service resolve `environment bootstrap → allowlisted persisted override`. API trạng thái chỉ trả thông tin vận hành cần thiết; endpoint Read riêng của Siêu Admin trả đầy đủ giá trị allowlist đã lưu, kể cả secret, không mask hoặc trả ciphertext.
 - Với key cần restart/redeploy: tạo bản nháp, hiển thị ảnh hưởng và trạng thái pending; chỉ áp dụng khi có quy trình restart/redeploy an toàn. Không giả lập rằng đổi DB tự cập nhật `process.env` của các process đang chạy.
-- Không trả secret trong `/status`, `/values` hoặc response hàng loạt. Super Admin có thể reveal từng secret đã duyệt qua endpoint riêng, chỉ sau `protect` + `superAdmin` và xác nhận lại danh tính (MFA nếu có); UI che mặc định, thao tác reveal không cache và không ghi plaintext vào log/lỗi. Để thay secret, nhập giá trị mới; để giữ nguyên thì bỏ trống trường secret; xóa secret cần thao tác riêng và xác nhận.
+- Không trả secret trong endpoint trạng thái công khai cho quản trị hoặc response dành cho role khác. Endpoint Read CRUD của Siêu Admin phải trả đầy đủ các trường đã lưu, kể cả secret, không mask, sau `protect` + `superAdmin`; không cache response, audit lượt đọc và không ghi plaintext vào log/lỗi. Để thay secret, nhập giá trị mới; để giữ nguyên thì bỏ trống trường secret; xóa secret cần thao tác riêng và xác nhận.
 - Mọi thay đổi có version, `updatedAt`, `updatedBy`; audit log ghi nhóm/key, người thao tác, kết quả, version và hành động nhưng không ghi secret, request body nhạy cảm hay dữ liệu thanh toán.
 - Nếu yêu cầu là cập nhật environment variables thật của hosting/deployment platform, cần API provider riêng với scope tối thiểu, staging diff, phê duyệt và redeploy; đó là luồng tách biệt, không cho sửa toàn bộ environment từ ứng dụng.
 
@@ -83,7 +83,7 @@ Xây dựng khu vực quản lý tại `/admin/settings`, chỉ tài khoản `su
 ## Quyết định: áp dụng cấu hình, restart và Cloudflare Tunnel
 
 - Hướng đã được duyệt cho host Windows: WinSW quản lý các service cố định cho backend và cloudflared; không dùng `npm run tunnel` như lệnh redeploy.
-- Hướng đã được duyệt cho secrets: file trong `ProgramData` được mã hóa bằng Windows DPAPI, không lưu secret vào MongoDB. Allowlist v1 gồm Email, VNPay, R2 upload policy/metadata và Cloudflare AI model/policy; secret được nhập/rotate và có thể reveal từng key qua endpoint riêng có kiểm soát, không trả trong API trạng thái/danh sách.
+- Hướng đã được duyệt trước đây cho secrets: file trong `ProgramData` được mã hóa bằng Windows DPAPI, không lưu secret vào MongoDB. Allowlist v1 từng gồm Email, VNPay, R2 upload policy/metadata và Cloudflare AI model/policy. Nếu thiết kế lại, CRUD Read cho Siêu Admin phải hiển thị đầy đủ giá trị đã lưu, kể cả secret, không mask; vẫn phải bảo vệ endpoint và audit lượt đọc.
 - Trước khi bật ghi/apply cần chốt WinSW service names, service identity và ACL của thư mục `ProgramData`; DPAPI CurrentUser phụ thuộc identity và cần mã hóa lại nếu đổi service account. Chưa cài service hoặc thay đổi tiến trình host trong phiên này.
 - Dùng một nút **“Áp dụng cấu hình & khởi động lại dịch vụ”** cho Super Admin. Nút tạo tác vụ nền để validate cấu hình pending, kích hoạt version đã duyệt, restart backend rồi kiểm tra health. Chỉ restart/kết nối lại Cloudflare Tunnel khi chính cấu hình Tunnel thay đổi; cấu hình v1 Email/VNPay/R2/Cloudflare AI không tự restart Tunnel.
 - Tác vụ phải chạy ngoài request handler của backend đang bị restart; UI nhận job ID và theo dõi trạng thái `queued`, `running`, `succeeded` hoặc `failed`. Chỉ cho phép một thao tác apply/restart cùng phạm vi chạy đồng thời; yêu cầu xác nhận trước khi chạy và ghi audit, không ghi secret vào log.
@@ -108,12 +108,12 @@ Xây dựng khu vực quản lý tại `/admin/settings`, chỉ tài khoản `su
 
 - Chưa đăng nhập: API trả 401; `user` và `admin`: mọi endpoint settings trả 403; `super-admin`: được phép theo đúng scope.
 - Thử truy cập URL trực tiếp, gọi API thủ công và sửa role ở client không vượt được kiểm soát backend.
-- Kiểm tra `/status`, `/values`, lỗi, audit log, analytics và frontend state không chứa plaintext/ciphertext của secret; chỉ endpoint reveal riêng được trả plaintext cho key đã duyệt sau xác thực quyền, không cache và không ghi vào log.
+- Kiểm tra endpoint trạng thái, lỗi, audit log và analytics không chứa secret. Endpoint Read CRUD chỉ trả plaintext đã lưu cho Siêu Admin được backend xác thực/phân quyền; UI không mask giá trị, response không cache và plaintext không xuất hiện trong log.
 - Cấu hình secret sai hoặc kết nối thất bại không làm thay đổi cấu hình đang hoạt động; thao tác lưu không secret không xóa secret đang tồn tại.
 - Test rotate/xóa secret, versioning, audit trail, cache invalidation và nhiều backend instance.
 - Email: gửi thử thành công/thất bại, TLS/port, From/Reply-To và bảo đảm không làm lộ danh sách người nhận.
 - VNPay: kiểm tra sandbox, chữ ký, return/IPN URL; giữ callback đang chạy và không tạo giao dịch production trong test.
-- Env allowlist: key ngoài registry bị từ chối; test type/range/URL validation, secret masking, pending restart, invalid config giữ nguyên config hoạt động và rollback version.
+- Env allowlist: key ngoài registry bị từ chối; test type/range/URL validation, Read không mask chỉ cho Siêu Admin, pending restart, invalid config giữ nguyên config hoạt động và rollback version.
 - Restart/port: port đang bị chiếm hoặc backend bind sai port thì job phải fail an toàn, không dừng tiến trình không thuộc service; health check và Tunnel origin phải xác nhận đúng host/port của backend mới.
 - Cloudflare: test quyền tối thiểu và allowlist; Tunnel ingress/hostname, DNS record validation, preview diff, apply, health check và rollback; xác minh upload/read R2; không log key/token.
 - Branding: upload file hợp lệ, từ chối file sai loại/quá dung lượng, preview và xác nhận logo dùng đúng ở header/email.
@@ -132,9 +132,9 @@ Xây dựng khu vực quản lý tại `/admin/settings`, chỉ tài khoản `su
 ## Kinh nghiệm xử lý thực tế `/admin/settings`
 
 - Phân biệt rõ ba loại dữ liệu trên UI: giá trị runtime, trạng thái cấu hình và khả năng vận hành của host. Ví dụ `encryptedSecretStoreAvailable` là trạng thái kho secret, không phải một giá trị env; `tunnelManaged`/`dnsManaged` cho biết ứng dụng có tự quản lý tunnel/DNS hay không, không cho biết tài nguyên Cloudflare có tồn tại hoặc đang chạy.
-- `GET /api/admin/settings/values` chỉ trả giá trị thường trong runtime registry; secret không được trả trong danh sách. Secret chỉ được tải theo yêu cầu qua `GET /api/admin/settings/secrets/:key`, sau `protect` + `superAdmin`, với response không cache. UI che mặc định và chỉ hiện secret sau thao tác mắt rõ ràng.
-- Trạng thái “Đã cấu hình” trong status API không đồng nghĩa với giá trị env bị thiếu; status endpoint cố ý chỉ trả boolean cho secret. Nếu Super Admin cần xem secret hiện hành, phải dùng endpoint reveal có kiểm soát, không đưa plaintext vào `/status`, `/values`, log hoặc lỗi.
-- Các thao tác edit/delete/copy/reveal chỉ áp dụng cho key có trong registry đã duyệt. Xóa override chỉ gỡ giá trị do ứng dụng quản lý, không xóa `process.env` trên host; muốn đổi environment thật của hosting cần luồng triển khai riêng.
+- Bài học cho thiết kế sau: tách API trạng thái khỏi CRUD Read. Read phải trả đầy đủ giá trị đã lưu, gồm secret, cho Siêu Admin sau kiểm tra quyền; UI không mask. Response nhạy cảm không cache và secret không đi vào log/lỗi.
+- Trạng thái “Đã cấu hình” trong status API không đồng nghĩa với giá trị env bị thiếu; endpoint status chỉ báo trạng thái, còn CRUD Read phải cung cấp đầy đủ giá trị cho Siêu Admin. Không đưa plaintext vào log hoặc lỗi.
+- Các thao tác create/read/update/delete chỉ áp dụng cho key có trong registry đã duyệt. Read của Siêu Admin hiển thị đầy đủ, không mask. Xóa override chỉ gỡ giá trị do ứng dụng quản lý, không xóa `process.env` trên host; muốn đổi environment thật của hosting cần luồng triển khai riêng.
 - `SETTINGS_STORE_UNAVAILABLE` khi gọi `/draft` là lỗi điều kiện lưu trữ của host, không phải thiếu một setting trong `.env`. Kho hiện phụ thuộc Windows DPAPI và thư mục `ProgramData`; không được bỏ qua lỗi bằng cách lưu secret plaintext hoặc dùng fallback không mã hóa.
 - Khi hiển thị nhiều model/giá trị, không gộp danh sách dài bằng `join(', ')` vào một field: mỗi item cần một ô riêng để tránh tràn/chồng nội dung. Icon cũng cần gắn theo nhóm setting và đặt nhất quán trong từng ô giá trị.
 - Lỗi `401` ở `/status` hoặc `/values` thường cần kiểm tra access token/refresh session; `403` là quyền không đủ. `404` cho route mới có thể do backend đích chưa deploy phiên bản có route đó. Xác minh phiên đăng nhập và phiên bản backend trước khi kết luận registry hoặc UI sai.
@@ -151,7 +151,7 @@ Mục tiêu là biến `/admin/settings` thành khu vực quản lý các đối
 - **Thanh toán**: từng phương thức/đối tác thanh toán, trạng thái bật/tắt và cấu hình riêng.
 - **Vận chuyển**: từng đối tác vận chuyển, trạng thái khả dụng và cấu hình riêng.
 - **Nền tảng triển khai (Deploy)**: chấp nhận cả hai mô hình: (1) triển khai frontend và backend riêng, mỗi thành phần có thể ở cùng hoặc khác nền tảng; (2) triển khai/cung cấp frontend và backend thông qua Cloudflare Tunnel theo kiến trúc hiện tại. Super Admin có thể chọn mô hình phù hợp; ở mô hình riêng, chọn nền tảng cho từng thành phần. Phải phân biệt Tunnel là lớp kết nối/định tuyến với nơi build/chạy ứng dụng, và chỉ thể hiện thao tác build/deploy, cấu hình domain/DNS hoặc health check là được tích hợp khi adapter tương ứng thực sự tồn tại.
-- **Lưu trữ R2**: tách thành nhóm độc lập để quản lý tài khoản/bucket, thông tin truy cập được che an toàn và chính sách tải lên; không gộp vào Deploy chỉ vì R2 thuộc Cloudflare.
+- **Lưu trữ R2**: tách thành nhóm độc lập để quản lý tài khoản/bucket và chính sách tải lên; Read cho Siêu Admin hiển thị đầy đủ thông tin truy cập đã lưu, không mask. Không gộp vào Deploy chỉ vì R2 thuộc Cloudflare.
 - **Bảo mật**: quản lý trạng thái kho bí mật, quyền truy cập, nhật ký kiểm toán và các thao tác nhạy cảm. Đây là nhóm bảo vệ xuyên suốt, không phải một nhà cung cấp dịch vụ.
 - **Thương hiệu cửa hàng**: tiếp tục là nhóm riêng cho thông tin nhận diện và liên hệ của cửa hàng.
 
@@ -165,7 +165,7 @@ Mục tiêu là biến `/admin/settings` thành khu vực quản lý các đối
 - Cloudflare Tunnel là lớp kết nối/định tuyến cho cả frontend và backend trong mô hình Tunnel; nó không tự thay thế nơi build/chạy ứng dụng. Khi đổi mô hình hoặc provider, không tự ý làm thay đổi thành phần còn lại, hostname hay tuyến Tunnel nếu chưa có thao tác/ảnh hưởng được xác nhận rõ.
 - Super Admin có thể thêm nhà cung cấp/phương thức qua form input riêng trong nhóm tương ứng. Form thu thập thông tin nhận diện và các trường cấu hình theo loại provider; không cho nhập tên biến môi trường tùy ý hoặc dùng một bộ trường chung cho mọi đối tác.
 - Chỉ cho phép cấu hình và kích hoạt provider có loại/adapter được backend hỗ trợ. Nếu Super Admin thêm thông tin cho loại chưa có adapter, có thể lưu như mục chưa kết nối nếu sản phẩm cần ghi nhận, nhưng phải hiển thị rõ chưa thể xử lý nghiệp vụ và không đưa vào checkout/luồng vận hành.
-- Secret được nhập hoặc xoay vòng qua form an toàn, che mặc định và có thể reveal từng secret hiện tại bằng icon mắt; endpoint reveal chỉ phục vụ key đã duyệt, kiểm tra quyền phía backend và không cache. Thao tác xem/thay đổi cần audit phù hợp, tuyệt đối không ghi plaintext vào log.
+- Secret được nhập hoặc xoay vòng qua form an toàn. Với phiên Siêu Admin đã xác thực và được phân quyền, giá trị đã lưu phải được hiển thị đầy đủ, không che/mask và không yêu cầu thao tác reveal riêng. API đọc vẫn phải kiểm tra quyền phía backend, không cache response nhạy cảm và audit thao tác xem/thay đổi; tuyệt đối không ghi plaintext vào log.
 - Nếu việc cấu hình/tích hợp quản lý tài khoản quá phức tạp hoặc chưa nằm trong phạm vi, mục provider có thể cung cấp liên kết mở trang quản lý chính thức để Super Admin tự đăng nhập/đăng ký và thay đổi thông tin tại nền tảng đối tác. Đây là phương án quản lý tài khoản bên ngoài, không thay thế tích hợp vận hành với cửa hàng.
 - Chỉ dùng URL HTTPS chính thức đã allowlist theo từng provider; mở ở tab mới với bảo vệ `noopener`/`noreferrer`. Không yêu cầu, nhận hoặc chuyển tiếp mật khẩu/secret của đối tác qua ứng dụng. Không đánh dấu provider đã kết nối chỉ vì Super Admin đã mở hoặc đăng nhập trang bên ngoài; trạng thái kết nối chỉ cập nhật qua kiểm tra tích hợp đáng tin cậy hoặc xác nhận thủ công được ghi rõ.
 - Khi thiết kế hoặc nghiệm thu, phân biệt rõ ba trạng thái: nhà cung cấp được liệt kê, thông tin đã cấu hình, và dịch vụ thực sự có thể xử lý yêu cầu.
@@ -185,6 +185,10 @@ Việc mở rộng giao diện đa provider không được mở quyền sửa t
 
 Các lựa chọn provider ngoài nhà cung cấp khởi đầu, phạm vi cụ thể của tích hợp Cloudflare Deploy, và vị trí quản lý Cloudflare AI cần được xác nhận trước khi triển khai CRUD/tích hợp tương ứng.
 
+### CRUD đầy đủ và quyền đọc của Siêu Admin
+
+Mọi loại cấu hình mà sản phẩm xác định là có thể quản lý phải có đủ Create, Read, Update và Delete; không gọi là CRUD nếu thiếu thao tác nào. Read phải trả và hiển thị đầy đủ toàn bộ dữ liệu đã lưu cho Siêu Admin đã xác thực, kể cả credential và secret, không che/mask. Chỉ tài khoản có quyền Siêu Admin mới được đọc hoặc thay đổi; API phải kiểm tra quyền ở backend, không cache response nhạy cảm, audit thao tác đọc/ghi/xóa và không ghi plaintext vào log. Delete phải có hành vi rõ ràng; nếu dữ liệu đang được giao dịch/lịch sử tham chiếu, dùng xóa mềm hoặc từ chối xóa để bảo toàn tính toàn vẹn.
+
 ### Form cấu hình theo yêu cầu từng nền tảng
 
 Giao diện Super Admin phải chọn bộ input theo provider và adapter đã chọn; không suy luận rằng mọi cổng thanh toán cần cùng một trường, cũng không để người dùng tự nhập tên environment key tùy ý. Backend giữ registry/schema tường minh cho từng adapter, gồm tên trường, loại dữ liệu, bắt buộc/tùy chọn, validation, độ nhạy, môi trường áp dụng và khả năng reload/restart. Frontend chỉ render schema được backend cho phép.
@@ -192,7 +196,7 @@ Giao diện Super Admin phải chọn bộ input theo provider và adapter đã 
 Phân biệt rõ ba nhóm dữ liệu:
 
 - **Thông tin hồ sơ tham khảo**: tên, mô tả, trang quản lý và các ghi chú không nhạy cảm. Nhóm này không cấu hình hay kích hoạt tích hợp.
-- **Cấu hình tích hợp cố định**: credentials, môi trường, endpoint và callback URLs được adapter hỗ trợ. Secret dùng input che mặc định, chỉ đi qua kho mã hóa; không lưu secret trong danh sách thông tin tùy ý của hồ sơ đối tác.
+- **Cấu hình tích hợp cố định**: credentials, môi trường, endpoint và callback URLs được adapter hỗ trợ. Secret khi nhập có thể dùng input password để tránh lộ trong lúc gõ và chỉ đi qua kho mã hóa; khi Read, Siêu Admin được xem đầy đủ giá trị, không mask. Không lưu secret trong danh sách thông tin tùy ý của hồ sơ đối tác.
 - **Dữ liệu từng giao dịch**: order/request ID, amount, redirect URL trả về từ cổng và signature sinh cho request. Adapter/backend tạo hoặc xử lý theo giao dịch; không yêu cầu Super Admin nhập các giá trị này như cấu hình dùng chung.
 
 Ví dụ bộ trường sandbox cần được xác nhận theo đúng sản phẩm/API adapter trước khi đưa vào registry:
