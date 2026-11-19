@@ -9,7 +9,7 @@ const providerCatalogEntrySchema = new mongoose.Schema(
     },
     providerCode: {
       type: String,
-      enum: ['smtp', 'sendgrid', 'cod', 'vnpay', 'paypal', 'momo', 'ghn', 'cloudflare_tunnel', 'cloudflare_r2', 'cloudflare_ai'],
+      enum: ['smtp', 'sendgrid', 'cod', 'vnpay', 'paypal', 'momo', 'vercel', 'render', 'ghn', 'cloudflare_tunnel', 'cloudflare_r2', 'cloudflare_ai'],
       required: true,
       immutable: true,
     },

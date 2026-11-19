@@ -4,8 +4,10 @@ import { toast } from 'sonner';
 import { withAdminLayout } from '../../components/admin/withAdminLayout';
 import {
   providerCatalogAPI,
+  providerConfigurationAPI,
   type ProviderCatalogCategory,
   type ProviderCatalogEntry,
+  type ProviderConfigField,
   type ProviderRegistryItem,
 } from '../../lib/api';
 
@@ -28,6 +30,10 @@ function ProviderCatalogPage() {
   const [selected, setSelected] = useState<ProviderCatalogEntry | null>(null);
   const [audit, setAudit] = useState<Awaited<ReturnType<typeof providerCatalogAPI.getAudit>> | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [configFields, setConfigFields] = useState<ProviderConfigField[]>([]);
+  const [configValues, setConfigValues] = useState<Record<string, string>>({});
+  const [configuredSecrets, setConfiguredSecrets] = useState<string[]>([]);
+  const [configStoreAvailable, setConfigStoreAvailable] = useState(true);
   const [selectedCode, setSelectedCode] = useState('smtp');
   const [category, setCategory] = useState('');
   const [search, setSearch] = useState('');
@@ -82,6 +88,36 @@ function ProviderCatalogPage() {
     ));
   }, [category, pageInfo.total, registry, search, status]);
 
+  const loadProviderConfig = async (code: string, providerId?: string) => {
+    setConfigFields([]);
+    setConfigValues({});
+    setConfiguredSecrets([]);
+    setConfigStoreAvailable(false);
+    try {
+      const schemaResponse = await providerConfigurationAPI.getSchema(code);
+      let values = Object.fromEntries(schemaResponse.data.fields.map((field) => [field.key, field.defaultValue || '']));
+      let secrets: string[] = [];
+      setConfigStoreAvailable(schemaResponse.data.storeAvailable);
+      if (providerId) {
+        const configResponse = await providerConfigurationAPI.get(providerId);
+        values = { ...values, ...configResponse.data.values };
+        secrets = configResponse.data.configuredSecrets;
+        setConfigStoreAvailable(configResponse.data.storeAvailable);
+      } else {
+        setConfigStoreAvailable(true);
+      }
+      setConfigFields(schemaResponse.data.fields);
+      setConfigValues(values);
+      setConfiguredSecrets(secrets);
+    } catch (error) {
+      setConfigFields([]);
+      setConfigValues({});
+      setConfiguredSecrets([]);
+      setConfigStoreAvailable(false);
+      toast.error(error instanceof Error ? error.message : 'Không thể tải schema cấu hình');
+    }
+  };
+
   const openCreate = (code = selectedCode) => {
     const provider = registry.find((item) => item.code === code);
     setSelected(null);
@@ -89,13 +125,16 @@ function ProviderCatalogPage() {
     setForm({ ...EMPTY_FORM, name: provider?.name || '' });
     setEditing(true);
     setAudit(null);
+    void loadProviderConfig(code);
   };
 
   const openEntry = async (entry: ProviderCatalogEntry) => {
     setSelected(entry);
+    setSelectedCode(entry.providerCode);
     setAuditPage(1);
     setForm({ name: entry.name, description: entry.description, notes: entry.notes });
     setEditing(false);
+    void loadProviderConfig(entry.providerCode, entry._id);
     try {
       await loadAudit(entry, 1);
     } catch (error) {
@@ -108,22 +147,29 @@ function ProviderCatalogPage() {
     if (!selected && !provider) return;
     setSaving(true);
     try {
+      let entry = selected;
       if (selected) {
         const response = await providerCatalogAPI.update(selected._id, form);
-        setSelected(response.data);
-        toast.success('Đã lưu hồ sơ');
+        entry = response.data;
       } else {
         const response = await providerCatalogAPI.create({
           ...form,
           category: provider!.category,
           providerCode: provider!.code,
         });
-        setSelected(response.data);
+        entry = response.data;
+        setSelected(entry);
         setStatus('active');
         setPage(1);
-        toast.success('Đã tạo hồ sơ');
-        await loadAudit(response.data, 1);
       }
+      if (configFields.length && entry) {
+        await providerConfigurationAPI.save(entry._id, configValues);
+        setConfiguredSecrets(configFields.filter((field) => field.type === 'secret' && (configValues[field.key] || configuredSecrets.includes(field.key))).map((field) => field.key));
+        setConfigValues((current) => Object.fromEntries(Object.entries(current).map(([key, value]) => [key, configFields.some((field) => field.key === key && field.type === 'secret') ? '' : value])));
+      }
+      setSelected(entry);
+      toast.success(selected ? 'Đã lưu hồ sơ và cấu hình' : 'Đã tạo hồ sơ');
+      if (!selected && entry) await loadAudit(entry, 1);
       setEditing(false);
       await Promise.all([loadList(), selected ? loadAudit(selected) : Promise.resolve()]);
     } catch (error) {
@@ -209,13 +255,22 @@ function ProviderCatalogPage() {
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           {editing ? <>
             <div className="mb-5 flex items-center justify-between"><h2 className="text-lg font-semibold text-slate-900">{selected ? 'Sửa hồ sơ' : 'Thêm hồ sơ'}</h2><button type="button" onClick={() => setEditing(false)} aria-label="Đóng biểu mẫu" className="rounded-md p-2 text-slate-500 hover:bg-slate-100"><X className="h-4 w-4" /></button></div>
-            {!selected && <label className="mb-4 block text-sm font-medium text-slate-700">Nhà cung cấp<select value={selectedCode} onChange={(event) => { setSelectedCode(event.target.value); const match = registry.find((provider) => provider.code === event.target.value); if (match) setForm((current) => ({ ...current, name: match.name })); }} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal">{registry.map((provider) => <option key={provider.code} value={provider.code}>{CATEGORY_LABELS[provider.category]} · {provider.name} ({provider.code})</option>)}</select><span className="mt-1 block text-xs font-normal text-slate-500">Chỉ các provider có trong registry allowlist mới được tạo.</span></label>}
+            {!selected && <label className="mb-4 block text-sm font-medium text-slate-700">Nhà cung cấp<select value={selectedCode} onChange={(event) => { const code = event.target.value; setSelectedCode(code); const match = registry.find((provider) => provider.code === code); if (match) setForm((current) => ({ ...current, name: match.name })); void loadProviderConfig(code); }} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal">{registry.map((provider) => <option key={provider.code} value={provider.code}>{CATEGORY_LABELS[provider.category]} · {provider.name} ({provider.code})</option>)}</select><span className="mt-1 block text-xs font-normal text-slate-500">Chỉ các provider có trong registry allowlist mới được tạo.</span></label>}
             {selected && <div className="mb-4 rounded-lg bg-slate-50 p-3 text-sm text-slate-600">{CATEGORY_LABELS[selected.category]} · {selected.providerCode}</div>}
             <label className="mb-4 block text-sm font-medium text-slate-700">Tên hồ sơ<input value={form.name} maxLength={100} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal" /></label>
             <label className="mb-4 block text-sm font-medium text-slate-700">Mô tả<textarea rows={3} maxLength={500} value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal" /></label>
             <label className="block text-sm font-medium text-slate-700">Ghi chú nội bộ<textarea rows={4} maxLength={1000} value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal" /></label>
-            <div className="mt-4 rounded-lg border border-slate-200 p-3 text-xs leading-5 text-slate-600"><strong>Hiện chưa có màn hình nhập cấu hình tích hợp.</strong> <code>/admin/settings</code> hiện chỉ quản lý thương hiệu và bảo trì; catalog này chỉ lưu hồ sơ tham khảo. Không nhập API key, token, mật khẩu, endpoint, callback hoặc biến môi trường vào mô tả/ghi chú. Form cấu hình chỉ được mở sau khi có kho secrets và môi trường staging được chốt.</div>
-            <div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setEditing(false)} className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm">Hủy</button><button type="button" disabled={saving || !form.name.trim() || (!selected && !selectedRegistry)} onClick={() => void save()} className="rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50">{saving ? 'Đang lưu…' : 'Lưu hồ sơ'}</button></div>
+            {configFields.length > 0 && <section className="mt-5 space-y-4 rounded-xl border border-slate-200 p-4">
+              <div><h3 className="font-semibold text-slate-900">Cấu hình {registry.find((provider) => provider.code === selectedCode)?.name}</h3><p className="mt-1 text-xs leading-5 text-slate-600">Nhập đúng giá trị theo key hiển thị. Chỉ dùng sandbox/staging; credential được mã hóa phía backend và không tự kích hoạt adapter hoặc deploy.</p></div>
+              {!configStoreAvailable && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs leading-5 text-red-800">Kho secrets chưa sẵn sàng. Backend cần cấu hình khóa mã hóa trước khi lưu credential.</p>}
+              {configFields.map((field) => <label key={field.key} className="block text-sm font-medium text-slate-700">
+                <span>{field.label}{field.required ? ' *' : ''}</span>
+                <code className="mt-1 block break-all text-xs font-normal text-slate-500">{field.key}</code>
+                {field.type === 'select' ? <select value={configValues[field.key] || ''} onChange={(event) => setConfigValues((current) => ({ ...current, [field.key]: event.target.value }))} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal">{field.options?.map((option) => <option value={option} key={option}>{option}</option>)}</select> : <input type={field.type === 'secret' ? 'password' : 'text'} autoComplete="new-password" value={configValues[field.key] || ''} placeholder={field.type === 'secret' && configuredSecrets.includes(field.key) ? 'Đã lưu — nhập giá trị mới để xoay vòng' : field.defaultValue || ''} onChange={(event) => setConfigValues((current) => ({ ...current, [field.key]: event.target.value }))} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal" />}
+              </label>)}
+            </section>}
+            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900"><strong>Không nhập credential production.</strong> Catalog vẫn chỉ lưu hồ sơ; việc lưu cấu hình không có nghĩa provider đã kết nối hoặc adapter đã sẵn sàng.</div>
+            <div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setEditing(false)} className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm">Hủy</button><button type="button" disabled={saving || !form.name.trim() || (!selected && !selectedRegistry) || (['paypal', 'momo', 'sendgrid', 'vercel', 'render'].includes(selectedCode) && !configStoreAvailable) || (configFields.some((field) => field.required && field.type !== 'secret' && !configValues[field.key]) || configFields.some((field) => field.required && field.type === 'secret' && !configValues[field.key] && !configuredSecrets.includes(field.key)))} onClick={() => void save()} className="rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50">{saving ? 'Đang lưu…' : 'Lưu hồ sơ'}</button></div>
           </> : selected ? <>
             <div className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{CATEGORY_LABELS[selected.category]}</p><h2 className="mt-1 text-xl font-semibold text-slate-950">{selected.name}</h2><p className="mt-1 text-sm text-slate-500">{selected.providerCode} · phiên bản {selected.version}</p></div><button type="button" onClick={() => { setSelected(null); setAudit(null); }} aria-label="Bỏ chọn" className="rounded-md p-2 text-slate-500 hover:bg-slate-100"><X className="h-4 w-4" /></button></div>
             <div className="mt-5 rounded-xl border border-slate-200 p-4"><p className="text-sm font-semibold text-slate-800">{selected.capability === 'not-implemented' ? 'Chưa tích hợp' : selected.capability === 'not-verified' ? 'Chưa xác minh' : selected.capability === 'launcher-only' ? 'Chỉ có launcher' : selected.capability === 'payment-method' ? 'Phương thức hiện có' : 'Có adapter trong backend'}</p><p className="mt-1 text-sm leading-6 text-slate-600">{selected.capabilityNote}</p><p className="mt-2 text-xs text-slate-500">Catalog không báo trạng thái kết nối hoặc khả năng xử lý giao dịch.</p></div>
