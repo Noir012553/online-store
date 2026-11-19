@@ -35,6 +35,13 @@ function ProviderCatalogPage() {
   const [schemaGuide, setSchemaGuide] = useState<ProviderSetupGuide | null>(null);
   const [configValues, setConfigValues] = useState<Record<string, string>>({});
   const [configuredSecrets, setConfiguredSecrets] = useState<string[]>([]);
+  const [configVersion, setConfigVersion] = useState(0);
+  const [revealedSecrets, setRevealedSecrets] = useState<Record<string, string>>({});
+  const [revealingField, setRevealingField] = useState<string | null>(null);
+  const [reauthPassword, setReauthPassword] = useState('');
+  const [deleteConfigOpen, setDeleteConfigOpen] = useState(false);
+  const [deleteConfigPassword, setDeleteConfigPassword] = useState('');
+  const [configActionBusy, setConfigActionBusy] = useState(false);
   const [configStoreAvailable, setConfigStoreAvailable] = useState(true);
   const [selectedCode, setSelectedCode] = useState('smtp');
   const [category, setCategory] = useState('');
@@ -95,6 +102,12 @@ function ProviderCatalogPage() {
     setSchemaGuide(null);
     setConfigValues({});
     setConfiguredSecrets([]);
+    setConfigVersion(0);
+    setRevealedSecrets({});
+    setRevealingField(null);
+    setReauthPassword('');
+    setDeleteConfigOpen(false);
+    setDeleteConfigPassword('');
     setConfigStoreAvailable(false);
     try {
       const schemaResponse = await providerConfigurationAPI.getSchema(code);
@@ -105,6 +118,7 @@ function ProviderCatalogPage() {
         const configResponse = await providerConfigurationAPI.get(providerId);
         values = { ...values, ...configResponse.data.values };
         secrets = configResponse.data.configuredSecrets;
+        setConfigVersion(configResponse.data.version);
         setConfigStoreAvailable(configResponse.data.storeAvailable);
       } else {
         setConfigStoreAvailable(true);
@@ -119,6 +133,7 @@ function ProviderCatalogPage() {
       setSchemaGuide(null);
       setConfigValues({});
       setConfiguredSecrets([]);
+      setConfigVersion(0);
       if (apiError.code === 'PROVIDER_CONFIG_UNSUPPORTED') {
         setConfigStoreAvailable(true);
         return;
@@ -173,7 +188,8 @@ function ProviderCatalogPage() {
         setPage(1);
       }
       if (configFields.length && entry) {
-        await providerConfigurationAPI.save(entry._id, configValues);
+        const configResponse = await providerConfigurationAPI.save(entry._id, configValues);
+        setConfigVersion(configResponse.data.version);
         setConfiguredSecrets(configFields.filter((field) => field.type === 'secret' && (configValues[field.key] || configuredSecrets.includes(field.key))).map((field) => field.key));
         setConfigValues((current) => Object.fromEntries(Object.entries(current).map(([key, value]) => [key, configFields.some((field) => field.key === key && field.type === 'secret') ? '' : value])));
       }
@@ -186,6 +202,41 @@ function ProviderCatalogPage() {
       toast.error(error instanceof Error ? error.message : 'Không thể lưu hồ sơ');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const revealSecret = async (key: string) => {
+    if (!selected || !reauthPassword) return;
+    setConfigActionBusy(true);
+    try {
+      const response = await providerConfigurationAPI.reveal(selected._id, key, reauthPassword);
+      setRevealedSecrets((current) => ({ ...current, [key]: response.data.value }));
+      setReauthPassword('');
+      setRevealingField(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Không thể hiển thị secret');
+    } finally {
+      setConfigActionBusy(false);
+    }
+  };
+
+  const deleteConfiguration = async () => {
+    if (!selected || !deleteConfigPassword) return;
+    setConfigActionBusy(true);
+    try {
+      await providerConfigurationAPI.remove(selected._id, deleteConfigPassword);
+      setConfigValues({});
+      setConfiguredSecrets([]);
+      setConfigVersion(0);
+      setRevealedSecrets({});
+      setDeleteConfigOpen(false);
+      setDeleteConfigPassword('');
+      toast.success('Đã xóa toàn bộ cấu hình credentials');
+      await loadAudit(selected, 1);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Không thể xóa cấu hình');
+    } finally {
+      setConfigActionBusy(false);
     }
   };
 
@@ -285,6 +336,7 @@ function ProviderCatalogPage() {
           </> : selected ? <>
             <div className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{CATEGORY_LABELS[selected.category]}</p><h2 className="mt-1 text-xl font-semibold text-slate-950">{selected.name}</h2><p className="mt-1 text-sm text-slate-500">{selected.providerCode} · phiên bản {selected.version}</p></div><button type="button" onClick={() => { setSelected(null); setAudit(null); }} aria-label="Bỏ chọn" className="rounded-md p-2 text-slate-500 hover:bg-slate-100"><X className="h-4 w-4" /></button></div>
             <div className="mt-5 rounded-xl border border-slate-200 p-4"><p className="text-sm font-semibold text-slate-800">{selected.capability === 'not-implemented' ? 'Chưa tích hợp' : selected.capability === 'not-verified' ? 'Chưa xác minh' : selected.capability === 'launcher-only' ? 'Chỉ có launcher' : selected.capability === 'payment-method' ? 'Phương thức hiện có' : 'Có adapter trong backend'}</p><p className="mt-1 text-sm leading-6 text-slate-600">{selected.capabilityNote}</p><p className="mt-2 text-xs text-slate-500">Catalog không báo trạng thái kết nối hoặc khả năng xử lý giao dịch.</p></div>
+            {configFields.length > 0 && <section className="mt-5 rounded-xl border border-slate-200 p-4"><div className="flex items-start justify-between gap-3"><div><h3 className="font-semibold text-slate-900">Cấu hình đã lưu</h3><p className="mt-1 text-xs text-slate-500">{configVersion ? `Phiên bản cấu hình ${configVersion}` : 'Chưa có cấu hình được lưu.'} · secret được che mặc định.</p></div>{configVersion > 0 && !deleteConfigOpen && <button type="button" onClick={() => setDeleteConfigOpen(true)} className="shrink-0 rounded-lg border border-red-200 px-3 py-2 text-xs font-medium text-red-700 hover:bg-red-50">Xóa cấu hình</button>}</div><div className="mt-4 space-y-3">{configFields.map((field) => { const isSecret = field.type === 'secret'; const isConfigured = isSecret ? configuredSecrets.includes(field.key) : Boolean(configValues[field.key]); return <div key={field.key} className="rounded-lg bg-slate-50 p-3"><p className="text-sm font-medium text-slate-800">{field.label}</p><code className="mt-1 block break-all text-xs text-slate-500">{field.key}</code><p className="mt-2 break-all text-sm text-slate-700">{isSecret ? (revealedSecrets[field.key] || (isConfigured ? '•••••••• (đã cấu hình)' : 'Chưa cấu hình')) : (configVersion > 0 && configValues[field.key] ? configValues[field.key] : 'Chưa cấu hình')}</p>{isSecret && isConfigured && <div className="mt-2">{revealedSecrets[field.key] ? <button type="button" onClick={() => setRevealedSecrets((current) => { const next = { ...current }; delete next[field.key]; return next; })} className="text-xs font-medium text-blue-700 underline">Ẩn secret</button> : revealingField === field.key ? <div className="flex flex-wrap gap-2"><input type="password" autoComplete="current-password" value={reauthPassword} onChange={(event) => setReauthPassword(event.target.value)} placeholder="Nhập lại mật khẩu Siêu Admin" className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-xs" /><button type="button" disabled={!reauthPassword || configActionBusy} onClick={() => void revealSecret(field.key)} className="rounded-lg bg-slate-900 px-3 py-2 text-xs text-white disabled:opacity-50">{configActionBusy ? 'Đang xác minh…' : 'Xác nhận xem'}</button><button type="button" onClick={() => { setRevealingField(null); setReauthPassword(''); }} className="rounded-lg border px-3 py-2 text-xs">Hủy</button></div> : <button type="button" onClick={() => setRevealingField(field.key)} className="text-xs font-medium text-blue-700 underline">Hiện secret</button>}</div>}</div>; })}</div>{deleteConfigOpen && <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3"><p className="text-sm font-medium text-red-900">Xóa toàn bộ cấu hình credentials?</p><p className="mt-1 text-xs leading-5 text-red-800">Thao tác này chỉ xóa key/value của provider, không xóa hồ sơ catalog. Nhập lại mật khẩu Siêu Admin để xác nhận.</p><input type="password" autoComplete="current-password" value={deleteConfigPassword} onChange={(event) => setDeleteConfigPassword(event.target.value)} placeholder="Mật khẩu Siêu Admin" className="mt-3 w-full rounded-lg border border-red-300 bg-white px-3 py-2 text-sm" /><div className="mt-3 flex justify-end gap-2"><button type="button" onClick={() => { setDeleteConfigOpen(false); setDeleteConfigPassword(''); }} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs">Hủy</button><button type="button" disabled={!deleteConfigPassword || configActionBusy} onClick={() => void deleteConfiguration()} className="rounded-lg bg-red-700 px-3 py-2 text-xs font-medium text-white disabled:opacity-50">{configActionBusy ? 'Đang xóa…' : 'Xác nhận xóa'}</button></div></div>}</section>}
             <div className="mt-5 space-y-4 text-sm"><div><p className="font-medium text-slate-700">Mô tả</p><p className="mt-1 whitespace-pre-wrap text-slate-600">{selected.description || '—'}</p></div><div><p className="font-medium text-slate-700">Ghi chú</p><p className="mt-1 whitespace-pre-wrap text-slate-600">{selected.notes || '—'}</p></div><p className="text-xs text-slate-500">Cập nhật {new Date(selected.updatedAt).toLocaleString()}</p></div>
             <div className="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-4">{selected.isDeleted ? <button type="button" onClick={() => void restore(selected)} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm"><ArchiveRestore className="h-4 w-4" />Khôi phục</button> : <><button type="button" onClick={() => { setForm({ name: selected.name, description: selected.description, notes: selected.notes }); setEditing(true); }} className="rounded-lg border border-slate-300 px-3 py-2 text-sm">Sửa hồ sơ</button><button type="button" onClick={() => void remove(selected)} className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-sm text-red-700 hover:bg-red-50"><Trash2 className="h-4 w-4" />Xóa mềm</button></>}</div>
             <div className="mt-6 border-t border-slate-100 pt-5"><div className="mb-3 flex items-center gap-2"><Clock3 className="h-4 w-4 text-slate-500" /><h3 className="text-sm font-semibold text-slate-800">Nhật ký</h3></div><div className="space-y-3">{audit?.data.map((record) => <div key={record._id} className="border-l-2 border-slate-200 pl-3 text-xs"><p className="font-medium text-slate-700">{record.action} · v{record.version}</p><p className="mt-1 text-slate-500">{record.changedFields.join(', ')}</p><p className="mt-1 text-slate-500">{record.userName || 'Super Admin'} · {new Date(record.createdAt).toLocaleString()}</p></div>)}{audit && !audit.data.length && <p className="text-xs text-slate-500">Chưa có nhật ký.</p>}</div>{(audit?.pagination.totalPages || 0) > 1 && <div className="mt-4 flex items-center justify-end gap-2 text-xs"><button type="button" disabled={auditPage <= 1} onClick={() => { const nextPage = auditPage - 1; setAuditPage(nextPage); if (selected) void loadAudit(selected, nextPage); }} className="rounded border px-2 py-1 disabled:opacity-40">Trước</button><span>{auditPage} / {audit?.pagination.totalPages}</span><button type="button" disabled={auditPage >= (audit?.pagination.totalPages || 1)} onClick={() => { const nextPage = auditPage + 1; setAuditPage(nextPage); if (selected) void loadAudit(selected, nextPage); }} className="rounded border px-2 py-1 disabled:opacity-40">Sau</button></div>}</div>

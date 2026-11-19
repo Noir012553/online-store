@@ -2814,13 +2814,19 @@ export interface ProviderSetupGuide {
 export const providerConfigurationAPI = {
   getSchema: (providerCode: string) => apiCall<{ success: boolean; data: { fields: ProviderConfigField[]; setupGuide: ProviderSetupGuide | null; storeAvailable: boolean } }>(`/settings/provider-configs/schema/${encodeURIComponent(providerCode)}`, { skipCache: true, skipErrorToast: true }),
   get: (providerId: string) => apiCall<{ success: boolean; data: { fields: ProviderConfigField[]; setupGuide: ProviderSetupGuide | null; values: Record<string, string>; configuredSecrets: string[]; version: number; storeAvailable: boolean } }>(`/settings/provider-configs/${providerId}`, { skipCache: true }),
-  save: (providerId: string, values: Record<string, string>) => apiCall(`/settings/provider-configs/${providerId}`, {
+  save: (providerId: string, values: Record<string, string>) => apiCall<{ success: boolean; data: { version: number } }>(`/settings/provider-configs/${providerId}`, {
     method: 'PUT',
     body: JSON.stringify(values),
     skipErrorToast: true,
   }),
-  reveal: (providerId: string, key: string) => apiCall<{ success: boolean; data: { key: string; value: string } }>(`/settings/provider-configs/${providerId}/reveal/${encodeURIComponent(key)}`, {
+  remove: (providerId: string, password: string) => apiCall<{ success: boolean; data: { version: number } }>(`/settings/provider-configs/${providerId}`, {
+    method: 'DELETE',
+    body: JSON.stringify({ password }),
+    skipErrorToast: true,
+  }),
+  reveal: (providerId: string, key: string, password: string) => apiCall<{ success: boolean; data: { key: string; value: string } }>(`/settings/provider-configs/${providerId}/reveal/${encodeURIComponent(key)}`, {
     method: 'POST',
+    body: JSON.stringify({ password }),
     skipCache: true,
     skipErrorToast: true,
   }),

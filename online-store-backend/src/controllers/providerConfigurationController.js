@@ -173,6 +173,26 @@ exports.save = asyncHandler(async (req, res) => {
   res.json({ success: true, data: { providerCode: provider.providerCode, values, configuredSecrets: Object.keys(encryptedSecrets), version: configuration.version } });
 });
 
+exports.remove = asyncHandler(async (req, res) => {
+  if (!req.body || typeof req.body.password !== 'string' || Object.keys(req.body).some((key) => key !== 'password')) {
+    return res.status(400).json({ success: false, code: 'REAUTHENTICATION_REQUIRED' });
+  }
+  const user = await User.findById(req.user._id);
+  if (!user || !(await user.matchPassword(req.body.password))) {
+    return res.status(401).json({ success: false, code: 'REAUTHENTICATION_FAILED' });
+  }
+  const provider = await getProvider(req.params.id);
+  if (!provider) return res.status(404).json({ success: false, code: 'PROVIDER_NOT_FOUND' });
+  const configuration = await ProviderConfiguration.findOne({ providerId: provider._id });
+  if (!configuration) return res.status(404).json({ success: false, code: 'PROVIDER_CONFIG_NOT_FOUND' });
+  const changedFields = [...Object.keys(configuration.values || {}), ...Object.keys(configuration.encryptedSecrets || {})];
+  const version = configuration.version + 1;
+  await ProviderConfiguration.deleteOne({ _id: configuration._id });
+  await audit(provider, req, 'delete', changedFields, version);
+  noStore(res);
+  res.json({ success: true, data: { providerCode: provider.providerCode, version } });
+});
+
 exports.reveal = asyncHandler(async (req, res) => {
   if (!req.body || typeof req.body.password !== 'string' || Object.keys(req.body).some((key) => key !== 'password')) {
     return res.status(400).json({ success: false, code: 'REAUTHENTICATION_REQUIRED' });
