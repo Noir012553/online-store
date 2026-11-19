@@ -87,7 +87,8 @@ function AppContent({ Component, pageProps }: AppContentProps) {
   const [isCriticalTranslationsReady, setIsCriticalTranslationsReady] = useState(false);
   const { locale, isLoadingNamespace } = useLanguage();
   const { user, isInitialized } = useAuth();
-  const [maintenanceEnabled, setMaintenanceEnabled] = useState(false);
+  const [maintenanceSettings, setMaintenanceSettings] = useState<Pick<StoreSettingsRecord['maintenance'], 'enabled' | 'scheduledStart' | 'scheduledEnd'> | null>(null);
+  const [maintenanceNow, setMaintenanceNow] = useState(() => Date.now());
   const [maintenanceChecked, setMaintenanceChecked] = useState(false);
 
   const componentWithMeta = Component as PageWithAdminMeta;
@@ -108,15 +109,33 @@ function AppContent({ Component, pageProps }: AppContentProps) {
   useEffect(() => {
     let active = true;
     settingsAPI.getPublic().then((settings: Pick<StoreSettingsRecord, 'branding' | 'maintenance'>) => {
-      if (active) setMaintenanceEnabled(settings.maintenance.enabled);
+      if (active) setMaintenanceSettings(settings.maintenance);
     }).catch(() => {
-      if (active) setMaintenanceEnabled(false);
+      if (active) setMaintenanceSettings(null);
     }).finally(() => {
       if (active) setMaintenanceChecked(true);
     });
     return () => { active = false; };
   }, []);
 
+  useEffect(() => {
+    if (!maintenanceSettings) return;
+    const now = Date.now();
+    const nextTransition = [maintenanceSettings.scheduledStart, maintenanceSettings.scheduledEnd]
+      .map((value) => value ? new Date(value).getTime() : null)
+      .filter((value): value is number => value !== null && value > now)
+      .sort((a, b) => a - b)[0];
+    if (nextTransition === undefined) return;
+    const timer = setTimeout(() => setMaintenanceNow(Date.now()), Math.min(nextTransition - now, 2_147_483_647));
+    return () => clearTimeout(timer);
+  }, [maintenanceSettings, maintenanceNow]);
+
+  const now = maintenanceNow;
+  const startsAt = maintenanceSettings?.scheduledStart ? new Date(maintenanceSettings.scheduledStart).getTime() : null;
+  const endsAt = maintenanceSettings?.scheduledEnd ? new Date(maintenanceSettings.scheduledEnd).getTime() : null;
+  const maintenanceEnabled = Boolean(maintenanceSettings?.enabled)
+    && (startsAt === null || now >= startsAt)
+    && (endsAt === null || now < endsAt);
   const isMaintenanceRoute = router?.pathname === '/maintenance';
   const isAdminRoute = Boolean(router?.pathname.startsWith('/admin'));
   const maintenanceBlocksVisitor = maintenanceChecked && maintenanceEnabled && (!isInitialized || user?.role !== 'super-admin');
