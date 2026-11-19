@@ -114,10 +114,15 @@ function ProviderCatalogPage() {
       setConfigValues(values);
       setConfiguredSecrets(secrets);
     } catch (error) {
+      const apiError = error as Error & { code?: string };
       setConfigFields([]);
       setSchemaGuide(null);
       setConfigValues({});
       setConfiguredSecrets([]);
+      if (apiError.code === 'PROVIDER_CONFIG_UNSUPPORTED') {
+        setConfigStoreAvailable(true);
+        return;
+      }
       setConfigStoreAvailable(false);
       toast.error(error instanceof Error ? error.message : 'Không thể tải schema cấu hình');
     }
