@@ -2815,7 +2815,23 @@ export interface ProviderSetupGuide {
   note: string;
 }
 
+export interface ProviderRuntimeField {
+  key: string;
+  label: string;
+  type: 'text' | 'secret' | 'url';
+  configured: boolean;
+  value: string | null;
+  source: 'environment' | 'runtime-default' | 'unset';
+}
+
 export const providerConfigurationAPI = {
+  getRuntimeVnpay: () => apiCall<{ success: boolean; data: { providerCode: 'vnpay'; source: 'environment'; fields: ProviderRuntimeField[] } }>('/settings/provider-configs/runtime/vnpay', { skipCache: true, skipErrorToast: true }),
+  revealRuntimeVnpaySecret: (password: string) => apiCall<{ success: boolean; data: { key: 'VNPAY_HASH_SECRET'; value: string } }>('/settings/provider-configs/runtime/vnpay/reveal/hash-secret', {
+    method: 'POST',
+    body: JSON.stringify({ password }),
+    skipCache: true,
+    skipErrorToast: true,
+  }),
   getSchema: (providerCode: string) => apiCall<{ success: boolean; data: { fields: ProviderConfigField[]; setupGuide: ProviderSetupGuide | null; storeAvailable: boolean } }>(`/settings/provider-configs/schema/${encodeURIComponent(providerCode)}`, { skipCache: true, skipErrorToast: true }),
   get: (providerId: string) => apiCall<{ success: boolean; data: { fields: ProviderConfigField[]; setupGuide: ProviderSetupGuide | null; values: Record<string, string>; configuredSecrets: string[]; version: number; storeAvailable: boolean } }>(`/settings/provider-configs/${providerId}`, { skipCache: true }),
   save: (providerId: string, values: Record<string, string>) => apiCall<{ success: boolean; data: { version: number } }>(`/settings/provider-configs/${providerId}`, {

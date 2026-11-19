@@ -5,6 +5,8 @@ const providerConfigurationController = require('../controllers/providerConfigur
 const router = express.Router();
 
 router.use(protect, superAdmin);
+router.get('/runtime/vnpay', providerConfigurationController.getRuntimeVnpay);
+router.post('/runtime/vnpay/reveal/hash-secret', providerConfigurationController.revealRuntimeVnpaySecret);
 router.get('/schema/:providerCode', providerConfigurationController.getSchema);
 router.get('/:id', providerConfigurationController.get);
 router.put('/:id', providerConfigurationController.save);

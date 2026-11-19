@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const ProviderCatalogEntry = require('../models/ProviderCatalogEntry');
 const ProviderConfiguration = require('../models/ProviderConfiguration');
 const ProviderConfigurationAudit = require('../models/ProviderConfigurationAudit');
+const ProviderRuntimeAudit = require('../models/ProviderRuntimeAudit');
 const User = require('../models/User');
 
 const PROVIDER_SCHEMAS = {
@@ -51,6 +52,14 @@ const PROVIDER_SCHEMAS = {
     { key: 'RENDER_STAGING_URL', label: 'URL staging', type: 'url', helpText: 'URL HTTPS của service staging; Free web services có thể ngủ sau thời gian không hoạt động.' },
   ],
 };
+
+const VNPAY_RUNTIME_FIELDS = [
+  { key: 'VNPAY_TMN_CODE', label: 'Mã terminal / merchant', type: 'text', envKey: 'VNPAY_TMN_CODE' },
+  { key: 'VNPAY_HASH_SECRET', label: 'Hash Secret', type: 'secret', envKey: 'VNPAY_HASH_SECRET' },
+  { key: 'VNPAY_ENDPOINT', label: 'Payment endpoint', type: 'url', envKey: 'VNPAY_ENDPOINT', defaultValue: 'https://sandbox.vnpayment.vn/paygate' },
+  { key: 'VNPAY_RETURN_URL', label: 'Return URL', type: 'url', envKey: 'VNPAY_RETURN_URL' },
+  { key: 'VNPAY_CALLBACK_URL', label: 'Callback / IPN URL', type: 'url', envKey: 'VNPAY_CALLBACK_URL' },
+];
 
 const PROVIDER_SETUP_GUIDES = {
   paypal: { label: 'PayPal REST Authentication & Sandbox', url: 'https://developer.paypal.com/api/rest/authentication/', note: 'Tạo app trong Sandbox và dùng cặp Client ID/Secret của app đó. Webhook ID lấy từ webhook sandbox đã đăng ký.' },
@@ -106,6 +115,44 @@ const audit = async (provider, req, action, changedFields, version) => ProviderC
   version,
   userId: req.user._id,
   userName: userName(req.user),
+});
+
+exports.getRuntimeVnpay = asyncHandler(async (_req, res) => {
+  const fields = VNPAY_RUNTIME_FIELDS.map((field) => {
+    const rawValue = process.env[field.envKey];
+    const value = rawValue || field.defaultValue || '';
+    return {
+      key: field.key,
+      label: field.label,
+      type: field.type,
+      configured: Boolean(value),
+      value: field.type === 'secret' ? null : value,
+      source: rawValue ? 'environment' : field.defaultValue ? 'runtime-default' : 'unset',
+    };
+  });
+  noStore(res);
+  res.json({ success: true, data: { providerCode: 'vnpay', source: 'environment', fields } });
+});
+
+exports.revealRuntimeVnpaySecret = asyncHandler(async (req, res) => {
+  if (!req.body || typeof req.body.password !== 'string' || Object.keys(req.body).some((key) => key !== 'password')) {
+    return res.status(400).json({ success: false, code: 'REAUTHENTICATION_REQUIRED' });
+  }
+  const user = await User.findById(req.user._id);
+  if (!user || !(await user.matchPassword(req.body.password))) {
+    return res.status(401).json({ success: false, code: 'REAUTHENTICATION_FAILED' });
+  }
+  const value = process.env.VNPAY_HASH_SECRET;
+  if (!value) return res.status(404).json({ success: false, code: 'PROVIDER_SECRET_NOT_CONFIGURED' });
+  await ProviderRuntimeAudit.create({
+    providerCode: 'vnpay',
+    action: 'reveal',
+    changedFields: ['VNPAY_HASH_SECRET'],
+    userId: req.user._id,
+    userName: userName(req.user),
+  });
+  noStore(res);
+  res.json({ success: true, data: { key: 'VNPAY_HASH_SECRET', value } });
 });
 
 exports.getSchema = asyncHandler(async (req, res) => {
