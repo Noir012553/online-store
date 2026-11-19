@@ -36,6 +36,7 @@ function ProviderCatalogPage() {
   const [auditPage, setAuditPage] = useState(1);
   const [pageInfo, setPageInfo] = useState({ page: 1, pageSize: 10, total: 0, totalPages: 0 });
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<'backend-missing' | 'load-failed' | null>(null);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
 
@@ -54,11 +55,22 @@ function ProviderCatalogPage() {
     setAudit(await providerCatalogAPI.getAudit(entry._id, pageNumber));
   }, [auditPage]);
 
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      await Promise.all([loadRegistry(), loadList()]);
+      setLoadError(null);
+    } catch (error) {
+      const apiError = error as Error & { code?: string; status?: number };
+      setLoadError(apiError.code === 'ROUTE_NOT_FOUND' || apiError.status === 404 ? 'backend-missing' : 'load-failed');
+    } finally {
+      setLoading(false);
+    }
+  }, [loadList, loadRegistry]);
+
   useEffect(() => {
-    Promise.all([loadRegistry(), loadList()])
-      .catch((error) => toast.error(error instanceof Error ? error.message : 'Không thể tải catalog'))
-      .finally(() => setLoading(false));
-  }, [loadRegistry, loadList]);
+    void loadData();
+  }, [loadData]);
 
   const selectedRegistry = useMemo(() => registry.find((provider) => provider.code === selectedCode), [registry, selectedCode]);
 
@@ -149,7 +161,7 @@ function ProviderCatalogPage() {
           <h1 className="text-3xl font-semibold tracking-tight text-slate-950">Catalog nhà cung cấp</h1>
           <p className="mt-2 max-w-3xl text-sm text-slate-600">Quản lý hồ sơ tham khảo theo nhóm. Catalog không lưu credentials, không bật checkout và không thực hiện deploy hay thay đổi runtime.</p>
         </div>
-        <button type="button" onClick={openCreate} className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800"><Plus className="h-4 w-4" />Thêm hồ sơ</button>
+        <button type="button" disabled={loading || Boolean(loadError) || !registry.length} onClick={openCreate} className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"><Plus className="h-4 w-4" />Thêm hồ sơ</button>
       </header>
 
       <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
@@ -166,7 +178,7 @@ function ProviderCatalogPage() {
             <label className="relative block"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={search} onChange={(event) => setFilter(() => setSearch(event.target.value))} placeholder="Tìm theo tên hoặc mã" className="w-full rounded-lg border border-slate-300 py-2.5 pl-9 pr-3 text-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" /></label>
             <select value={category} onChange={(event) => setFilter(() => setCategory(event.target.value))} className="rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-700"><option value="">Tất cả nhóm</option>{Object.entries(CATEGORY_LABELS).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select>
           </div>
-          {loading ? <p className="py-10 text-center text-sm text-slate-500">Đang tải catalog…</p> : items.length ? <div className="space-y-3">
+          {loading ? <p className="py-10 text-center text-sm text-slate-500">Đang tải catalog…</p> : loadError ? <div role="alert" className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-8 text-center text-sm text-amber-950"><p className="font-semibold">{loadError === 'backend-missing' ? 'Backend chưa có API catalog.' : 'Không thể tải catalog.'}</p><p className="mx-auto mt-2 max-w-md leading-6">{loadError === 'backend-missing' ? 'Hãy triển khai phiên bản backend có các route /api/settings/providers trên môi trường preview hoặc staging rồi thử lại. Không có dữ liệu mẫu được hiển thị.' : 'Kiểm tra kết nối và quyền Super Admin rồi thử lại.'}</p><button type="button" onClick={() => void loadData()} className="mt-4 rounded-lg border border-amber-400 px-4 py-2 font-medium hover:bg-amber-100">Thử lại</button></div> : items.length ? <div className="space-y-3">
             {items.map((entry) => (
               <button type="button" key={entry._id} onClick={() => void openEntry(entry)} className={`w-full rounded-xl border p-4 text-left transition hover:border-slate-400 ${selected?._id === entry._id ? 'border-red-300 bg-red-50/40' : 'border-slate-200'}`}>
                 <div className="flex flex-wrap items-start justify-between gap-3">

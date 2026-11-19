@@ -30,6 +30,7 @@ function SettingsAdminPage() {
   const [audit, setAudit] = useState<Awaited<ReturnType<typeof settingsAPI.getAudit>> | null>(null);
   const [auditPage, setAuditPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<'backend-missing' | 'load-failed' | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState<AssetField | null>(null);
   const [previews, setPreviews] = useState<Partial<Record<AssetField, string>>>({});
@@ -46,11 +47,22 @@ function SettingsAdminPage() {
     setAudit(await settingsAPI.getAudit(auditPage));
   }, [auditPage]);
 
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      await Promise.all([loadSettings(), loadAudit()]);
+      setLoadError(null);
+    } catch (error) {
+      const apiError = error as Error & { code?: string; status?: number };
+      setLoadError(apiError.code === 'ROUTE_NOT_FOUND' || apiError.status === 404 ? 'backend-missing' : 'load-failed');
+    } finally {
+      setLoading(false);
+    }
+  }, [loadAudit, loadSettings]);
+
   useEffect(() => {
-    Promise.all([loadSettings(), loadAudit()])
-      .catch((error) => toast.error(error instanceof Error ? error.message : 'Không thể tải cấu hình'))
-      .finally(() => setLoading(false));
-  }, [loadSettings, loadAudit]);
+    void loadData();
+  }, [loadData]);
 
   useEffect(() => {
     previewsRef.current = previews;
@@ -129,6 +141,7 @@ function SettingsAdminPage() {
   };
 
   if (loading) return <div className="p-8 text-sm text-slate-500">Đang tải cấu hình…</div>;
+  if (loadError) return <div role="alert" className="mx-auto max-w-2xl rounded-2xl border border-amber-300 bg-amber-50 p-6 text-sm text-amber-950"><h1 className="text-lg font-semibold">{loadError === 'backend-missing' ? 'Backend chưa có API cài đặt.' : 'Không thể tải cấu hình.'}</h1><p className="mt-2 leading-6">{loadError === 'backend-missing' ? 'Hãy triển khai phiên bản backend có các route /api/settings trên môi trường preview hoặc staging rồi thử lại. Form bị khóa để tránh lưu đè cấu hình bằng dữ liệu rỗng.' : 'Kiểm tra kết nối và quyền Super Admin rồi thử tải lại.'}</p><button type="button" onClick={() => void loadData()} className="mt-4 rounded-lg border border-amber-400 px-4 py-2 font-medium hover:bg-amber-100">Thử lại</button></div>;
 
   const assetInputs: Array<{ field: AssetField; label: string; value: string }> = [
     { field: 'logo', label: 'Logo chính', value: settings.branding.logoUrl },
