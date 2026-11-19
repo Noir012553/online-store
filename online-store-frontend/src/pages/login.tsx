@@ -259,13 +259,6 @@ export default function Login() {
                       {t('google_login', 'login')}
                     </Button>
 
-                    {process.env.NODE_ENV === 'development' && (
-                      <div className="text-center text-xs text-gray-600 mt-4">
-                        <p>{t('demo_credentials', 'login')}</p>
-                        <p>{t('demo_admin', 'login')}</p>
-                        <p>{t('demo_user', 'login')}</p>
-                      </div>
-                    )}
                   </form>
                 </TabsContent>
               </div>
