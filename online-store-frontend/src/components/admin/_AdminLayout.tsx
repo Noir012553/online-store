@@ -20,6 +20,7 @@ import {
   Languages,
   Globe,
   DollarSign,
+  Settings2,
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "../../lib/context/AuthContext";
@@ -57,6 +58,7 @@ const DEFAULT_OPEN_GROUPS = {
   design: true,
   translations: true,
   currency: true,
+  settings: true,
 };
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -228,6 +230,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           title: t('admin_currency_management', 'admin-common'),
           icon: DollarSign,
           children: [{ path: "/admin/currencyAdmin", icon: DollarSign, label: t('admin_currency_management', 'admin-common') }],
+        },
+      },
+      {
+        type: "group" as const,
+        group: {
+          id: "settings",
+          title: 'Cài đặt hệ thống',
+          icon: Settings2,
+          children: [
+            { path: "/admin/settings", icon: Settings2, label: 'Cấu hình cửa hàng' },
+            { path: "/admin/providerCatalog", icon: Package, label: 'Catalog nhà cung cấp' },
+          ],
         },
       },
     ] : []),

@@ -2,7 +2,7 @@
 
 ## Trạng thái
 
-Bản triển khai thử của `/admin/settings` và các API quản trị liên quan đã được gỡ theo quyết định; hiện không triển khai lại. Tài liệu này giữ yêu cầu và bài học cho lần thiết kế sau, không mô tả trạng thái code đang chạy. Tiêu chí mới: CRUD phải đầy đủ; Read cho Siêu Admin hiển thị mọi trường đã lưu, giá trị thường hiển thị đầy đủ còn secret được che mặc định và chỉ hiện plaintext sau khi bấm icon mắt qua API reveal đã kiểm tra quyền. Runtime adapters hiện có vẫn là phạm vi riêng và không bị gỡ cùng trang quản trị.
+Code hiện có trên nhánh bao gồm `/admin/settings` cho thương hiệu/bảo trì và `/admin/providerCatalog` cho hồ sơ nhà cung cấp tham khảo. Phạm vi đang được triển khai giới hạn ở các phần không-secret: API quản trị có kiểm tra Super Admin, audit, CRUD hồ sơ catalog với phân trang và xóa mềm/khôi phục; catalog không cấu hình hoặc kích hoạt adapter. Lịch bảo trì chỉ có hiệu lực khi công tắc bật, bắt đầu tại `scheduledStart` (nếu có) và tự kết thúc tại `scheduledEnd` (nếu có); thời điểm kết thúc không còn thuộc khoảng bảo trì. Trang đăng nhập không hiển thị credentials demo. Secrets, reveal plaintext, email/payment runtime, Cloudflare DNS/Tunnel và deploy/restart vẫn chưa được triển khai và tiếp tục bị khóa cho đến khi chốt môi trường staging, kho secrets và phạm vi vận hành. Source backend đã mount các route settings/catalog, nhưng preview hiện nhận `404 ROUTE_NOT_FOUND` cho các endpoint này vì rewrite mặc định trỏ tới backend chưa có phiên bản route tương ứng. UI báo backend chưa cập nhật, khóa thao tác và không dùng dữ liệu giả. Chưa xác minh CRUD end-to-end bằng backend staging và phiên Super Admin; typecheck frontend đã đạt. Các mục còn lại trong tài liệu là yêu cầu/điều kiện cho giai đoạn sau, không được hiểu là đã triển khai.
 
 ## Mục tiêu
 
@@ -19,7 +19,7 @@ Chỉ chấp nhận gói miễn phí; không dùng trial có tính phí sau kỳ
 - User model đã hỗ trợ role `user`, `admin`, `super-admin`.
 - Backend đã có middleware `protect` và `superAdmin`; một số API quản trị đã áp dụng middleware này.
 - Frontend có `ProtectedAdminPage`, `isSuperAdmin`, menu sidebar có thể ẩn/hiện theo role.
-- Chưa tìm thấy model cấu hình tổng quát cho cửa hàng.
+- Đã có model `StoreSettings` cho cấu hình thương hiệu và bảo trì storefront; chưa có model runtime config/secrets tổng quát theo allowlist.
 - VNPay hiện lấy merchant code, hash secret, endpoint và callback URLs từ biến môi trường; `PaymentService` khởi tạo adapter khi được tạo.
 - Email hiện lấy SMTP/SendGrid credentials từ biến môi trường và tạo transporter theo cấu hình runtime.
 - Cloudflare R2 và Cloudflare AI dùng các nhóm credentials riêng từ biến môi trường; R2 còn cache S3 clients theo account.

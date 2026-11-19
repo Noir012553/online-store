@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
@@ -10,7 +9,8 @@ import { useLogoutConfirm } from "../hooks/useLogoutConfirm";
 import { getCategoryName } from "../lib/data";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { settingsAPI } from "../lib/api";
 import { ChevronDown, LogOut, Menu, User } from "lucide-react";
 import { Input } from "./ui/input";
 import { ShoppingCartIcon } from "./icons/SocialIcons";
@@ -32,6 +32,26 @@ function HeaderComponent() {
   const [mobileProductsOpen, setMobileProductsOpen] = useState(false);
   const [productDropdownOpen, setProductDropdownOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [branding, setBranding] = useState<{ storeName: string; logoUrl: string } | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    settingsAPI.getPublic().then((settings) => {
+      if (!active) return;
+      setBranding({ storeName: settings.branding?.storeName || '', logoUrl: settings.branding?.logoUrl || '' });
+      if (settings.branding?.storeName) document.title = settings.branding.storeName;
+      if (settings.branding?.faviconUrl) {
+        let favicon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+        if (!favicon) {
+          favicon = document.createElement('link');
+          favicon.rel = 'icon';
+          document.head.appendChild(favicon);
+        }
+        favicon.href = settings.branding.faviconUrl;
+      }
+    }).catch(() => {});
+    return () => { active = false; };
+  }, []);
 
   // Handle navigation safely after router is ready
   const handleNavigate = (path: string) => {
@@ -51,13 +71,11 @@ function HeaderComponent() {
         <div className="container mx-auto h-full flex items-center justify-between">
           {/* Left: Logo */}
           <Link href="/" className="flex items-center shrink-0">
-            <Image
-              src="/assets/branding/logo-cropped.png"
-              alt={t('brand_name', 'common')}
+            <img
+              src={branding?.logoUrl || '/assets/branding/logo-cropped.png'}
+              alt={branding?.storeName || t('brand_name', 'common')}
               width={260}
               height={146}
-              sizes="(max-width: 639px) 220px, 260px"
-              preload
               className="h-16 w-auto max-w-[220px] object-contain sm:h-18 sm:max-w-[260px]"
             />
           </Link>

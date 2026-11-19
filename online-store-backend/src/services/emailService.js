@@ -45,6 +45,25 @@ const getAuthEmailMessages = (lang, type) => {
  * Hỗ trợ nhiều providers: Gmail, SendGrid, AWS SES, etc.
  */
 const createTransporter = () => {
+  if (process.env.EMAIL_SERVICE === 'mailtrap-sandbox') {
+    const appEnvironment = process.env.APP_ENV || process.env.NODE_ENV;
+    if (!['development', 'test', 'staging', 'preview'].includes(appEnvironment)) {
+      throw createEmailDeliveryError('EMAIL_SANDBOX_ENV_NOT_ALLOWED');
+    }
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+      throw createEmailDeliveryError('EMAIL_SANDBOX_CREDENTIALS_MISSING');
+    }
+    return nodemailer.createTransport({
+      host: 'sandbox.smtp.mailtrap.io',
+      port: 2525,
+      secure: false,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD,
+      },
+    });
+  }
+
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
     return null;
   }

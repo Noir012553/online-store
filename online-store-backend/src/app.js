@@ -37,6 +37,8 @@ const exchangeRateRoutes = require('./routes/exchangeRateRoutes');
 const paymentMethodService = require('./services/paymentMethodService');
 const healthRoutes = require('./routes/healthRoutes');
 const r2AssetRoutes = require('./routes/r2AssetRoutes');
+const storeSettingsRoutes = require('./routes/storeSettingsRoutes');
+const providerCatalogRoutes = require('./routes/providerCatalogRoutes');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 const { globalLimiter } = require('./middleware/rateLimitMiddleware');
 const languageMiddleware = require('./middleware/languageMiddleware');
@@ -489,6 +491,8 @@ app.all('/vnpay-api/webhook/:gateway', asyncHandler(paymentController.handleWebh
 app.use('/api/health', healthRoutes); // Health check endpoints (monitoring)
 app.use('/api/contact', contactRoutes);
 app.use('/api', requireDatabase);
+app.use('/api/settings', storeSettingsRoutes);
+app.use('/api/settings/providers', providerCatalogRoutes);
 app.use('/api/users', userRoutes);           // User authentication & admin
 app.use('/api/products', productRoutes);     // Product management
 app.use('/api/orders', orderRoutes);         // Order processing
