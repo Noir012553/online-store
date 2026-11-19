@@ -73,10 +73,20 @@ function ProviderCatalogPage() {
   }, [loadData]);
 
   const selectedRegistry = useMemo(() => registry.find((provider) => provider.code === selectedCode), [registry, selectedCode]);
+  const availableProviders = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+    if (status !== 'active' || pageInfo.total > 0) return [];
+    return registry.filter((provider) => (
+      (!category || provider.category === category)
+      && (!normalizedSearch || `${provider.name} ${provider.code}`.toLowerCase().includes(normalizedSearch))
+    ));
+  }, [category, pageInfo.total, registry, search, status]);
 
-  const openCreate = () => {
+  const openCreate = (code = selectedCode) => {
+    const provider = registry.find((item) => item.code === code);
     setSelected(null);
-    setForm({ ...EMPTY_FORM, name: selectedRegistry?.name || '' });
+    setSelectedCode(code);
+    setForm({ ...EMPTY_FORM, name: provider?.name || '' });
     setEditing(true);
     setAudit(null);
   };
@@ -161,7 +171,7 @@ function ProviderCatalogPage() {
           <h1 className="text-3xl font-semibold tracking-tight text-slate-950">Catalog nhà cung cấp</h1>
           <p className="mt-2 max-w-3xl text-sm text-slate-600">Quản lý hồ sơ tham khảo theo nhóm. Catalog không lưu credentials, không bật checkout và không thực hiện deploy hay thay đổi runtime.</p>
         </div>
-        <button type="button" disabled={loading || Boolean(loadError) || !registry.length} onClick={openCreate} className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"><Plus className="h-4 w-4" />Thêm hồ sơ</button>
+        <button type="button" disabled={loading || Boolean(loadError) || !registry.length} onClick={() => openCreate()} className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"><Plus className="h-4 w-4" />Thêm hồ sơ</button>
       </header>
 
       <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
@@ -189,7 +199,7 @@ function ProviderCatalogPage() {
                 <p className="mt-3 text-xs leading-5 text-slate-500">{entry.capabilityNote}</p>
               </button>
             ))}
-          </div> : <div className="rounded-xl bg-slate-50 px-4 py-12 text-center text-sm text-slate-500">Chưa có hồ sơ phù hợp.</div>}
+          </div> : <div className="rounded-xl bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">{status === 'active' && pageInfo.total === 0 && availableProviders.length ? <><p className="font-semibold text-slate-800">Chưa có hồ sơ nào được lưu.</p><p className="mt-1 leading-5">Các mục dưới đây là provider trong registry, chưa phải hồ sơ catalog. Chọn một mục để tạo và lưu hồ sơ.</p><div className="mt-4 space-y-3 text-left">{availableProviders.map((provider) => <div key={provider.code} className="rounded-lg border border-slate-200 bg-white p-3"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-medium text-slate-900">{provider.name}</p><p className="mt-1 text-xs text-slate-500">{CATEGORY_LABELS[provider.category]} · {provider.code}</p></div><span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-600">{provider.adapter === 'not-implemented' ? 'Chưa tích hợp' : provider.adapter === 'not-verified' ? 'Chưa xác minh' : provider.adapter === 'launcher-only' ? 'Chỉ có launcher' : provider.adapter === 'payment-method' ? 'Phương thức hiện có' : 'Có adapter'}</span></div><p className="mt-2 text-xs leading-5 text-slate-500">{provider.note}</p><button type="button" onClick={() => openCreate(provider.code)} className="mt-3 rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50">Tạo hồ sơ</button></div>)}</div></> : 'Chưa có hồ sơ phù hợp.'}</div>}
           <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4 text-sm text-slate-500">
             <span>{pageInfo.total} hồ sơ · Trang {pageInfo.page} / {Math.max(pageInfo.totalPages, 1)}</span>
             <div className="flex gap-2"><button type="button" aria-label="Trang trước" disabled={page <= 1} onClick={() => setPage((value) => value - 1)} className="rounded-md border p-2 disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button><button type="button" aria-label="Trang sau" disabled={page >= pageInfo.totalPages} onClick={() => setPage((value) => value + 1)} className="rounded-md border p-2 disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button></div>
