@@ -58,6 +58,7 @@ const DEFAULT_OPEN_GROUPS = {
   design: true,
   translations: true,
   currency: true,
+  settings: true,
 };
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -237,7 +238,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           id: "settings",
           title: 'Cài đặt hệ thống',
           icon: Settings2,
-          children: [{ path: "/admin/settings", icon: Settings2, label: 'Cấu hình cửa hàng' }],
+          children: [
+            { path: "/admin/settings", icon: Settings2, label: 'Cấu hình cửa hàng' },
+            { path: "/admin/providerCatalog", icon: Package, label: 'Catalog nhà cung cấp' },
+          ],
         },
       },
     ] : []),

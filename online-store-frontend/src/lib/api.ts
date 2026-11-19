@@ -566,6 +566,59 @@ export const settingsAPI = {
   },
 };
 
+export type ProviderCatalogCategory = 'email' | 'payment' | 'shipping' | 'deploy' | 'storage' | 'ai';
+
+export interface ProviderRegistryItem {
+  code: string;
+  category: ProviderCatalogCategory;
+  name: string;
+  adapter: string;
+  note: string;
+}
+
+export interface ProviderCatalogEntry {
+  _id: string;
+  category: ProviderCatalogCategory;
+  providerCode: string;
+  name: string;
+  description: string;
+  notes: string;
+  capability: string;
+  capabilityNote: string;
+  version: number;
+  isDeleted: boolean;
+  updatedAt: string;
+  deletedAt: string | null;
+}
+
+export const providerCatalogAPI = {
+  getRegistry: () => apiCall<{ success: boolean; data: ProviderRegistryItem[] }>('/settings/providers/registry', { skipCache: true }),
+  list: (params: { page: number; pageSize: number; status: 'active' | 'deleted' | 'all'; category?: string; search?: string }) => {
+    const query = new URLSearchParams({ page: String(params.page), pageSize: String(params.pageSize), status: params.status });
+    if (params.category) query.set('category', params.category);
+    if (params.search) query.set('search', params.search);
+    return apiCall<{ success: boolean; data: ProviderCatalogEntry[]; pagination: { page: number; pageSize: number; total: number; totalPages: number } }>(`/settings/providers?${query}`, { skipCache: true });
+  },
+  getById: (id: string) => apiCall<{ success: boolean; data: ProviderCatalogEntry; registry: ProviderRegistryItem[] }>(`/settings/providers/${id}`, { skipCache: true }),
+  create: (data: { category: ProviderCatalogCategory; providerCode: string; name: string; description: string; notes: string }) => apiCall<{ success: boolean; data: ProviderCatalogEntry }>('/settings/providers', {
+    method: 'POST', body: JSON.stringify(data), skipErrorToast: true,
+  }),
+  update: (id: string, data: { name: string; description: string; notes: string }) => apiCall<{ success: boolean; data: ProviderCatalogEntry }>(`/settings/providers/${id}`, {
+    method: 'PUT', body: JSON.stringify(data), skipErrorToast: true,
+  }),
+  remove: (id: string) => apiCall<{ success: boolean; data: ProviderCatalogEntry }>(`/settings/providers/${id}`, {
+    method: 'DELETE', skipErrorToast: true,
+  }),
+  restore: (id: string) => apiCall<{ success: boolean; data: ProviderCatalogEntry }>(`/settings/providers/${id}/restore`, {
+    method: 'POST', skipErrorToast: true,
+  }),
+  getAudit: (id: string, page: number, pageSize = 10) => apiCall<{
+    success: boolean;
+    data: Array<{ _id: string; action: string; providerCode: string; changedFields: string[]; version: number; userName: string; createdAt: string }>;
+    pagination: { page: number; pageSize: number; total: number; totalPages: number };
+  }>(`/settings/providers/${id}/audit?page=${page}&pageSize=${pageSize}`, { skipCache: true }),
+};
+
 /**
  * Execute the actual fetch request with timeout & error handling
  * Includes automatic token refresh on 401
