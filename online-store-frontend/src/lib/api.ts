@@ -2794,3 +2794,27 @@ export const locationAPI = {
     return await apiCall(`/locations/search/provinces?q=${encodeURIComponent(query)}`);
   },
 };
+
+export interface ProviderConfigField {
+  key: string;
+  label: string;
+  type: 'text' | 'secret' | 'url' | 'select';
+  required?: boolean;
+  options?: string[];
+  defaultValue?: string;
+}
+
+export const providerConfigurationAPI = {
+  getSchema: (providerCode: string) => apiCall<{ success: boolean; data: { fields: ProviderConfigField[]; storeAvailable: boolean } }>(`/settings/provider-configs/schema/${encodeURIComponent(providerCode)}`, { skipCache: true }),
+  get: (providerId: string) => apiCall<{ success: boolean; data: { fields: ProviderConfigField[]; values: Record<string, string>; configuredSecrets: string[]; version: number; storeAvailable: boolean } }>(`/settings/provider-configs/${providerId}`, { skipCache: true }),
+  save: (providerId: string, values: Record<string, string>) => apiCall(`/settings/provider-configs/${providerId}`, {
+    method: 'PUT',
+    body: JSON.stringify(values),
+    skipErrorToast: true,
+  }),
+  reveal: (providerId: string, key: string) => apiCall<{ success: boolean; data: { key: string; value: string } }>(`/settings/provider-configs/${providerId}/reveal/${encodeURIComponent(key)}`, {
+    method: 'POST',
+    skipCache: true,
+    skipErrorToast: true,
+  }),
+};

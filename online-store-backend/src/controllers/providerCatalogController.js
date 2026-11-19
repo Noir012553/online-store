@@ -10,6 +10,8 @@ const PROVIDERS = {
   vnpay: { category: 'payment', name: 'VNPay', adapter: 'available', note: 'Adapter sandbox/runtime hiện có; catalog không cấu hình credentials hoặc endpoint.' },
   paypal: { category: 'payment', name: 'PayPal', adapter: 'not-implemented', note: 'Chưa có adapter thanh toán và xác minh webhook.' },
   momo: { category: 'payment', name: 'MoMo', adapter: 'not-implemented', note: 'Chưa có adapter thanh toán và xác minh callback/IPN.' },
+  vercel: { category: 'deploy', name: 'Vercel', adapter: 'not-implemented', note: 'Chưa có adapter deploy; cấu hình được lưu riêng và không tự triển khai.' },
+  render: { category: 'deploy', name: 'Render', adapter: 'not-implemented', note: 'Chưa có adapter deploy; cấu hình được lưu riêng và không tự triển khai.' },
   ghn: { category: 'shipping', name: 'GHN', adapter: 'available', note: 'Adapter vận chuyển hiện có; catalog không thay đổi credentials vận hành.' },
   cloudflare_tunnel: { category: 'deploy', name: 'Cloudflare Tunnel', adapter: 'launcher-only', note: 'Chỉ có launcher; chưa có adapter deploy/quản lý tuyến từ Settings.' },
   cloudflare_r2: { category: 'storage', name: 'Cloudflare R2', adapter: 'available', note: 'Tích hợp asset storage hiện có; catalog không thay đổi bucket hoặc credentials.' },
