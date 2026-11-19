@@ -513,6 +513,59 @@ export async function apiCall<T = any>(
   );
 }
 
+export interface StoreSettingsRecord {
+  branding: {
+    storeName: string;
+    supportEmail: string;
+    logoUrl: string;
+    darkLogoUrl: string;
+    faviconUrl: string;
+  };
+  maintenance: {
+    enabled: boolean;
+    message: string;
+    scheduledStart: string | null;
+    scheduledEnd: string | null;
+  };
+  version: number;
+  updatedAt: string | null;
+  updatedBy?: string | null;
+}
+
+export const settingsAPI = {
+  getPublic: () => apiCall<Pick<StoreSettingsRecord, 'branding' | 'maintenance'>>('/settings/public', { skipCache: true, skipErrorToast: true }),
+  getAdmin: () => apiCall<{ success: boolean; data: StoreSettingsRecord }>('/settings/admin', { skipCache: true }),
+  update: (data: Partial<Pick<StoreSettingsRecord, 'branding' | 'maintenance'>>) => apiCall<{ success: boolean; data: StoreSettingsRecord }>('/settings/admin', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+    skipErrorToast: true,
+  }),
+  reset: () => apiCall<{ success: boolean; data: StoreSettingsRecord }>('/settings/admin', {
+    method: 'DELETE',
+    skipErrorToast: true,
+  }),
+  getAudit: (page: number) => apiCall<{
+    success: boolean;
+    data: Array<{ _id: string; action: string; changedFields: string[]; version: number; userName: string; createdAt: string }>;
+    pagination: { page: number; pageSize: number; total: number; totalPages: number };
+  }>(`/settings/admin/audit?page=${page}&pageSize=10`, { skipCache: true }),
+  uploadBrandAsset: async (file: File, field: 'logo' | 'darkLogo' | 'favicon') => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('field', field);
+    const token = getAuthToken();
+    const response = await fetch(`${API_URL}/settings/admin/branding/assets`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      credentials: 'include',
+      body: formData,
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.message || result.code || 'BRANDING_UPLOAD_FAILED');
+    return result as { success: boolean; data: StoreSettingsRecord };
+  },
+};
+
 /**
  * Execute the actual fetch request with timeout & error handling
  * Includes automatic token refresh on 401
