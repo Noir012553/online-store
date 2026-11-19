@@ -8,23 +8,23 @@ const User = require('../models/User');
 
 const PROVIDER_SCHEMAS = {
   paypal: [
-    { key: 'PAYPAL_CLIENT_ID', label: 'Client ID Sandbox', type: 'text', required: true },
-    { key: 'PAYPAL_CLIENT_SECRET', label: 'Client Secret Sandbox', type: 'secret', required: true },
-    { key: 'PAYPAL_API_BASE_URL', label: 'API base URL', type: 'select', required: true, options: ['https://api-m.sandbox.paypal.com'], defaultValue: 'https://api-m.sandbox.paypal.com' },
-    { key: 'PAYPAL_WEBHOOK_ID', label: 'Webhook ID Sandbox', type: 'text' },
-    { key: 'PAYPAL_RETURN_URL', label: 'Return URL', type: 'url', required: true },
-    { key: 'PAYPAL_CANCEL_URL', label: 'Cancel URL', type: 'url', required: true },
-    { key: 'PAYPAL_WEBHOOK_URL', label: 'Webhook URL', type: 'url' },
+    { key: 'PAYPAL_CLIENT_ID', label: 'Client ID Sandbox', type: 'text', required: true, helpText: 'Trong PayPal Developer Dashboard, mở app sandbox và sao chép Client ID.' },
+    { key: 'PAYPAL_CLIENT_SECRET', label: 'Client Secret Sandbox', type: 'secret', required: true, helpText: 'Lấy cùng app sandbox với Client ID; không dùng credential Live.' },
+    { key: 'PAYPAL_API_BASE_URL', label: 'API base URL', type: 'select', required: true, options: ['https://api-m.sandbox.paypal.com'], defaultValue: 'https://api-m.sandbox.paypal.com', helpText: 'Endpoint sandbox cố định; không chuyển sang Live.' },
+    { key: 'PAYPAL_WEBHOOK_ID', label: 'Webhook ID Sandbox', type: 'text', helpText: 'Webhook ID của webhook sandbox đã tạo cho URL callback bên dưới; chỉ cần khi adapter xác minh webhook.' },
+    { key: 'PAYPAL_RETURN_URL', label: 'Return URL', type: 'url', required: true, helpText: 'HTTPS URL của storefront nhận khách quay lại sau thanh toán; phải thuộc môi trường staging.' },
+    { key: 'PAYPAL_CANCEL_URL', label: 'Cancel URL', type: 'url', required: true, helpText: 'HTTPS URL staging mà khách được chuyển về khi hủy thanh toán.' },
+    { key: 'PAYPAL_WEBHOOK_URL', label: 'Webhook URL', type: 'url', helpText: 'HTTPS endpoint backend staging nhận sự kiện PayPal; endpoint phải xử lý và xác minh webhook.' },
   ],
   momo: [
-    { key: 'MOMO_PARTNER_CODE', label: 'Partner Code Sandbox', type: 'text', required: true },
-    { key: 'MOMO_ACCESS_KEY', label: 'Access Key Sandbox', type: 'secret', required: true },
-    { key: 'MOMO_SECRET_KEY', label: 'Secret Key Sandbox', type: 'secret', required: true },
-    { key: 'MOMO_API_BASE_URL', label: 'API base URL', type: 'select', required: true, options: ['https://test-payment.momo.vn'], defaultValue: 'https://test-payment.momo.vn' },
-    { key: 'MOMO_PARTNER_NAME', label: 'Partner name', type: 'text' },
-    { key: 'MOMO_STORE_ID', label: 'Store ID', type: 'text' },
-    { key: 'MOMO_REDIRECT_URL', label: 'Redirect URL', type: 'url', required: true },
-    { key: 'MOMO_IPN_URL', label: 'IPN URL', type: 'url', required: true },
+    { key: 'MOMO_PARTNER_CODE', label: 'Partner Code Sandbox', type: 'text', required: true, helpText: 'Lấy trong bộ thông tin tích hợp thử nghiệm được MoMo cấp.' },
+    { key: 'MOMO_ACCESS_KEY', label: 'Access Key Sandbox', type: 'secret', required: true, helpText: 'Credential sandbox đi kèm Partner Code; không dùng key production.' },
+    { key: 'MOMO_SECRET_KEY', label: 'Secret Key Sandbox', type: 'secret', required: true, helpText: 'Dùng để ký/xác minh request sandbox; không dùng key production.' },
+    { key: 'MOMO_API_BASE_URL', label: 'API base URL', type: 'select', required: true, options: ['https://test-payment.momo.vn'], defaultValue: 'https://test-payment.momo.vn', helpText: 'Host sandbox cố định theo hướng dẫn tích hợp MoMo.' },
+    { key: 'MOMO_PARTNER_NAME', label: 'Partner name', type: 'text', helpText: 'Tên đối tác nếu bộ API/merchant sandbox của bạn yêu cầu.' },
+    { key: 'MOMO_STORE_ID', label: 'Store ID', type: 'text', helpText: 'Mã cửa hàng nếu bộ API/merchant sandbox của bạn yêu cầu.' },
+    { key: 'MOMO_REDIRECT_URL', label: 'Redirect URL', type: 'url', required: true, helpText: 'HTTPS URL staging để MoMo chuyển khách quay lại; không dùng redirect làm căn cứ duy nhất cập nhật đơn.' },
+    { key: 'MOMO_IPN_URL', label: 'IPN URL', type: 'url', required: true, helpText: 'HTTPS endpoint backend staging nhận IPN; backend phải xác minh chữ ký trước khi cập nhật đơn.' },
   ],
   sendgrid: [
     { key: 'EMAIL_HOST', label: 'SMTP host', type: 'select', required: true, options: ['smtp.sendgrid.net'], defaultValue: 'smtp.sendgrid.net' },
@@ -34,22 +34,30 @@ const PROVIDER_SCHEMAS = {
     { key: 'EMAIL_FROM', label: 'Địa chỉ gửi đã xác minh', type: 'text', required: true },
   ],
   vercel: [
-    { key: 'VERCEL_ACCESS_TOKEN', label: 'Access Token', type: 'secret', required: true },
-    { key: 'VERCEL_TEAM_ID', label: 'Team ID', type: 'text' },
-    { key: 'VERCEL_PROJECT_ID', label: 'Project ID staging', type: 'text', required: true },
+    { key: 'VERCEL_ACCESS_TOKEN', label: 'Access Token', type: 'secret', required: true, helpText: 'Tạo token trong Vercel Account Settings → Tokens; giới hạn quyền vào project staging cần thiết.' },
+    { key: 'VERCEL_TEAM_ID', label: 'Team ID', type: 'text', helpText: 'Chỉ nhập khi project thuộc team; lấy ID team từ dashboard/API. Để trống với personal account.' },
+    { key: 'VERCEL_PROJECT_ID', label: 'Project ID staging', type: 'text', required: true, helpText: 'Lấy trong Project Settings → General của project staging, không dùng tên project.' },
     { key: 'VERCEL_API_BASE_URL', label: 'API base URL', type: 'select', required: true, options: ['https://api.vercel.com'], defaultValue: 'https://api.vercel.com' },
-    { key: 'VERCEL_DEPLOY_ENVIRONMENT', label: 'Môi trường deploy', type: 'select', required: true, options: ['preview'], defaultValue: 'preview' },
-    { key: 'VERCEL_STAGING_BRANCH', label: 'Branch staging', type: 'text', required: true },
-    { key: 'VERCEL_STAGING_DOMAIN', label: 'Domain staging', type: 'url' },
+    { key: 'VERCEL_DEPLOY_ENVIRONMENT', label: 'Môi trường deploy', type: 'select', required: true, options: ['preview'], defaultValue: 'preview', helpText: 'Chỉ cho phép Preview; không dùng Production trong cấu hình này.' },
+    { key: 'VERCEL_STAGING_BRANCH', label: 'Branch staging', type: 'text', required: true, helpText: 'Tên branch Git đã liên kết với project và dùng cho Preview deployment.' },
+    { key: 'VERCEL_STAGING_DOMAIN', label: 'Domain staging', type: 'url', helpText: 'URL HTTPS tùy chọn trỏ tới Preview/branch staging; không bắt buộc để tạo Preview deployment.' },
   ],
   render: [
-    { key: 'RENDER_API_KEY', label: 'API key', type: 'secret', required: true },
-    { key: 'RENDER_OWNER_ID', label: 'Workspace owner ID', type: 'text', required: true },
-    { key: 'RENDER_SERVICE_ID', label: 'Service ID staging', type: 'text', required: true },
+    { key: 'RENDER_API_KEY', label: 'API key', type: 'secret', required: true, helpText: 'Tạo tại Account Settings → API Keys và chỉ cấp quyền cần thiết cho workspace/service staging.' },
+    { key: 'RENDER_OWNER_ID', label: 'Workspace owner ID', type: 'text', helpText: 'ID workspace/owner, có thể xem từ thông tin service/API. Không phải tên workspace.' },
+    { key: 'RENDER_SERVICE_ID', label: 'Service ID staging', type: 'text', required: true, helpText: 'ID của service staging; có thể lấy từ URL Dashboard hoặc kết quả API của service.' },
     { key: 'RENDER_API_BASE_URL', label: 'API base URL', type: 'select', required: true, options: ['https://api.render.com/v1'], defaultValue: 'https://api.render.com/v1' },
-    { key: 'RENDER_STAGING_BRANCH', label: 'Branch staging', type: 'text', required: true },
-    { key: 'RENDER_STAGING_URL', label: 'URL staging', type: 'url' },
+    { key: 'RENDER_STAGING_BRANCH', label: 'Branch staging', type: 'text', required: true, helpText: 'Branch đã cấu hình trong phần Build & Deploy của service Render staging.' },
+    { key: 'RENDER_STAGING_URL', label: 'URL staging', type: 'url', helpText: 'URL HTTPS của service staging; Free web services có thể ngủ sau thời gian không hoạt động.' },
   ],
+};
+
+const PROVIDER_SETUP_GUIDES = {
+  paypal: { label: 'PayPal REST Authentication & Sandbox', url: 'https://developer.paypal.com/api/rest/authentication/', note: 'Tạo app trong Sandbox và dùng cặp Client ID/Secret của app đó. Webhook ID lấy từ webhook sandbox đã đăng ký.' },
+  momo: { label: 'MoMo Payment API Init', url: 'https://developers.momo.vn/v3/docs/payment/api/payment-api/init/', note: 'Dùng bộ credential thử nghiệm được cấp cho merchant; partnerName/Store ID phụ thuộc API và tài khoản.' },
+  sendgrid: { label: 'SendGrid SMTP', url: 'https://docs.sendgrid.com/for-developers/sending-email/getting-started-smtp', note: 'Chỉ dùng API key và sender đã xác minh cho môi trường staging.' },
+  vercel: { label: 'Vercel REST API', url: 'https://vercel.com/docs/rest-api#creating-an-access-token', note: 'Preview branch có thể dùng cho staging; không mặc định dùng Vercel Hobby cho cửa hàng thương mại, hãy xác minh điều khoản hiện hành. Cấu hình tại đây chưa tự deploy.' },
+  render: { label: 'Render API', url: 'https://render.com/docs/api', note: 'Render Free có thể spin down sau 15 phút không có traffic và filesystem không bền vững; Preview Environments đa dịch vụ không có trên Free. Cấu hình tại đây chưa tự deploy.' },
 };
 
 const noStore = (res) => res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
@@ -105,7 +113,7 @@ exports.getSchema = asyncHandler(async (req, res) => {
   if (!fields) return res.status(404).json({ success: false, code: 'PROVIDER_CONFIG_UNSUPPORTED' });
   const storeAvailable = /^[a-f0-9]{64}$/i.test(process.env.PROVIDER_CONFIG_ENCRYPTION_KEY || '');
   noStore(res);
-  res.json({ success: true, data: { fields, storeAvailable } });
+  res.json({ success: true, data: { fields, setupGuide: PROVIDER_SETUP_GUIDES[req.params.providerCode] || null, storeAvailable } });
 });
 
 exports.get = asyncHandler(async (req, res) => {
@@ -121,7 +129,7 @@ exports.get = asyncHandler(async (req, res) => {
   const configuredSecrets = Object.keys(configuration?.encryptedSecrets || {});
   noStore(res);
   const storeAvailable = /^[a-f0-9]{64}$/i.test(process.env.PROVIDER_CONFIG_ENCRYPTION_KEY || '');
-  res.json({ success: true, data: { providerCode: provider.providerCode, fields, values, configuredSecrets, version: configuration?.version || 0, storeAvailable } });
+  res.json({ success: true, data: { providerCode: provider.providerCode, fields, setupGuide: PROVIDER_SETUP_GUIDES[provider.providerCode] || null, values, configuredSecrets, version: configuration?.version || 0, storeAvailable } });
 });
 
 exports.save = asyncHandler(async (req, res) => {

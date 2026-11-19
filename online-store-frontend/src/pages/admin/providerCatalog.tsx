@@ -9,6 +9,7 @@ import {
   type ProviderCatalogEntry,
   type ProviderConfigField,
   type ProviderRegistryItem,
+  type ProviderSetupGuide,
 } from '../../lib/api';
 
 const CATEGORY_LABELS: Record<ProviderCatalogCategory, string> = {
@@ -31,6 +32,7 @@ function ProviderCatalogPage() {
   const [audit, setAudit] = useState<Awaited<ReturnType<typeof providerCatalogAPI.getAudit>> | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [configFields, setConfigFields] = useState<ProviderConfigField[]>([]);
+  const [schemaGuide, setSchemaGuide] = useState<ProviderSetupGuide | null>(null);
   const [configValues, setConfigValues] = useState<Record<string, string>>({});
   const [configuredSecrets, setConfiguredSecrets] = useState<string[]>([]);
   const [configStoreAvailable, setConfigStoreAvailable] = useState(true);
@@ -90,6 +92,7 @@ function ProviderCatalogPage() {
 
   const loadProviderConfig = async (code: string, providerId?: string) => {
     setConfigFields([]);
+    setSchemaGuide(null);
     setConfigValues({});
     setConfiguredSecrets([]);
     setConfigStoreAvailable(false);
@@ -107,10 +110,12 @@ function ProviderCatalogPage() {
         setConfigStoreAvailable(true);
       }
       setConfigFields(schemaResponse.data.fields);
+      setSchemaGuide(schemaResponse.data.setupGuide);
       setConfigValues(values);
       setConfiguredSecrets(secrets);
     } catch (error) {
       setConfigFields([]);
+      setSchemaGuide(null);
       setConfigValues({});
       setConfiguredSecrets([]);
       setConfigStoreAvailable(false);
@@ -261,12 +266,13 @@ function ProviderCatalogPage() {
             <label className="mb-4 block text-sm font-medium text-slate-700">Mô tả<textarea rows={3} maxLength={500} value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal" /></label>
             <label className="block text-sm font-medium text-slate-700">Ghi chú nội bộ<textarea rows={4} maxLength={1000} value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal" /></label>
             {configFields.length > 0 && <section className="mt-5 space-y-4 rounded-xl border border-slate-200 p-4">
-              <div><h3 className="font-semibold text-slate-900">Cấu hình {registry.find((provider) => provider.code === selectedCode)?.name}</h3><p className="mt-1 text-xs leading-5 text-slate-600">Nhập đúng giá trị theo key hiển thị. Chỉ dùng sandbox/staging; credential được mã hóa phía backend và không tự kích hoạt adapter hoặc deploy.</p></div>
+              <div><h3 className="font-semibold text-slate-900">Cấu hình {registry.find((provider) => provider.code === selectedCode)?.name}</h3><p className="mt-1 text-xs leading-5 text-slate-600">Nhập đúng giá trị theo key hiển thị. Chỉ dùng sandbox/staging; credential được mã hóa phía backend và không tự kích hoạt adapter hoặc deploy.</p>{schemaGuide && <div className="mt-2 rounded-lg bg-slate-50 p-3 text-xs leading-5 text-slate-600"><p>{schemaGuide.note}</p><a href={schemaGuide.url} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block font-medium text-blue-700 underline">{schemaGuide.label} (mở tab mới)</a></div>}</div>
               {!configStoreAvailable && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs leading-5 text-red-800">Kho secrets chưa sẵn sàng. Backend cần cấu hình khóa mã hóa trước khi lưu credential.</p>}
               {configFields.map((field) => <label key={field.key} className="block text-sm font-medium text-slate-700">
                 <span>{field.label}{field.required ? ' *' : ''}</span>
                 <code className="mt-1 block break-all text-xs font-normal text-slate-500">{field.key}</code>
-                {field.type === 'select' ? <select value={configValues[field.key] || ''} onChange={(event) => setConfigValues((current) => ({ ...current, [field.key]: event.target.value }))} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal">{field.options?.map((option) => <option value={option} key={option}>{option}</option>)}</select> : <input type={field.type === 'secret' ? 'password' : 'text'} autoComplete="new-password" value={configValues[field.key] || ''} placeholder={field.type === 'secret' && configuredSecrets.includes(field.key) ? 'Đã lưu — nhập giá trị mới để xoay vòng' : field.defaultValue || ''} onChange={(event) => setConfigValues((current) => ({ ...current, [field.key]: event.target.value }))} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal" />}
+                {field.helpText && <span className="mt-1 block text-xs font-normal leading-5 text-slate-500">{field.helpText}</span>}
+                {field.type === 'select' ? <select value={configValues[field.key] || ''} onChange={(event) => setConfigValues((current) => ({ ...current, [field.key]: event.target.value }))} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal">{field.options?.map((option) => <option value={option} key={option}>{option}</option>)}</select> : <input type={field.type === 'secret' ? 'password' : field.type === 'url' ? 'url' : 'text'} autoComplete="new-password" value={configValues[field.key] || ''} placeholder={field.type === 'secret' && configuredSecrets.includes(field.key) ? 'Đã lưu — nhập giá trị mới để xoay vòng' : field.defaultValue || ''} onChange={(event) => setConfigValues((current) => ({ ...current, [field.key]: event.target.value }))} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal" />}
               </label>)}
             </section>}
             <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900"><strong>Không nhập credential production.</strong> Catalog vẫn chỉ lưu hồ sơ; việc lưu cấu hình không có nghĩa provider đã kết nối hoặc adapter đã sẵn sàng.</div>

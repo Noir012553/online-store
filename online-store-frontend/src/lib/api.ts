@@ -2802,11 +2802,18 @@ export interface ProviderConfigField {
   required?: boolean;
   options?: string[];
   defaultValue?: string;
+  helpText?: string;
+}
+
+export interface ProviderSetupGuide {
+  label: string;
+  url: string;
+  note: string;
 }
 
 export const providerConfigurationAPI = {
-  getSchema: (providerCode: string) => apiCall<{ success: boolean; data: { fields: ProviderConfigField[]; storeAvailable: boolean } }>(`/settings/provider-configs/schema/${encodeURIComponent(providerCode)}`, { skipCache: true }),
-  get: (providerId: string) => apiCall<{ success: boolean; data: { fields: ProviderConfigField[]; values: Record<string, string>; configuredSecrets: string[]; version: number; storeAvailable: boolean } }>(`/settings/provider-configs/${providerId}`, { skipCache: true }),
+  getSchema: (providerCode: string) => apiCall<{ success: boolean; data: { fields: ProviderConfigField[]; setupGuide: ProviderSetupGuide | null; storeAvailable: boolean } }>(`/settings/provider-configs/schema/${encodeURIComponent(providerCode)}`, { skipCache: true }),
+  get: (providerId: string) => apiCall<{ success: boolean; data: { fields: ProviderConfigField[]; setupGuide: ProviderSetupGuide | null; values: Record<string, string>; configuredSecrets: string[]; version: number; storeAvailable: boolean } }>(`/settings/provider-configs/${providerId}`, { skipCache: true }),
   save: (providerId: string, values: Record<string, string>) => apiCall(`/settings/provider-configs/${providerId}`, {
     method: 'PUT',
     body: JSON.stringify(values),
