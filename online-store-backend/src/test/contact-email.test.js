@@ -4,10 +4,11 @@ const nodemailer = require('nodemailer');
 const { sendContactEmails, sendNewsletterConfirmationEmail } = require('../services/emailService');
 const { verifyNewsletterUnsubscribeToken } = require('../utils/newsletterUnsubscribeToken');
 
-const emailEnvKeys = ['EMAIL_USER', 'EMAIL_PASSWORD', 'EMAIL_FROM', 'EMAIL_SERVICE', 'CONTACT_SUPPORT_EMAIL', 'JWT_ACCESS_SECRET', 'BACKEND_URL', 'FRONTEND_URL'];
+const emailEnvKeys = ['EMAIL_USER', 'EMAIL_PASSWORD', 'EMAIL_FROM', 'EMAIL_SERVICE', 'APP_ENV', 'CONTACT_SUPPORT_EMAIL', 'JWT_ACCESS_SECRET', 'BACKEND_URL', 'FRONTEND_URL'];
 const originalEnv = Object.fromEntries(emailEnvKeys.map(key => [key, process.env[key]]));
 const sandbox = sinon.createSandbox();
 let sendMail;
+let createTransport;
 
 const restoreEmailEnvironment = () => {
   emailEnvKeys.forEach(key => {
@@ -26,8 +27,9 @@ describe('Contact email delivery', () => {
     process.env.BACKEND_URL = 'https://api.example.com';
     process.env.FRONTEND_URL = 'https://shop.example.com';
     delete process.env.EMAIL_SERVICE;
+    delete process.env.APP_ENV;
     sendMail = sandbox.stub().resolves({ accepted: ['recipient@example.com'] });
-    sandbox.stub(nodemailer, 'createTransport').returns({ sendMail });
+    createTransport = sandbox.stub(nodemailer, 'createTransport').returns({ sendMail });
   });
 
   afterEach(() => {
@@ -109,6 +111,37 @@ describe('Contact email delivery', () => {
     chai.expect(message.html).not.to.include('<style');
     chai.expect(message.html).not.to.include('undefined');
     chai.expect(message.text).not.to.include('undefined');
+  });
+
+  it('routes explicit sandbox mode to Mailtrap without changing email recipients', async () => {
+    process.env.EMAIL_SERVICE = 'mailtrap-sandbox';
+    process.env.APP_ENV = 'staging';
+
+    await sendNewsletterConfirmationEmail('subscriber@example.com', 'en');
+
+    chai.expect(createTransport.firstCall.args[0]).to.deep.equal({
+      host: 'sandbox.smtp.mailtrap.io',
+      port: 2525,
+      secure: false,
+      auth: { user: 'smtp@example.com', pass: 'test-password' },
+    });
+    chai.expect(sendMail.firstCall.args[0].to).to.equal('subscriber@example.com');
+  });
+
+  it('does not allow Mailtrap sandbox mode in production', async () => {
+    process.env.EMAIL_SERVICE = 'mailtrap-sandbox';
+    process.env.APP_ENV = 'production';
+
+    let error;
+    try {
+      await sendNewsletterConfirmationEmail('subscriber@example.com', 'en');
+    } catch (caught) {
+      error = caught;
+    }
+
+    chai.expect(error).to.be.instanceOf(Error);
+    chai.expect(error.cause.code).to.equal('EMAIL_SANDBOX_ENV_NOT_ALLOWED');
+    chai.expect(createTransport.called).to.equal(false);
   });
 
   it('defaults the store notification to the contact page email', async () => {
