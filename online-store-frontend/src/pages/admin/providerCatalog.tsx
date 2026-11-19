@@ -53,6 +53,7 @@ function ProviderCatalogPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<'backend-missing' | 'load-failed' | null>(null);
   const [saving, setSaving] = useState(false);
+  const [initializingRegistry, setInitializingRegistry] = useState(false);
   const [editing, setEditing] = useState(false);
 
   const loadList = useCallback(async () => {
@@ -96,6 +97,27 @@ function ProviderCatalogPage() {
       && (!normalizedSearch || `${provider.name} ${provider.code}`.toLowerCase().includes(normalizedSearch))
     ));
   }, [category, pageInfo.total, registry, search, status]);
+
+  const initializeRegistry = async () => {
+    setInitializingRegistry(true);
+    try {
+      const result = await providerCatalogAPI.initializeRegistry();
+      setCategory('');
+      setSearch('');
+      setStatus('active');
+      setPage(1);
+      setSelected(null);
+      setAudit(null);
+      const list = await providerCatalogAPI.list({ page: 1, pageSize: 10, status: 'active' });
+      setItems(list.data);
+      setPageInfo(list.pagination);
+      toast.success(result.data.created ? `Đã khởi tạo ${result.data.created} hồ sơ; bỏ qua ${result.data.skipped} hồ sơ đã có.` : 'Các hồ sơ provider đã được khởi tạo trước đó.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Không thể khởi tạo hồ sơ provider');
+    } finally {
+      setInitializingRegistry(false);
+    }
+  };
 
   const loadProviderConfig = async (code: string, providerId?: string) => {
     setConfigFields([]);
@@ -277,8 +299,9 @@ function ProviderCatalogPage() {
           <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-red-50 text-red-600"><Settings2 className="h-5 w-5" /></div>
           <h1 className="text-3xl font-semibold tracking-tight text-slate-950">Catalog nhà cung cấp</h1>
           <p className="mt-2 max-w-3xl text-sm text-slate-600">Quản lý hồ sơ tham khảo theo nhóm. Catalog không lưu credentials, không bật checkout và không thực hiện deploy hay thay đổi runtime.</p>
+          <p className="mt-1 max-w-3xl text-xs text-slate-500">Khởi tạo danh sách chỉ thêm metadata provider còn thiếu; không đọc hay sao chép credentials runtime.</p>
         </div>
-        <button type="button" disabled={loading || Boolean(loadError) || !registry.length} onClick={() => openCreate()} className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"><Plus className="h-4 w-4" />Thêm hồ sơ</button>
+        <div className="flex flex-wrap gap-2"><button type="button" disabled={loading || initializingRegistry || Boolean(loadError) || !registry.length} onClick={() => void initializeRegistry()} className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">{initializingRegistry ? 'Đang khởi tạo…' : 'Khởi tạo danh sách'}</button><button type="button" disabled={loading || Boolean(loadError) || !registry.length} onClick={() => openCreate()} className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"><Plus className="h-4 w-4" />Thêm hồ sơ</button></div>
       </header>
 
       <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">

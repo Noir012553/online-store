@@ -593,6 +593,10 @@ export interface ProviderCatalogEntry {
 
 export const providerCatalogAPI = {
   getRegistry: () => apiCall<{ success: boolean; data: ProviderRegistryItem[] }>('/settings/providers/registry', { skipCache: true }),
+  initializeRegistry: () => apiCall<{ success: boolean; data: { created: number; skipped: number } }>('/settings/providers/initialize', {
+    method: 'POST',
+    skipErrorToast: true,
+  }),
   list: (params: { page: number; pageSize: number; status: 'active' | 'deleted' | 'all'; category?: string; search?: string }) => {
     const query = new URLSearchParams({ page: String(params.page), pageSize: String(params.pageSize), status: params.status });
     if (params.category) query.set('category', params.category);
