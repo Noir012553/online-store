@@ -145,7 +145,7 @@ const getRuntimeSchema = (providerCode) => {
 
 const PROVIDER_SETUP_GUIDES = {
   paypal: { label: 'PayPal REST Authentication & Sandbox', url: 'https://developer.paypal.com/api/rest/authentication/', note: 'Tạo app trong Sandbox và dùng cặp Client ID/Secret của app đó. Webhook ID lấy từ webhook sandbox đã đăng ký.' },
-  momo: { label: 'MoMo Payment API Init', url: 'https://developers.momo.vn/v3/docs/payment/api/payment-api/init/', note: 'Dùng bộ credential thử nghiệm được cấp cho merchant; partnerName/Store ID phụ thuộc API và tài khoản.' },
+  momo: { label: 'Liên hệ hỗ trợ MoMo', url: 'https://www.momo.vn/lienhe', note: 'Tài liệu MoMo Payment API Init hiện trả lỗi 403. Liên hệ hỗ trợ doanh nghiệp MoMo để được cấp tài liệu và credential thử nghiệm; partnerName/Store ID phụ thuộc API và tài khoản.' },
   sendgrid: { label: 'SendGrid SMTP', url: 'https://docs.sendgrid.com/for-developers/sending-email/getting-started-smtp', note: 'Chỉ dùng API key và sender đã xác minh cho môi trường staging.' },
   vercel: { label: 'Vercel REST API', url: 'https://vercel.com/docs/rest-api#creating-an-access-token', note: 'Preview branch có thể dùng cho staging; không mặc định dùng Vercel Hobby cho cửa hàng thương mại, hãy xác minh điều khoản hiện hành. Cấu hình tại đây chưa tự deploy.' },
   render: { label: 'Render API', url: 'https://render.com/docs/api', note: 'Render Free có thể spin down sau 15 phút không có traffic và filesystem không bền vững; Preview Environments đa dịch vụ không có trên Free. Cấu hình tại đây chưa tự deploy.' },
