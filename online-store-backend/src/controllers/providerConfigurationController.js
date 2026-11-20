@@ -6,7 +6,9 @@ const ProviderConfiguration = require('../models/ProviderConfiguration');
 const ProviderConfigurationAudit = require('../models/ProviderConfigurationAudit');
 const ProviderRuntimeAudit = require('../models/ProviderRuntimeAudit');
 const ProviderRuntimeConfiguration = require('../models/ProviderRuntimeConfiguration');
-const { encryptSecret, loadVnpayRuntimeConfig } = require('../services/vnpayRuntimeConfigService');
+const { encryptSecret, decryptSecret, loadVnpayRuntimeConfig } = require('../services/vnpayRuntimeConfigService');
+const { loadCloudflareAiRuntimeConfiguration } = require('../services/cloudflareAiRuntimeConfigService');
+const cloudflareAiService = require('../services/cloudflareAiService');
 const paymentService = require('../services/paymentService');
 const PaymentMethod = require('../models/PaymentMethod');
 const ShippingProvider = require('../models/ShippingProvider');
@@ -97,7 +99,7 @@ const RUNTIME_SCHEMAS = {
 
 const RUNTIME_PROVIDER_CODES = ['smtp', 'sendgrid', 'cod', 'vnpay', 'paypal', 'momo', 'vercel', 'render', 'ghn', 'cloudflare_tunnel', 'cloudflare_r2', 'cloudflare_ai'];
 
-const getRuntimeSchema = (providerCode) => {
+const getRuntimeSchema = (providerCode, configuredKeys = []) => {
   if (providerCode === 'cloudflare_r2') {
     const policies = [
       { key: 'R2_UPLOAD_ENABLED', label: 'Uploads enabled', type: 'text' },
@@ -136,7 +138,7 @@ const getRuntimeSchema = (providerCode) => {
         { key: `CLOUDFLARE_API_TOKEN${suffix}`, label: `API token ${index + 1}`, type: 'secret' },
         { key: `CLOUDFLARE_AI_MODEL${suffix}`, label: `AI model ${index + 1}`, type: 'text' },
       ];
-      return fields.some((field) => process.env[field.key]) ? fields : [];
+      return fields.some((field) => process.env[field.key] || configuredKeys.includes(field.key)) ? fields : [];
     }).flat();
     return [...policies, ...accounts];
   }
@@ -200,7 +202,8 @@ const audit = async (provider, req, action, changedFields, version) => ProviderC
 });
 
 const getRuntimeProviderData = async (providerCode) => {
-  const schema = getRuntimeSchema(providerCode);
+  const cloudflareRuntime = providerCode === 'cloudflare_ai' ? await loadCloudflareAiRuntimeConfiguration() : null;
+  const schema = getRuntimeSchema(providerCode, cloudflareRuntime?.databaseKeys || []);
   let shippingProvider;
   let paymentMethod;
   const vnpayRuntime = providerCode === 'vnpay' ? await loadVnpayRuntimeConfig() : null;
@@ -224,8 +227,9 @@ const getRuntimeProviderData = async (providerCode) => {
       };
     }
     const envKey = field.envKey || field.key;
-    let rawValue = process.env[envKey];
-    let source = rawValue ? 'environment' : 'unset';
+    const hasCloudflareOverride = cloudflareRuntime && Object.hasOwn(cloudflareRuntime.values, field.key);
+    let rawValue = hasCloudflareOverride ? String(cloudflareRuntime.values[field.key]) : process.env[envKey];
+    let source = hasCloudflareOverride ? 'database' : rawValue ? 'environment' : 'unset';
     if (!rawValue && field.fallbackKey && process.env[field.fallbackKey]) {
       rawValue = process.env[field.fallbackKey];
       source = 'environment';
@@ -279,7 +283,14 @@ const getRuntimeProviderData = async (providerCode) => {
   }
   const hasRuntimeData = Boolean(paymentMethod || shippingProvider || fields.some((field) => field.configured));
   const status = !managed ? 'not-managed' : ready ? 'configured' : hasRuntimeData ? 'incomplete' : 'not-configured';
-  return { providerCode, managed, status, fields, ...(vnpayRuntime ? { configurationVersion: vnpayRuntime.version, storeAvailable: vnpayRuntime.storeAvailable } : {}) };
+  return {
+    providerCode,
+    managed,
+    status,
+    fields,
+    ...(vnpayRuntime ? { configurationVersion: vnpayRuntime.version, storeAvailable: vnpayRuntime.storeAvailable } : {}),
+    ...(cloudflareRuntime ? { configurationVersion: cloudflareRuntime.version, storeAvailable: cloudflareRuntime.storeAvailable } : {}),
+  };
 };
 
 exports.getRuntimeProviders = asyncHandler(async (_req, res) => {
@@ -402,6 +413,104 @@ exports.updateVnpayRuntime = asyncHandler(async (req, res) => {
     userName: userName(req.user),
   });
   await paymentService.refreshVnpayAdapter();
+  noStore(res);
+  res.json({ success: true, data: { configurationVersion: version } });
+});
+
+exports.updateCloudflareAiRuntime = asyncHandler(async (req, res) => {
+  const allAccountKeys = Array.from({ length: 13 }, (_, index) => {
+    const suffix = `_${index + 1}`;
+    return [`CLOUDFLARE_ACCOUNT_ID${suffix}`, `CLOUDFLARE_API_TOKEN${suffix}`, `CLOUDFLARE_AI_MODEL${suffix}`];
+  }).flat();
+  const fields = getRuntimeSchema('cloudflare_ai', allAccountKeys);
+  const allowedFields = fields.map((field) => field.key);
+  if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)
+    || Object.keys(req.body).some((key) => key !== 'password' && !allowedFields.includes(key))
+    || typeof req.body.password !== 'string') {
+    return res.status(400).json({ success: false, code: 'INVALID_CLOUDFLARE_RUNTIME_FIELDS' });
+  }
+  const user = await User.findById(req.user._id);
+  if (!user || !(await user.matchPassword(req.body.password))) {
+    return res.status(401).json({ success: false, code: 'REAUTHENTICATION_FAILED' });
+  }
+  if (!/^[a-f0-9]{64}$/i.test(process.env.PROVIDER_CONFIG_ENCRYPTION_KEY || '')) {
+    return res.status(503).json({ success: false, code: 'PROVIDER_CONFIG_STORE_UNAVAILABLE' });
+  }
+
+  const existing = await ProviderRuntimeConfiguration.findOne({ providerCode: 'cloudflare_ai' }).lean();
+  const values = { ...(existing?.values || {}) };
+  const encryptedSecrets = { ...(existing?.encryptedSecrets || {}) };
+  const changedFields = [];
+  for (const field of fields) {
+    if (field.type === 'secret') {
+      if (Object.hasOwn(req.body, field.key)) {
+        if (typeof req.body[field.key] !== 'string' || req.body[field.key].length > 2048) {
+          return res.status(400).json({ success: false, code: `INVALID_${field.key}` });
+        }
+        const value = req.body[field.key].trim();
+        if (value) {
+          encryptedSecrets[field.key] = encryptSecret(value);
+          changedFields.push(field.key);
+        }
+      }
+      continue;
+    }
+    if (!Object.hasOwn(req.body, field.key)) continue;
+    const value = req.body[field.key];
+    if (typeof value !== 'string' || value.length > 2048) return res.status(400).json({ success: false, code: `INVALID_${field.key}` });
+    if (value.trim()) values[field.key] = value.trim();
+    else delete values[field.key];
+    changedFields.push(field.key);
+  }
+
+  const effectiveValues = {
+    ...Object.fromEntries(fields.map((field) => [field.key, process.env[field.key] || ''])),
+    ...values,
+  };
+  for (const field of fields.filter((item) => item.type === 'secret')) {
+    if (encryptedSecrets[field.key]) effectiveValues[field.key] = decryptSecret(encryptedSecrets[field.key]);
+  }
+  const integerFields = [
+    ['CLOUDFLARE_AI_MAX_REQUESTS_PER_DAY', 0],
+    ['CLOUDFLARE_AI_MAX_INPUT_CHARS_PER_DAY', 0],
+    ['CLOUDFLARE_MAX_REQUESTS_PER_SEC', 1],
+    ['CLOUDFLARE_MAX_PARALLEL_REQUESTS', 1],
+    ['CLOUDFLARE_AI_INPUT_CHUNK_SIZE', 1],
+  ];
+  for (const [key, minimum] of integerFields) {
+    const value = effectiveValues[key];
+    if (value !== undefined && value !== '' && (!Number.isInteger(Number(value)) || Number(value) < minimum)) {
+      return res.status(400).json({ success: false, code: `INVALID_${key}` });
+    }
+  }
+  if (effectiveValues.CLOUDFLARE_AI_ENABLED !== undefined && !['true', 'false', ''].includes(String(effectiveValues.CLOUDFLARE_AI_ENABLED))) {
+    return res.status(400).json({ success: false, code: 'INVALID_CLOUDFLARE_AI_ENABLED' });
+  }
+  for (let index = 1; index <= 13; index += 1) {
+    const suffix = `_${index}`;
+    const accountId = effectiveValues[`CLOUDFLARE_ACCOUNT_ID${suffix}`] || '';
+    const token = effectiveValues[`CLOUDFLARE_API_TOKEN${suffix}`] || '';
+    const model = effectiveValues[`CLOUDFLARE_AI_MODEL${suffix}`] || '';
+    if (accountId && !/^[a-f0-9]{32}$/i.test(accountId)) return res.status(400).json({ success: false, code: `INVALID_CLOUDFLARE_ACCOUNT_ID${suffix}` });
+    if ((accountId || token || model) && (!accountId || !token)) return res.status(400).json({ success: false, code: `INCOMPLETE_CLOUDFLARE_ACCOUNT${suffix}` });
+    if (model && !/^@[a-z0-9._/-]+$/i.test(model)) return res.status(400).json({ success: false, code: `INVALID_CLOUDFLARE_AI_MODEL${suffix}` });
+  }
+  if (!changedFields.length) return res.status(400).json({ success: false, code: 'NO_CLOUDFLARE_RUNTIME_CHANGES' });
+
+  const version = (existing?.version || 0) + 1;
+  await ProviderRuntimeConfiguration.findOneAndUpdate(
+    { providerCode: 'cloudflare_ai' },
+    { $set: { providerCode: 'cloudflare_ai', values, encryptedSecrets, version, updatedBy: req.user._id } },
+    { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true },
+  );
+  await ProviderRuntimeAudit.create({
+    providerCode: 'cloudflare_ai',
+    action: 'update',
+    changedFields,
+    userId: req.user._id,
+    userName: userName(req.user),
+  });
+  await cloudflareAiService.reloadRuntimeConfiguration(true);
   noStore(res);
   res.json({ success: true, data: { configurationVersion: version } });
 });

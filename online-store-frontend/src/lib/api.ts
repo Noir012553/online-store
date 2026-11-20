@@ -2851,6 +2851,12 @@ export const providerConfigurationAPI = {
     skipCache: true,
     skipErrorToast: true,
   }),
+  saveCloudflareAiRuntime: (values: Record<string, string> & { password: string }) => apiCall<{ success: boolean; data: { configurationVersion: number } }>('/settings/provider-configs/runtime/cloudflare_ai', {
+    method: 'PUT',
+    body: JSON.stringify(values),
+    skipCache: true,
+    skipErrorToast: true,
+  }),
   getSchema: (providerCode: string) => apiCall<{ success: boolean; data: { fields: ProviderConfigField[]; setupGuide: ProviderSetupGuide | null; storeAvailable: boolean } }>(`/settings/provider-configs/schema/${encodeURIComponent(providerCode)}`, { skipCache: true, skipErrorToast: true }),
   get: (providerId: string) => apiCall<{ success: boolean; data: { fields: ProviderConfigField[]; setupGuide: ProviderSetupGuide | null; values: Record<string, string>; configuredSecrets: string[]; version: number; storeAvailable: boolean } }>(`/settings/provider-configs/${providerId}`, { skipCache: true }),
   save: (providerId: string, values: Record<string, string>) => apiCall<{ success: boolean; data: { version: number } }>(`/settings/provider-configs/${providerId}`, {

@@ -68,6 +68,9 @@ function ProviderCatalogPage() {
   const [runtimeEditing, setRuntimeEditing] = useState(false);
   const [vnpayValues, setVnpayValues] = useState<Record<string, string>>({});
   const [vnpayCheckoutEnabled, setVnpayCheckoutEnabled] = useState(false);
+  const [cloudflareAiValues, setCloudflareAiValues] = useState<Record<string, string>>({});
+  const [cloudflareAiDirtyKeys, setCloudflareAiDirtyKeys] = useState<string[]>([]);
+  const [cloudflareAiPassword, setCloudflareAiPassword] = useState('');
   const [selectedCode, setSelectedCode] = useState('smtp');
   const [category, setCategory] = useState('');
   const [search, setSearch] = useState('');
@@ -194,6 +197,39 @@ function ProviderCatalogPage() {
       toast.success(`Đã áp dụng cấu hình VNPay phiên bản ${response.data.configurationVersion || 1}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Không thể lưu cấu hình VNPay');
+    } finally {
+      setRuntimeSecretBusy(false);
+    }
+  };
+
+  const editCloudflareAiRuntime = () => {
+    const provider = runtimeProviders.find((item) => item.providerCode === 'cloudflare_ai');
+    setCloudflareAiValues(Object.fromEntries((provider?.fields || []).map((field) => [field.key, field.type === 'secret' ? '' : field.value || ''])));
+    setCloudflareAiPassword('');
+    setCloudflareAiDirtyKeys([]);
+    setRuntimeSelectedCode('cloudflare_ai');
+    setRuntimeFields(provider?.fields || []);
+    setRuntimeView(true);
+    setRuntimeEditing(true);
+    setSelected(null);
+    setAudit(null);
+  };
+
+  const saveCloudflareAiRuntime = async () => {
+    setRuntimeSecretBusy(true);
+    try {
+      const values = Object.fromEntries(cloudflareAiDirtyKeys.map((key) => [key, cloudflareAiValues[key] || '']));
+      const response = await providerConfigurationAPI.saveCloudflareAiRuntime({ ...values, password: cloudflareAiPassword });
+      const updated = await providerConfigurationAPI.getRuntimeProvider('cloudflare_ai');
+      setRuntimeProviders((current) => current.map((provider) => provider.providerCode === 'cloudflare_ai' ? updated.data : provider));
+      setRuntimeFields(updated.data.fields);
+      setRuntimeEditing(false);
+      setCloudflareAiPassword('');
+      setCloudflareAiValues({});
+      setCloudflareAiDirtyKeys([]);
+      toast.success(`Đã áp dụng cấu hình Cloudflare AI phiên bản ${response.data.configurationVersion}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Không thể lưu cấu hình Cloudflare AI');
     } finally {
       setRuntimeSecretBusy(false);
     }
@@ -586,6 +622,7 @@ function ProviderCatalogPage() {
               {runtimeSelectedProvider?.status === 'not-managed' && <p className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm leading-5 text-slate-600">Chưa có runtime config được liên kết cho provider này. Không có giá trị nào được suy đoán hoặc lấy từ credential mẫu.</p>}
               {runtimeSelectedProvider?.status !== 'not-managed' && !runtimeFields.length && <p className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm leading-5 text-slate-600">Chưa có runtime key nào được cấu hình cho provider này.</p>}
               {runtimeSelectedCode === 'vnpay' && !runtimeEditing && <button type="button" onClick={editVnpayRuntime} className="mt-4 rounded-lg border border-blue-300 px-3 py-2 text-sm font-medium text-blue-800 hover:bg-blue-50">Cấu hình runtime VNPay</button>}
+              {runtimeSelectedCode === 'cloudflare_ai' && !runtimeEditing && <button type="button" disabled={runtimeSelectedProvider?.storeAvailable === false} onClick={editCloudflareAiRuntime} className="mt-4 rounded-lg border border-blue-300 px-3 py-2 text-sm font-medium text-blue-800 hover:bg-blue-50 disabled:opacity-50">Sửa cấu hình runtime Cloudflare AI</button>}
               {runtimeEditing && runtimeSelectedCode === 'vnpay' && <section className="mt-4 space-y-4 rounded-xl border border-blue-200 bg-blue-50/40 p-4">
                 <div><h3 className="font-semibold text-slate-900">Chỉnh sửa runtime VNPay</h3><p className="mt-1 text-xs leading-5 text-slate-600">Cấu hình lưu mã hóa và áp dụng ngay trên backend. Đổi Hash Secret có thể khiến callback của giao dịch cũ không xác minh được. URL IPN trong cổng quản trị VNPay cần được cập nhật riêng.</p></div>
                 {runtimeSelectedProvider?.storeAvailable === false && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-800">Kho mã hóa credential chưa sẵn sàng.</p>}
@@ -594,8 +631,15 @@ function ProviderCatalogPage() {
                 <label className="block text-sm font-medium text-slate-700">Xác nhận mật khẩu Super Admin<input type="password" autoComplete="off" value={runtimeReauthPassword} onChange={(event) => setRuntimeReauthPassword(event.target.value)} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal" /></label>
                 <div className="flex justify-end gap-2"><button type="button" onClick={() => { setRuntimeEditing(false); setRuntimeSecret(''); setRuntimeReauthPassword(''); }} className="rounded-lg border border-slate-300 px-3 py-2 text-sm">Hủy</button><button type="button" disabled={runtimeSecretBusy || !runtimeReauthPassword || runtimeSelectedProvider?.storeAvailable === false} onClick={() => void saveVnpayRuntime()} className="rounded-lg bg-slate-950 px-3 py-2 text-sm font-medium text-white disabled:opacity-50">{runtimeSecretBusy ? 'Đang lưu…' : 'Lưu & áp dụng ngay'}</button></div>
               </section>}
+              {runtimeEditing && runtimeSelectedCode === 'cloudflare_ai' && <section className="mt-4 space-y-4 rounded-xl border border-blue-200 bg-blue-50/40 p-4">
+                <div><h3 className="font-semibold text-slate-900">Sửa runtime Cloudflare AI</h3><p className="mt-1 text-xs leading-5 text-slate-600">Chỉnh từng key runtime. Giá trị được lưu mã hóa trong database và áp dụng trực tiếp; token đang lưu được giữ nguyên nếu để trống.</p></div>
+                {runtimeSelectedProvider?.storeAvailable === false && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-800">Kho mã hóa credential chưa sẵn sàng.</p>}
+                {runtimeFields.map((field) => <label key={field.key} className="block text-sm font-medium text-slate-700">{field.label}<code className="mt-1 block break-all text-xs font-normal text-slate-500">{field.key}</code><input type={field.type === 'secret' ? 'password' : field.type === 'url' ? 'url' : 'text'} autoComplete="off" value={cloudflareAiValues[field.key] || ''} placeholder={field.type === 'secret' && field.configured ? 'Đã cấu hình — nhập giá trị mới để thay, hoặc để trống để giữ nguyên' : ''} onChange={(event) => { const value = event.target.value; setCloudflareAiValues((current) => ({ ...current, [field.key]: value })); setCloudflareAiDirtyKeys((current) => field.type === 'secret' && !value ? current.filter((key) => key !== field.key) : current.includes(field.key) ? current : [...current, field.key]); }} className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 font-normal" /></label>)}
+                <label className="block text-sm font-medium text-slate-700">Xác nhận mật khẩu Super Admin<input type="password" autoComplete="off" value={cloudflareAiPassword} onChange={(event) => setCloudflareAiPassword(event.target.value)} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal" /></label>
+                <div className="flex justify-end gap-2"><button type="button" onClick={() => { setRuntimeEditing(false); setCloudflareAiPassword(''); setCloudflareAiDirtyKeys([]); }} className="rounded-lg border border-slate-300 px-3 py-2 text-sm">Hủy</button><button type="button" disabled={runtimeSecretBusy || !cloudflareAiPassword || !cloudflareAiDirtyKeys.length || runtimeSelectedProvider?.storeAvailable === false} onClick={() => void saveCloudflareAiRuntime()} className="rounded-lg bg-slate-950 px-3 py-2 text-sm font-medium text-white disabled:opacity-50">{runtimeSecretBusy ? 'Đang lưu…' : 'Lưu & áp dụng ngay'}</button></div>
+              </section>}
               <div className="mt-5 space-y-3">{runtimeFields.map((field) => <div key={field.key} className="rounded-lg bg-slate-50 p-3"><p className="text-sm font-medium text-slate-800">{field.label}</p><code className="mt-1 block break-all text-xs text-slate-500">{field.key}</code><p className="mt-2 break-all text-sm text-slate-700">{field.type === 'secret' ? (runtimeSecret && runtimeRevealKey === field.key ? runtimeSecret : field.configured ? '•••••••• (đã cấu hình)' : 'Chưa cấu hình') : field.value || 'Chưa cấu hình'}</p><p className="mt-1 text-xs text-slate-500">{field.source === 'runtime-default' ? 'Giá trị mặc định runtime' : field.source === 'environment' ? 'Đọc từ biến môi trường' : field.source === 'database' ? 'Đọc từ MongoDB/runtime fallback' : 'Chưa có giá trị'}</p>{field.type === 'secret' && field.configured && <div className="mt-2">{runtimeSecret && runtimeRevealKey === field.key ? <button type="button" onClick={() => { setRuntimeSecret(''); setRuntimeRevealKey(''); }} className="inline-flex items-center rounded-md border border-blue-200 bg-white px-2.5 py-1.5 text-xs font-medium text-blue-800 hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700">Ẩn secret</button> : runtimeRevealOpen && runtimeRevealKey === field.key ? <div className="flex flex-col gap-2 sm:flex-row"><input type="password" autoComplete="off" value={runtimeReauthPassword} onChange={(event) => setRuntimeReauthPassword(event.target.value)} placeholder="Nhập lại mật khẩu Super Admin" className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm" /><button type="button" disabled={runtimeSecretBusy || !runtimeReauthPassword} onClick={() => void revealRuntimeSecret()} className="rounded-lg bg-slate-950 px-3 py-2 text-xs font-medium text-white disabled:opacity-50">{runtimeSecretBusy ? 'Đang xác thực…' : 'Xác nhận & xem'}</button></div> : <button type="button" onClick={() => { setRuntimeRevealKey(field.key); setRuntimeRevealOpen(true); setRuntimeSecret(''); }} className="inline-flex items-center rounded-md border border-blue-200 bg-white px-2.5 py-1.5 text-xs font-medium text-blue-800 hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700">Hiện secret</button>}</div>}</div>)}</div>
-              <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">{runtimeSelectedCode === 'vnpay' ? 'Cấu hình VNPay được lưu mã hóa và áp dụng ngay; thay Hash Secret có thể khiến callback của giao dịch đang chờ không xác minh được.' : 'Đây là cấu hình đọc từ tiến trình backend hiện tại. Để thay đổi, cập nhật biến môi trường ở nơi triển khai rồi khởi động lại dịch vụ; catalog không sửa `.env`.'}</p>
+              <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">{runtimeSelectedCode === 'vnpay' ? 'Cấu hình VNPay được lưu mã hóa và áp dụng ngay; thay Hash Secret có thể khiến callback của giao dịch đang chờ không xác minh được.' : runtimeSelectedCode === 'cloudflare_ai' ? 'Override Cloudflare AI được lưu mã hóa trong database, ưu tiên hơn biến môi trường và áp dụng ngay. Để trống token khi sửa để giữ giá trị hiện tại.' : 'Đây là cấu hình đọc từ tiến trình backend hiện tại. Để thay đổi, cập nhật biến môi trường ở nơi triển khai rồi khởi động lại dịch vụ; catalog không sửa `.env`.'}</p>
             </>}
           </> : selected ? <>
             <div className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{CATEGORY_LABELS[selected.category]}</p><h2 className="mt-1 text-xl font-semibold text-slate-950">{selected.name}</h2><p className="mt-1 text-sm text-slate-500">{selected.providerCode} · phiên bản {selected.version}</p></div><button type="button" onClick={() => { setSelected(null); setAudit(null); }} aria-label="Đóng" title="Đóng" className="inline-flex shrink-0 items-center justify-center rounded-lg border border-slate-300 p-2 text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700"><X className="h-4 w-4" aria-hidden="true" /></button></div>
@@ -609,7 +653,7 @@ function ProviderCatalogPage() {
                 <dl className="mt-3 space-y-2">{(selected.keyValues || []).map((pair, index) => <div key={`${pair.key}-${index}`} className="grid gap-1 rounded-lg bg-slate-50 p-3 sm:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]"><dt className="break-all text-xs font-semibold text-slate-600">{pair.key}</dt><dd className="break-all whitespace-pre-wrap text-sm text-slate-800">{pair.value || '—'}</dd></div>)}</dl>
               </div>}
               <div className="rounded-xl border border-blue-200 bg-blue-50/40 p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2"><h4 className="text-sm font-medium text-slate-800">Runtime hiện tại · chỉ đọc</h4>{selected.providerCode === 'vnpay' && <button type="button" disabled={runtimeStatus !== 'loaded'} onClick={() => { setRuntimeEditing(false); setRuntimeView(true); setRuntimeSelectedCode('vnpay'); setRuntimeFields(runtimeProviders.find((provider) => provider.providerCode === 'vnpay')?.fields || []); }} className="rounded-lg border border-blue-300 px-3 py-1.5 text-xs font-medium text-blue-800 hover:bg-blue-50 disabled:opacity-50">Sửa cấu hình VNPay</button>}<span className="text-xs text-slate-500">{runtimeStatus === 'loading' ? 'Đang tải' : runtimeStatus === 'unavailable' ? 'Không đọc được' : selectedRuntimeProvider?.status === 'configured' ? 'Đã cấu hình' : selectedRuntimeProvider?.status === 'incomplete' ? 'Cấu hình một phần' : selectedRuntimeProvider?.status === 'not-configured' ? 'Chưa cấu hình' : 'Chưa có mapping'}</span></div>
+                <div className="flex flex-wrap items-center justify-between gap-2"><h4 className="text-sm font-medium text-slate-800">Runtime hiện tại{selected.providerCode === 'cloudflare_ai' ? '' : ' · chỉ đọc'}</h4>{selected.providerCode === 'vnpay' && <button type="button" disabled={runtimeStatus !== 'loaded'} onClick={() => { setRuntimeEditing(false); setRuntimeView(true); setRuntimeSelectedCode('vnpay'); setRuntimeFields(runtimeProviders.find((provider) => provider.providerCode === 'vnpay')?.fields || []); }} className="rounded-lg border border-blue-300 px-3 py-1.5 text-xs font-medium text-blue-800 hover:bg-blue-50 disabled:opacity-50">Sửa cấu hình VNPay</button>}{selected.providerCode === 'cloudflare_ai' && <button type="button" disabled={runtimeStatus !== 'loaded' || selectedRuntimeProvider?.storeAvailable === false} onClick={editCloudflareAiRuntime} className="rounded-lg border border-blue-300 px-3 py-1.5 text-xs font-medium text-blue-800 hover:bg-blue-50 disabled:opacity-50">Sửa cấu hình Cloudflare AI</button>}<span className="text-xs text-slate-500">{runtimeStatus === 'loading' ? 'Đang tải' : runtimeStatus === 'unavailable' ? 'Không đọc được' : selectedRuntimeProvider?.status === 'configured' ? 'Đã cấu hình' : selectedRuntimeProvider?.status === 'incomplete' ? 'Cấu hình một phần' : selectedRuntimeProvider?.status === 'not-configured' ? 'Chưa cấu hình' : 'Chưa có mapping'}</span></div>
                 {runtimeStatus === 'loading' ? <p className="mt-3 text-sm text-slate-500">Đang đọc runtime từ backend…</p> : runtimeStatus === 'unavailable' ? <p className="mt-3 text-sm text-slate-600">Backend hiện không trả được dữ liệu runtime. Kiểm tra route provider-configs/runtime.</p> : selectedRuntimeProvider?.managed ? <>{selectedRuntimeProvider.fields.some((field) => field.configured) ? <dl className="mt-3 space-y-2">{selectedRuntimeProvider.fields.filter((field) => field.configured).map((field) => <div key={field.key} className="grid gap-1 rounded-lg bg-white p-3 sm:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]"><dt className="break-all text-xs font-semibold text-slate-600">{field.key}</dt><dd className="break-all whitespace-pre-wrap text-sm text-slate-800">{field.type === 'secret' ? '•••••••• (đã cấu hình)' : field.value || '—'}</dd><p className="sm:col-span-2 text-xs text-slate-500">{field.source === 'environment' ? 'Nguồn: biến môi trường' : field.source === 'database' ? 'Nguồn: MongoDB' : 'Nguồn: mặc định runtime'}</p></div>)}</dl> : <p className="mt-2 text-sm text-slate-500">Chưa có runtime key nào được cấu hình cho provider này.</p>}</> : <p className="mt-3 text-sm text-slate-600">Chưa có runtime mapping cho provider này.</p>}
               </div>
             </section>

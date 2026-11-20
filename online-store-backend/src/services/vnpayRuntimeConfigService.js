@@ -66,4 +66,4 @@ const loadVnpayRuntimeConfig = async () => {
   };
 };
 
-module.exports = { encryptSecret, loadVnpayRuntimeConfig };
+module.exports = { encryptSecret, decryptSecret, loadVnpayRuntimeConfig };

@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const { isSupportedLanguage, getActiveLangCodes, getLanguageByCode } = require('../config/languageInventory');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const { isNoInputTranslationResponse } = require('../utils/translationResponseGuard');
+const { loadCloudflareAiRuntimeConfiguration } = require('./cloudflareAiRuntimeConfigService');
 
 const LOCALIZATION_SYSTEM_PROMPT = `You are a translator for e-commerce products.
 
@@ -126,6 +127,9 @@ class SimpleQueue {
 
 class CloudflareAiService {
   constructor() {
+    this.runtimeValues = {};
+    this.runtimeConfigLoadedAt = 0;
+    this.runtimeConfigLoadPromise = null;
     this.configs = this._loadConfigs();
     this.configIndex = 0;
     this.lastConfigIndex = null;
@@ -177,18 +181,19 @@ class CloudflareAiService {
     interval.unref();
   }
 
-  _loadConfigs() {
+  _loadConfigs(runtimeValues = {}) {
     const configs = [];
-    const envKeys = Object.keys(process.env);
-    const numberedConfigIndexes = [...new Set(envKeys
+    const getValue = (key) => Object.hasOwn(runtimeValues, key) ? String(runtimeValues[key]) : process.env[key];
+    const configKeys = new Set([...Object.keys(process.env), ...Object.keys(runtimeValues)]);
+    const numberedConfigIndexes = [...new Set([...configKeys]
       .filter(key => /^CLOUDFLARE_(ACCOUNT_ID|API_TOKEN|AI_MODEL)_\d+$/.test(key))
       .map(key => Number(key.match(/\d+$/)[0])))]
       .sort((left, right) => left - right);
 
     if (numberedConfigIndexes.length === 0) {
-      const fallbackAccountId = process.env.CLOUDFLARE_ACCOUNT_ID;
-      const fallbackToken = process.env.CLOUDFLARE_API_TOKEN;
-      const fallbackModel = process.env.CLOUDFLARE_AI_MODEL || '@cf/meta/llama-3-8b-instruct';
+      const fallbackAccountId = getValue('CLOUDFLARE_ACCOUNT_ID');
+      const fallbackToken = getValue('CLOUDFLARE_API_TOKEN');
+      const fallbackModel = getValue('CLOUDFLARE_AI_MODEL') || '@cf/meta/llama-3-8b-instruct';
 
       if (fallbackAccountId && fallbackToken) {
         configs.push({
@@ -214,19 +219,19 @@ class CloudflareAiService {
     const maxIndex = Math.max(...numberedConfigIndexes);
 
     for (let i = 1; i <= maxIndex; i++) {
-      const accountId = process.env[`CLOUDFLARE_ACCOUNT_ID_${i}`];
-      const apiToken = process.env[`CLOUDFLARE_API_TOKEN_${i}`];
-      const configuredModel = process.env[`CLOUDFLARE_AI_MODEL_${i}`];
-      const model = configuredModel || '@cf/meta/llama-3-8b-instruct';
+      const accountKey = `CLOUDFLARE_ACCOUNT_ID_${i}`;
+      const tokenKey = `CLOUDFLARE_API_TOKEN_${i}`;
+      const modelKey = `CLOUDFLARE_AI_MODEL_${i}`;
+      const accountId = getValue(accountKey);
+      const apiToken = getValue(tokenKey);
+      const configuredModel = getValue(modelKey);
       const hasAnyConfig = Boolean(accountId || apiToken || configuredModel);
 
-      if (!hasAnyConfig) {
-        throw new Error(`CLOUDFLARE_CONFIG_GROUP_GAP: account ${i}`);
-      }
-      if (!accountId || !apiToken) {
-        throw new Error(`CLOUDFLARE_CONFIG_GROUP_INCOMPLETE: account ${i}`);
-      }
+      if (!hasAnyConfig && [accountKey, tokenKey, modelKey].every((key) => Object.hasOwn(runtimeValues, key))) continue;
+      if (!hasAnyConfig) throw new Error(`CLOUDFLARE_CONFIG_GROUP_GAP: account ${i}`);
+      if (!accountId || !apiToken) throw new Error(`CLOUDFLARE_CONFIG_GROUP_INCOMPLETE: account ${i}`);
 
+      const model = configuredModel || '@cf/meta/llama-3-8b-instruct';
       configs.push({
         index: i,
         accountId,
@@ -246,6 +251,38 @@ class CloudflareAiService {
     }
 
     return configs;
+  }
+
+  getRuntimeValue(key) {
+    return Object.hasOwn(this.runtimeValues, key) ? String(this.runtimeValues[key]) : process.env[key];
+  }
+
+  async reloadRuntimeConfiguration(force = false) {
+    if (!force && Date.now() - this.runtimeConfigLoadedAt < 5000) return;
+    if (this.runtimeConfigLoadPromise) return this.runtimeConfigLoadPromise;
+    this.runtimeConfigLoadPromise = (async () => {
+      const configuration = await loadCloudflareAiRuntimeConfiguration();
+      this.runtimeValues = configuration.values;
+      this.configs = this._loadConfigs(this.runtimeValues);
+      this.configIndex = this.configs.length ? this.configIndex % this.configs.length : 0;
+      this.maxRequestsPerSecond = this._parseRuntimeInteger('CLOUDFLARE_MAX_REQUESTS_PER_SEC', 5, 1);
+      this.maxParallelRequestsPerConfig = this._parseRuntimeInteger('CLOUDFLARE_MAX_PARALLEL_PER_KEY', 1, 1);
+      if (this.queue) {
+        this.queue.concurrency = Math.min(this._parseRuntimeInteger('CLOUDFLARE_MAX_PARALLEL_REQUESTS', 1, 1), this.configs.length || 1);
+      }
+      this.runtimeConfigLoadedAt = Date.now();
+    })().finally(() => {
+      this.runtimeConfigLoadPromise = null;
+    });
+    return this.runtimeConfigLoadPromise;
+  }
+
+  _parseRuntimeInteger(key, fallback, minimum = 0) {
+    const raw = this.getRuntimeValue(key);
+    if (raw === undefined || raw === '') return fallback;
+    const value = Number(raw);
+    if (!Number.isInteger(value) || value < minimum) throw new Error(`${key} must be an integer of at least ${minimum}`);
+    return value;
   }
 
   selectConfig(excludedIndexes = new Set()) {
@@ -353,9 +390,9 @@ class CloudflareAiService {
 
   getUsagePolicy() {
     return {
-      enabled: process.env.CLOUDFLARE_AI_ENABLED === 'true',
-      maxRequestsPerDay: parseNonNegativeInteger('CLOUDFLARE_AI_MAX_REQUESTS_PER_DAY'),
-      maxInputCharsPerDay: parseNonNegativeInteger('CLOUDFLARE_AI_MAX_INPUT_CHARS_PER_DAY'),
+      enabled: this.getRuntimeValue('CLOUDFLARE_AI_ENABLED') === 'true',
+      maxRequestsPerDay: this._parseRuntimeInteger('CLOUDFLARE_AI_MAX_REQUESTS_PER_DAY', 0),
+      maxInputCharsPerDay: this._parseRuntimeInteger('CLOUDFLARE_AI_MAX_INPUT_CHARS_PER_DAY', 0),
     };
   }
 
@@ -397,6 +434,7 @@ class CloudflareAiService {
       throw new Error('Target language (targetLang) is required');
     }
     if (sourceLang === targetLang) return text;
+    await this.reloadRuntimeConfiguration();
     const idempotencyKey = this.getIdempotencyKey(text, targetLang, additionalInstructions);
 
     if (this.pendingRequests.has(idempotencyKey)) {
