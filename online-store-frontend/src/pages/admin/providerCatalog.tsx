@@ -9,6 +9,7 @@ import {
   type ProviderCatalogEntry,
   type ProviderConfigField,
   type ProviderRegistryItem,
+  type ProviderRuntimeEntry,
   type ProviderRuntimeField,
   type ProviderSetupGuide,
 } from '../../lib/api';
@@ -45,10 +46,13 @@ function ProviderCatalogPage() {
   const [configActionBusy, setConfigActionBusy] = useState(false);
   const [configStoreAvailable, setConfigStoreAvailable] = useState(true);
   const [runtimeView, setRuntimeView] = useState(false);
+  const [runtimeProviders, setRuntimeProviders] = useState<ProviderRuntimeEntry[]>([]);
+  const [runtimeSelectedCode, setRuntimeSelectedCode] = useState('vnpay');
   const [runtimeFields, setRuntimeFields] = useState<ProviderRuntimeField[]>([]);
-  const [runtimeStatus, setRuntimeStatus] = useState<'loading' | 'configured' | 'incomplete' | 'unavailable'>('loading');
+  const [runtimeStatus, setRuntimeStatus] = useState<'loading' | 'loaded' | 'unavailable'>('loading');
   const [runtimeLoading, setRuntimeLoading] = useState(false);
   const [runtimeRevealOpen, setRuntimeRevealOpen] = useState(false);
+  const [runtimeRevealKey, setRuntimeRevealKey] = useState('');
   const [runtimeReauthPassword, setRuntimeReauthPassword] = useState('');
   const [runtimeSecret, setRuntimeSecret] = useState('');
   const [runtimeSecretBusy, setRuntimeSecretBusy] = useState(false);
@@ -62,7 +66,6 @@ function ProviderCatalogPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<'backend-missing' | 'load-failed' | null>(null);
   const [saving, setSaving] = useState(false);
-  const [initializingRegistry, setInitializingRegistry] = useState(false);
   const [editing, setEditing] = useState(false);
 
   const loadList = useCallback(async () => {
@@ -82,10 +85,9 @@ function ProviderCatalogPage() {
 
   const loadRuntimeStatus = useCallback(async () => {
     try {
-      const response = await providerConfigurationAPI.getRuntimeVnpay();
-      setRuntimeFields(response.data.fields);
-      const requiredKeys = ['VNPAY_TMN_CODE', 'VNPAY_HASH_SECRET'];
-      setRuntimeStatus(requiredKeys.every((key) => response.data.fields.some((field) => field.key === key && field.configured)) ? 'configured' : 'incomplete');
+      const response = await providerConfigurationAPI.getRuntimeProviders();
+      setRuntimeProviders(response.data);
+      setRuntimeStatus('loaded');
     } catch {
       setRuntimeStatus('unavailable');
     }
@@ -109,6 +111,7 @@ function ProviderCatalogPage() {
   }, [loadData]);
 
   const selectedRegistry = useMemo(() => registry.find((provider) => provider.code === selectedCode), [registry, selectedCode]);
+  const runtimeSelectedProvider = useMemo(() => runtimeProviders.find((provider) => provider.providerCode === runtimeSelectedCode), [runtimeProviders, runtimeSelectedCode]);
   const availableProviders = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
     if (status !== 'active' || pageInfo.total > 0) return [];
@@ -118,59 +121,53 @@ function ProviderCatalogPage() {
     ));
   }, [category, pageInfo.total, registry, search, status]);
 
-  const initializeRegistry = async () => {
-    setInitializingRegistry(true);
-    try {
-      const result = await providerCatalogAPI.initializeRegistry();
-      setCategory('');
-      setSearch('');
-      setStatus('active');
-      setPage(1);
-      setSelected(null);
-      setAudit(null);
-      const list = await providerCatalogAPI.list({ page: 1, pageSize: 10, status: 'active' });
-      setItems(list.data);
-      setPageInfo(list.pagination);
-      toast.success(result.data.created ? `Đã khởi tạo ${result.data.created} hồ sơ; bỏ qua ${result.data.skipped} hồ sơ đã có.` : 'Các hồ sơ provider đã được khởi tạo trước đó.');
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Không thể khởi tạo hồ sơ provider');
-    } finally {
-      setInitializingRegistry(false);
-    }
-  };
-
-  const openRuntimeVnpay = async () => {
+  const openRuntimeProviders = async () => {
     setRuntimeView(true);
     setSelected(null);
     setEditing(false);
     setAudit(null);
     setRuntimeSecret('');
     setRuntimeRevealOpen(false);
+    setRuntimeRevealKey('');
     setRuntimeReauthPassword('');
     setRuntimeLoading(true);
     try {
-      const response = await providerConfigurationAPI.getRuntimeVnpay();
-      setRuntimeFields(response.data.fields);
-      const requiredKeys = ['VNPAY_TMN_CODE', 'VNPAY_HASH_SECRET'];
-      setRuntimeStatus(requiredKeys.every((key) => response.data.fields.some((field) => field.key === key && field.configured)) ? 'configured' : 'incomplete');
+      const response = await providerConfigurationAPI.getRuntimeProviders();
+      setRuntimeProviders(response.data);
+      setRuntimeStatus('loaded');
+      const preferred = response.data.find((provider) => provider.status === 'configured') || response.data.find((provider) => provider.providerCode === 'vnpay') || response.data[0];
+      if (preferred) {
+        setRuntimeSelectedCode(preferred.providerCode);
+        setRuntimeFields(preferred.fields);
+      }
     } catch (error) {
       setRuntimeStatus('unavailable');
-      toast.error(error instanceof Error ? error.message : 'Không thể đọc cấu hình runtime VNPay');
+      toast.error(error instanceof Error ? error.message : 'Không thể đọc cấu hình runtime provider');
     } finally {
       setRuntimeLoading(false);
     }
   };
 
+  const selectRuntimeProvider = (providerCode: string) => {
+    const provider = runtimeProviders.find((item) => item.providerCode === providerCode);
+    setRuntimeSelectedCode(providerCode);
+    setRuntimeFields(provider?.fields || []);
+    setRuntimeSecret('');
+    setRuntimeRevealOpen(false);
+    setRuntimeRevealKey('');
+    setRuntimeReauthPassword('');
+  };
+
   const revealRuntimeSecret = async () => {
-    if (!runtimeReauthPassword) return;
+    if (!runtimeReauthPassword || !runtimeRevealKey) return;
     setRuntimeSecretBusy(true);
     try {
-      const response = await providerConfigurationAPI.revealRuntimeVnpaySecret(runtimeReauthPassword);
+      const response = await providerConfigurationAPI.revealRuntimeSecret(runtimeSelectedCode, runtimeRevealKey, runtimeReauthPassword);
       setRuntimeSecret(response.data.value);
       setRuntimeReauthPassword('');
       setRuntimeRevealOpen(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Không thể hiển thị Hash Secret');
+      toast.error(error instanceof Error ? error.message : 'Không thể hiển thị secret');
     } finally {
       setRuntimeSecretBusy(false);
     }
@@ -226,6 +223,9 @@ function ProviderCatalogPage() {
     const provider = registry.find((item) => item.code === code);
     setRuntimeView(false);
     setRuntimeSecret('');
+    setRuntimeRevealKey('');
+    setRuntimeRevealOpen(false);
+    setRuntimeReauthPassword('');
     setSelected(null);
     setSelectedCode(code);
     setForm({ ...EMPTY_FORM, name: provider?.name || '' });
@@ -237,6 +237,9 @@ function ProviderCatalogPage() {
   const openEntry = async (entry: ProviderCatalogEntry) => {
     setRuntimeView(false);
     setRuntimeSecret('');
+    setRuntimeRevealKey('');
+    setRuntimeRevealOpen(false);
+    setRuntimeReauthPassword('');
     setSelected(entry);
     setSelectedCode(entry.providerCode);
     setAuditPage(1);
@@ -360,9 +363,8 @@ function ProviderCatalogPage() {
           <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-red-50 text-red-600"><Settings2 className="h-5 w-5" /></div>
           <h1 className="text-3xl font-semibold tracking-tight text-slate-950">Catalog nhà cung cấp</h1>
           <p className="mt-2 max-w-3xl text-sm text-slate-600">Quản lý hồ sơ tham khảo theo nhóm. Catalog không lưu credentials, không bật checkout và không thực hiện deploy hay thay đổi runtime.</p>
-          <p className="mt-1 max-w-3xl text-xs text-slate-500">Khởi tạo danh sách chỉ thêm metadata provider còn thiếu; không đọc hay sao chép credentials runtime.</p>
         </div>
-        <div className="flex flex-wrap gap-2"><button type="button" onClick={() => void openRuntimeVnpay()} className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 px-4 py-2.5 text-sm font-medium text-blue-800 hover:bg-blue-50">Xem runtime VNPay</button><button type="button" disabled={loading || initializingRegistry || Boolean(loadError) || !registry.length} onClick={() => void initializeRegistry()} className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">{initializingRegistry ? 'Đang khởi tạo…' : 'Khởi tạo danh sách'}</button><button type="button" disabled={loading || Boolean(loadError) || !registry.length} onClick={() => openCreate()} className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"><Plus className="h-4 w-4" />Thêm hồ sơ</button></div>
+        <div className="flex flex-wrap gap-2"><button type="button" onClick={() => void openRuntimeProviders()} className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 px-4 py-2.5 text-sm font-medium text-blue-800 hover:bg-blue-50">Xem runtime tất cả provider</button><button type="button" disabled={loading || Boolean(loadError) || !registry.length} onClick={() => openCreate()} className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"><Plus className="h-4 w-4" />Thêm hồ sơ</button></div>
       </header>
 
       <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
@@ -392,7 +394,7 @@ function ProviderCatalogPage() {
             ))}
           </div> : <div className="rounded-xl bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">{status === 'active' && pageInfo.total === 0 && availableProviders.length ? <><p className="font-semibold text-slate-800">Chưa có hồ sơ nào được lưu.</p><p className="mt-1 leading-5">Các mục dưới đây là provider trong registry, chưa phải hồ sơ catalog. Chọn một mục để tạo và lưu hồ sơ.</p><div className="mt-4 space-y-3 text-left">{availableProviders.map((provider) => <div key={provider.code} className="rounded-lg border border-slate-200 bg-white p-3"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-medium text-slate-900">{provider.name}</p><p className="mt-1 text-xs text-slate-500">{CATEGORY_LABELS[provider.category]} · {provider.code}</p></div><span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-600">{provider.adapter === 'not-implemented' ? 'Chưa tích hợp' : provider.adapter === 'not-verified' ? 'Chưa xác minh' : provider.adapter === 'launcher-only' ? 'Chỉ có launcher' : provider.adapter === 'payment-method' ? 'Phương thức hiện có' : 'Có adapter'}</span></div><p className="mt-2 text-xs leading-5 text-slate-500">{provider.note}</p><button type="button" onClick={() => openCreate(provider.code)} className="mt-3 rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50">Tạo hồ sơ</button></div>)}</div></> : 'Chưa có hồ sơ phù hợp.'}</div>}
           <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-4 text-sm text-slate-500">
-            <span className="text-xs">{pageInfo.total} hồ sơ catalog · Trang {pageInfo.page} / {Math.max(pageInfo.totalPages, 1)}</span><span className="text-xs">VNPay runtime: {runtimeStatus === 'loading' ? 'đang đọc…' : runtimeStatus === 'configured' ? 'đã cấu hình' : runtimeStatus === 'incomplete' ? 'chưa đủ key bắt buộc' : 'không đọc được'}</span>
+            <span className="text-xs">{pageInfo.total} hồ sơ catalog · Trang {pageInfo.page} / {Math.max(pageInfo.totalPages, 1)}</span><span className="text-xs">Runtime: {runtimeStatus === 'loading' ? 'đang đọc…' : runtimeStatus === 'unavailable' ? 'không đọc được' : `${runtimeProviders.filter((provider) => provider.status === 'configured').length} có dữ liệu · ${runtimeProviders.filter((provider) => provider.status === 'not-managed').length} chưa tích hợp đọc runtime`}</span>
             <div className="flex gap-2"><button type="button" aria-label="Trang trước" disabled={page <= 1} onClick={() => setPage((value) => value - 1)} className="rounded-md border p-2 disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button><button type="button" aria-label="Trang sau" disabled={page >= pageInfo.totalPages} onClick={() => setPage((value) => value + 1)} className="rounded-md border p-2 disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button></div>
           </div>
         </section>
@@ -418,9 +420,12 @@ function ProviderCatalogPage() {
             <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900"><strong>Không nhập credential production.</strong> Catalog vẫn chỉ lưu hồ sơ; việc lưu cấu hình không có nghĩa provider đã kết nối hoặc adapter đã sẵn sàng.</div>
             <div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setEditing(false)} className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm">Hủy</button><button type="button" disabled={saving || !form.name.trim() || (!selected && !selectedRegistry) || (['paypal', 'momo', 'sendgrid', 'vercel', 'render'].includes(selectedCode) && !configStoreAvailable) || (configFields.some((field) => field.required && field.type !== 'secret' && !configValues[field.key]) || configFields.some((field) => field.required && field.type === 'secret' && !configValues[field.key] && !configuredSecrets.includes(field.key)))} onClick={() => void save()} className="rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50">{saving ? 'Đang lưu…' : 'Lưu hồ sơ'}</button></div>
           </> : runtimeView ? <>
-            <div className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wide text-blue-700">Nguồn: process environment</p><h2 className="mt-1 text-xl font-semibold text-slate-950">VNPay runtime</h2><p className="mt-1 text-sm text-slate-500">Giá trị đang được backend dùng; không phải bản ghi MongoDB.</p></div><button type="button" onClick={() => { setRuntimeView(false); setRuntimeSecret(''); setRuntimeRevealOpen(false); setRuntimeReauthPassword(''); }} aria-label="Đóng cấu hình runtime" className="rounded-md p-2 text-slate-500 hover:bg-slate-100"><X className="h-4 w-4" /></button></div>
+            <div className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wide text-blue-700">Nguồn runtime: {runtimeSelectedProvider?.status === 'not-managed' ? 'chưa tích hợp' : 'environment / database'}</p><h2 className="mt-1 text-xl font-semibold text-slate-950">{registry.find((provider) => provider.code === runtimeSelectedCode)?.name || runtimeSelectedCode} runtime</h2><p className="mt-1 text-sm text-slate-500">Trạng thái: {runtimeSelectedProvider?.status === 'configured' ? 'đã có dữ liệu runtime' : runtimeSelectedProvider?.status === 'incomplete' ? 'có dữ liệu runtime một phần' : runtimeSelectedProvider?.status === 'not-configured' ? 'chưa cấu hình' : 'chưa có mapping runtime'} · giá trị runtime không phải hồ sơ catalog.</p></div><button type="button" onClick={() => { setRuntimeView(false); setRuntimeSecret(''); setRuntimeRevealOpen(false); setRuntimeRevealKey(''); setRuntimeReauthPassword(''); }} aria-label="Đóng cấu hình runtime" className="rounded-md p-2 text-slate-500 hover:bg-slate-100"><X className="h-4 w-4" /></button></div>
+            <label className="mt-5 block text-sm font-medium text-slate-700">Provider<select value={runtimeSelectedCode} onChange={(event) => selectRuntimeProvider(event.target.value)} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5">{runtimeProviders.map((provider) => <option key={provider.providerCode} value={provider.providerCode}>{registry.find((item) => item.code === provider.providerCode)?.name || provider.providerCode}</option>)}</select></label>
             {runtimeLoading ? <p className="py-8 text-center text-sm text-slate-500">Đang đọc cấu hình runtime…</p> : <>
-              <div className="mt-5 space-y-3">{runtimeFields.map((field) => <div key={field.key} className="rounded-lg bg-slate-50 p-3"><p className="text-sm font-medium text-slate-800">{field.label}</p><code className="mt-1 block break-all text-xs text-slate-500">{field.key}</code><p className="mt-2 break-all text-sm text-slate-700">{field.type === 'secret' ? (runtimeSecret ? runtimeSecret : field.configured ? '•••••••• (đã cấu hình)' : 'Chưa cấu hình') : field.value || 'Chưa cấu hình'}</p><p className="mt-1 text-xs text-slate-500">{field.source === 'runtime-default' ? 'Giá trị mặc định runtime' : field.source === 'environment' ? 'Đọc từ biến môi trường' : 'Chưa có giá trị'}</p>{field.type === 'secret' && field.configured && <div className="mt-2">{runtimeSecret ? <button type="button" onClick={() => setRuntimeSecret('')} className="text-xs font-medium text-blue-700 underline">Ẩn secret</button> : runtimeRevealOpen ? <div className="flex flex-col gap-2 sm:flex-row"><input type="password" autoComplete="current-password" value={runtimeReauthPassword} onChange={(event) => setRuntimeReauthPassword(event.target.value)} placeholder="Nhập lại mật khẩu Super Admin" className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm" /><button type="button" disabled={runtimeSecretBusy || !runtimeReauthPassword} onClick={() => void revealRuntimeSecret()} className="rounded-lg bg-slate-950 px-3 py-2 text-xs font-medium text-white disabled:opacity-50">{runtimeSecretBusy ? 'Đang xác thực…' : 'Xác nhận & xem'}</button></div> : <button type="button" onClick={() => setRuntimeRevealOpen(true)} className="text-xs font-medium text-blue-700 underline">Hiện secret</button>}</div>}</div>)}</div>
+              {runtimeSelectedProvider?.status === 'not-managed' && <p className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm leading-5 text-slate-600">Chưa có runtime config được liên kết cho provider này. Không có giá trị nào được suy đoán hoặc lấy từ credential mẫu.</p>}
+              {runtimeSelectedProvider?.status !== 'not-managed' && !runtimeFields.length && <p className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm leading-5 text-slate-600">Chưa có runtime key nào được cấu hình cho provider này.</p>}
+              <div className="mt-5 space-y-3">{runtimeFields.map((field) => <div key={field.key} className="rounded-lg bg-slate-50 p-3"><p className="text-sm font-medium text-slate-800">{field.label}</p><code className="mt-1 block break-all text-xs text-slate-500">{field.key}</code><p className="mt-2 break-all text-sm text-slate-700">{field.type === 'secret' ? (runtimeSecret && runtimeRevealKey === field.key ? runtimeSecret : field.configured ? '•••••••• (đã cấu hình)' : 'Chưa cấu hình') : field.value || 'Chưa cấu hình'}</p><p className="mt-1 text-xs text-slate-500">{field.source === 'runtime-default' ? 'Giá trị mặc định runtime' : field.source === 'environment' ? 'Đọc từ biến môi trường' : field.source === 'database' ? 'Đọc từ MongoDB/runtime fallback' : 'Chưa có giá trị'}</p>{field.type === 'secret' && field.configured && <div className="mt-2">{runtimeSecret && runtimeRevealKey === field.key ? <button type="button" onClick={() => { setRuntimeSecret(''); setRuntimeRevealKey(''); }} className="text-xs font-medium text-blue-700 underline">Ẩn secret</button> : runtimeRevealOpen && runtimeRevealKey === field.key ? <div className="flex flex-col gap-2 sm:flex-row"><input type="password" autoComplete="current-password" value={runtimeReauthPassword} onChange={(event) => setRuntimeReauthPassword(event.target.value)} placeholder="Nhập lại mật khẩu Super Admin" className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm" /><button type="button" disabled={runtimeSecretBusy || !runtimeReauthPassword} onClick={() => void revealRuntimeSecret()} className="rounded-lg bg-slate-950 px-3 py-2 text-xs font-medium text-white disabled:opacity-50">{runtimeSecretBusy ? 'Đang xác thực…' : 'Xác nhận & xem'}</button></div> : <button type="button" onClick={() => { setRuntimeRevealKey(field.key); setRuntimeRevealOpen(true); setRuntimeSecret(''); }} className="text-xs font-medium text-blue-700 underline">Hiện secret</button>}</div>}</div>)}</div>
               <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">Đây là cấu hình đọc từ tiến trình backend hiện tại. Để thay đổi, cập nhật biến môi trường ở nơi triển khai rồi khởi động lại dịch vụ; catalog không sửa `.env`.</p>
             </>}
           </> : selected ? <>

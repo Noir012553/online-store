@@ -81,42 +81,6 @@ exports.getRegistry = asyncHandler(async (_req, res) => {
   res.json({ success: true, data: supportedProviders() });
 });
 
-exports.initializeRegistry = asyncHandler(async (req, res) => {
-  const registry = supportedProviders();
-  const existing = await ProviderCatalogEntry.find({ providerCode: { $in: registry.map((provider) => provider.code) } })
-    .select('providerCode')
-    .lean();
-  const existingCodes = new Set(existing.map((entry) => entry.providerCode));
-  let created = 0;
-
-  for (const provider of registry) {
-    if (existingCodes.has(provider.code)) continue;
-    const entry = await ProviderCatalogEntry.create({
-      category: provider.category,
-      providerCode: provider.code,
-      name: provider.name,
-      description: '',
-      notes: '',
-      createdBy: req.user._id,
-      updatedBy: req.user._id,
-    });
-    await ProviderCatalogAudit.create({
-      providerId: entry._id,
-      providerCode: provider.code,
-      action: 'create',
-      changedFields: ['category', 'providerCode', 'name'],
-      version: entry.version,
-      userId: req.user._id,
-      userName: userName(req.user),
-    });
-    existingCodes.add(provider.code);
-    created += 1;
-  }
-
-  noStore(res);
-  res.json({ success: true, data: { created, skipped: registry.length - created } });
-});
-
 exports.list = asyncHandler(async (req, res) => {
   const pagination = parsePagination(req.query);
   if (!pagination) return res.status(400).json({ success: false, code: 'INVALID_PAGINATION' });

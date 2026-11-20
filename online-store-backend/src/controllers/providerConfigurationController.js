@@ -5,6 +5,8 @@ const ProviderCatalogEntry = require('../models/ProviderCatalogEntry');
 const ProviderConfiguration = require('../models/ProviderConfiguration');
 const ProviderConfigurationAudit = require('../models/ProviderConfigurationAudit');
 const ProviderRuntimeAudit = require('../models/ProviderRuntimeAudit');
+const PaymentMethod = require('../models/PaymentMethod');
+const ShippingProvider = require('../models/ShippingProvider');
 const User = require('../models/User');
 
 const PROVIDER_SCHEMAS = {
@@ -53,13 +55,90 @@ const PROVIDER_SCHEMAS = {
   ],
 };
 
-const VNPAY_RUNTIME_FIELDS = [
-  { key: 'VNPAY_TMN_CODE', label: 'Mã terminal / merchant', type: 'text', envKey: 'VNPAY_TMN_CODE' },
-  { key: 'VNPAY_HASH_SECRET', label: 'Hash Secret', type: 'secret', envKey: 'VNPAY_HASH_SECRET' },
-  { key: 'VNPAY_ENDPOINT', label: 'Payment endpoint', type: 'url', envKey: 'VNPAY_ENDPOINT', defaultValue: 'https://sandbox.vnpayment.vn/paygate' },
-  { key: 'VNPAY_RETURN_URL', label: 'Return URL', type: 'url', envKey: 'VNPAY_RETURN_URL' },
-  { key: 'VNPAY_CALLBACK_URL', label: 'Callback / IPN URL', type: 'url', envKey: 'VNPAY_CALLBACK_URL' },
-];
+const RUNTIME_SCHEMAS = {
+  smtp: [
+    { key: 'EMAIL_SERVICE', label: 'Email service', type: 'text' },
+    { key: 'EMAIL_HOST', label: 'SMTP host', type: 'text', defaultValue: 'smtp.gmail.com' },
+    { key: 'EMAIL_PORT', label: 'SMTP port', type: 'text', defaultValue: '587' },
+    { key: 'EMAIL_SECURE', label: 'SMTP secure', type: 'text', defaultValue: 'false' },
+    { key: 'EMAIL_USER', label: 'SMTP username', type: 'text' },
+    { key: 'EMAIL_PASSWORD', label: 'SMTP password', type: 'secret' },
+    { key: 'EMAIL_FROM', label: 'From address', type: 'text', fallbackKey: 'EMAIL_USER' },
+  ],
+  sendgrid: [
+    { key: 'EMAIL_SERVICE', label: 'Email service', type: 'text' },
+    { key: 'SENDGRID_API_KEY', label: 'SendGrid API key', type: 'secret' },
+    { key: 'EMAIL_FROM', label: 'Verified sender', type: 'text' },
+  ],
+  cod: [],
+  vnpay: [
+    { key: 'VNPAY_TMN_CODE', label: 'Mã terminal / merchant', type: 'text' },
+    { key: 'VNPAY_HASH_SECRET', label: 'Hash Secret', type: 'secret' },
+    { key: 'VNPAY_ENDPOINT', label: 'Payment endpoint', type: 'url', defaultValue: 'https://sandbox.vnpayment.vn/paygate' },
+    { key: 'VNPAY_RETURN_URL', label: 'Return URL', type: 'url' },
+    { key: 'VNPAY_CALLBACK_URL', label: 'Callback / IPN URL', type: 'url' },
+  ],
+  ghn: [
+    { key: 'GHN_API_TOKEN', label: 'GHN API token', type: 'secret', envKey: 'GHN_API_TOKEN', databaseField: 'apiKey' },
+    { key: 'GHN_SHOP_ID', label: 'GHN shop ID', type: 'text', envKey: 'GHN_SHOP_ID', databaseField: 'token' },
+    { key: 'GHN_API_URL', label: 'GHN API URL', type: 'url', databaseField: 'apiUrl', defaultValue: 'https://dev-online-gateway.ghn.vn/shiip/public-api' },
+    { key: 'GHN_WAREHOUSE_DISTRICT_ID', label: 'Warehouse district ID', type: 'text' },
+    { key: 'GHN_WAREHOUSE_WARD_CODE', label: 'Warehouse ward code', type: 'text' },
+  ],
+  paypal: null,
+  momo: null,
+  vercel: null,
+  render: null,
+  cloudflare_tunnel: null,
+};
+
+const RUNTIME_PROVIDER_CODES = ['smtp', 'sendgrid', 'cod', 'vnpay', 'paypal', 'momo', 'vercel', 'render', 'ghn', 'cloudflare_tunnel', 'cloudflare_r2', 'cloudflare_ai'];
+
+const getRuntimeSchema = (providerCode) => {
+  if (providerCode === 'cloudflare_r2') {
+    const policies = [
+      { key: 'R2_UPLOAD_ENABLED', label: 'Uploads enabled', type: 'text' },
+      { key: 'R2_MAX_UPLOAD_COUNT', label: 'Daily upload limit', type: 'text' },
+      { key: 'R2_MAX_UPLOAD_BYTES', label: 'Daily upload byte limit', type: 'text' },
+      { key: 'R2_MAX_IMAGE_BYTES', label: 'Image size limit', type: 'text' },
+      { key: 'R2_MAX_VIDEO_BYTES', label: 'Video size limit', type: 'text' },
+      { key: 'R2_MAX_RETRIES', label: 'Retry limit', type: 'text', defaultValue: '2' },
+    ];
+    const accounts = Array.from({ length: 9 }, (_, index) => {
+      const suffix = index === 0 ? '' : `_${index + 1}`;
+      const fields = [
+        { key: `R2_ACCOUNT_ID${suffix}`, label: `Account ID ${index + 1}`, type: 'text' },
+        { key: `R2_ACCESS_KEY_ID${suffix}`, label: `Access key ${index + 1}`, type: 'secret' },
+        { key: `R2_SECRET_ACCESS_KEY${suffix}`, label: `Secret key ${index + 1}`, type: 'secret' },
+        { key: `R2_BUCKET_NAME${suffix}`, label: `Bucket ${index + 1}`, type: 'text' },
+        { key: `R2_PUBLIC_BASE_URL${suffix}`, label: `Public URL ${index + 1}`, type: 'url' },
+      ];
+      return fields.some((field) => process.env[field.key]) ? fields : [];
+    }).flat();
+    return [...policies, ...accounts];
+  }
+  if (providerCode === 'cloudflare_ai') {
+    const policies = [
+      { key: 'CLOUDFLARE_AI_ENABLED', label: 'Cloudflare AI enabled', type: 'text' },
+      { key: 'CLOUDFLARE_AI_MAX_REQUESTS_PER_DAY', label: 'Daily request limit', type: 'text' },
+      { key: 'CLOUDFLARE_AI_MAX_INPUT_CHARS_PER_DAY', label: 'Daily input character limit', type: 'text' },
+      { key: 'CLOUDFLARE_MAX_REQUESTS_PER_SEC', label: 'Requests per second limit', type: 'text' },
+      { key: 'CLOUDFLARE_MAX_PARALLEL_REQUESTS', label: 'Parallel request limit', type: 'text' },
+      { key: 'CLOUDFLARE_AI_INPUT_CHUNK_SIZE', label: 'Input chunk size', type: 'text' },
+    ];
+    const accounts = Array.from({ length: 13 }, (_, index) => {
+      const suffix = `_${index + 1}`;
+      const fields = [
+        { key: `CLOUDFLARE_ACCOUNT_ID${suffix}`, label: `Account ID ${index + 1}`, type: 'text' },
+        { key: `CLOUDFLARE_API_TOKEN${suffix}`, label: `API token ${index + 1}`, type: 'secret' },
+        { key: `CLOUDFLARE_AI_MODEL${suffix}`, label: `AI model ${index + 1}`, type: 'text' },
+      ];
+      return fields.some((field) => process.env[field.key]) ? fields : [];
+    }).flat();
+    return [...policies, ...accounts];
+  }
+  return RUNTIME_SCHEMAS[providerCode];
+};
 
 const PROVIDER_SETUP_GUIDES = {
   paypal: { label: 'PayPal REST Authentication & Sandbox', url: 'https://developer.paypal.com/api/rest/authentication/', note: 'Tạo app trong Sandbox và dùng cặp Client ID/Secret của app đó. Webhook ID lấy từ webhook sandbox đã đăng ký.' },
@@ -117,24 +196,90 @@ const audit = async (provider, req, action, changedFields, version) => ProviderC
   userName: userName(req.user),
 });
 
-exports.getRuntimeVnpay = asyncHandler(async (_req, res) => {
-  const fields = VNPAY_RUNTIME_FIELDS.map((field) => {
-    const rawValue = process.env[field.envKey];
+const getRuntimeProviderData = async (providerCode) => {
+  const schema = getRuntimeSchema(providerCode);
+  let shippingProvider;
+  let paymentMethod;
+  if (providerCode === 'ghn') {
+    shippingProvider = await ShippingProvider.findOne({ code: 'ghn', isDeleted: false }).select('+apiKey +token').lean();
+  }
+  if (providerCode === 'cod' || providerCode === 'vnpay') {
+    paymentMethod = await PaymentMethod.findOne({ code: providerCode, isDeleted: false }).lean();
+  }
+
+  const fields = (schema || []).map((field) => {
+    const envKey = field.envKey || field.key;
+    let rawValue = process.env[envKey];
+    let source = rawValue ? 'environment' : 'unset';
+    if (!rawValue && field.fallbackKey && process.env[field.fallbackKey]) {
+      rawValue = process.env[field.fallbackKey];
+      source = 'environment';
+    }
+    if (!rawValue && field.databaseField && shippingProvider?.[field.databaseField]) {
+      rawValue = shippingProvider[field.databaseField];
+      source = 'database';
+    }
     const value = rawValue || field.defaultValue || '';
     return {
       key: field.key,
       label: field.label,
       type: field.type,
       configured: Boolean(value),
-      value: field.type === 'secret' ? null : value,
-      source: rawValue ? 'environment' : field.defaultValue ? 'runtime-default' : 'unset',
+      value: field.type === 'secret' ? null : String(value),
+      source: rawValue ? source : field.defaultValue ? 'runtime-default' : 'unset',
     };
   });
+
+  if (shippingProvider) fields.push({ key: 'GHN_PROVIDER_ACTIVE', label: 'GHN provider active', type: 'text', configured: true, value: String(shippingProvider.isActive), source: 'database' });
+  if (paymentMethod) fields.push({ key: `${providerCode.toUpperCase()}_CHECKOUT_ENABLED`, label: 'Checkout enabled', type: 'text', configured: true, value: String(paymentMethod.isEnabled), source: 'database' });
+
+  const managed = schema !== null;
+  const configuredKeys = new Set(fields.filter((field) => field.configured).map((field) => field.key));
+  const requiredKeys = {
+    smtp: ['EMAIL_USER', 'EMAIL_PASSWORD'],
+    sendgrid: ['SENDGRID_API_KEY', 'EMAIL_FROM'],
+    vnpay: ['VNPAY_TMN_CODE', 'VNPAY_HASH_SECRET'],
+    ghn: ['GHN_API_TOKEN', 'GHN_SHOP_ID'],
+  }[providerCode];
+  let ready = Boolean(paymentMethod);
+  if (providerCode === 'sendgrid') {
+    ready = process.env.EMAIL_SERVICE === 'sendgrid' && ['SENDGRID_API_KEY', 'EMAIL_FROM'].every((key) => configuredKeys.has(key));
+  } else if (providerCode === 'smtp') {
+    ready = process.env.EMAIL_SERVICE !== 'sendgrid' && ['EMAIL_USER', 'EMAIL_PASSWORD'].every((key) => configuredKeys.has(key));
+  } else if (providerCode === 'cloudflare_r2') {
+    ready = Array.from({ length: 9 }, (_, index) => {
+      const suffix = index === 0 ? '' : `_${index + 1}`;
+      return ['R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET_NAME'].every((key) => configuredKeys.has(`${key}${suffix}`));
+    }).some(Boolean);
+  } else if (providerCode === 'cloudflare_ai') {
+    ready = Array.from({ length: 13 }, (_, index) => {
+      const suffix = `_${index + 1}`;
+      return configuredKeys.has(`CLOUDFLARE_ACCOUNT_ID${suffix}`) && configuredKeys.has(`CLOUDFLARE_API_TOKEN${suffix}`);
+    }).some(Boolean);
+  } else if (requiredKeys) {
+    ready = requiredKeys.every((key) => configuredKeys.has(key));
+  } else if (providerCode === 'ghn') {
+    ready = Boolean(shippingProvider);
+  }
+  const hasRuntimeData = Boolean(paymentMethod || shippingProvider || fields.some((field) => field.configured));
+  const status = !managed ? 'not-managed' : ready ? 'configured' : hasRuntimeData ? 'incomplete' : 'not-configured';
+  return { providerCode, managed, status, fields };
+};
+
+exports.getRuntimeProviders = asyncHandler(async (_req, res) => {
+  const providers = await Promise.all(RUNTIME_PROVIDER_CODES.map(getRuntimeProviderData));
   noStore(res);
-  res.json({ success: true, data: { providerCode: 'vnpay', source: 'environment', fields } });
+  res.json({ success: true, data: providers });
 });
 
-exports.revealRuntimeVnpaySecret = asyncHandler(async (req, res) => {
+exports.getRuntimeProvider = asyncHandler(async (req, res) => {
+  const { providerCode } = req.params;
+  if (!RUNTIME_PROVIDER_CODES.includes(providerCode)) return res.status(404).json({ success: false, code: 'PROVIDER_RUNTIME_UNSUPPORTED' });
+  noStore(res);
+  res.json({ success: true, data: await getRuntimeProviderData(providerCode) });
+});
+
+exports.revealRuntimeSecret = asyncHandler(async (req, res) => {
   if (!req.body || typeof req.body.password !== 'string' || Object.keys(req.body).some((key) => key !== 'password')) {
     return res.status(400).json({ success: false, code: 'REAUTHENTICATION_REQUIRED' });
   }
@@ -142,17 +287,29 @@ exports.revealRuntimeVnpaySecret = asyncHandler(async (req, res) => {
   if (!user || !(await user.matchPassword(req.body.password))) {
     return res.status(401).json({ success: false, code: 'REAUTHENTICATION_FAILED' });
   }
-  const value = process.env.VNPAY_HASH_SECRET;
+
+  const { providerCode, key } = req.params;
+  if (!RUNTIME_PROVIDER_CODES.includes(providerCode)) return res.status(404).json({ success: false, code: 'PROVIDER_RUNTIME_UNSUPPORTED' });
+  const field = (getRuntimeSchema(providerCode) || []).find((item) => item.key === key && item.type === 'secret');
+  if (!field) return res.status(404).json({ success: false, code: 'PROVIDER_SECRET_NOT_FOUND' });
+
+  let value = process.env[field.envKey || field.key] || '';
+  if (!value && field.fallbackKey) value = process.env[field.fallbackKey] || '';
+  if (!value && field.databaseField && providerCode === 'ghn') {
+    const provider = await ShippingProvider.findOne({ code: 'ghn', isDeleted: false }).select(`+${field.databaseField}`).lean();
+    value = provider?.[field.databaseField] || '';
+  }
   if (!value) return res.status(404).json({ success: false, code: 'PROVIDER_SECRET_NOT_CONFIGURED' });
+
   await ProviderRuntimeAudit.create({
-    providerCode: 'vnpay',
+    providerCode,
     action: 'reveal',
-    changedFields: ['VNPAY_HASH_SECRET'],
+    changedFields: [key],
     userId: req.user._id,
     userName: userName(req.user),
   });
   noStore(res);
-  res.json({ success: true, data: { key: 'VNPAY_HASH_SECRET', value } });
+  res.json({ success: true, data: { key, value } });
 });
 
 exports.getSchema = asyncHandler(async (req, res) => {

@@ -593,10 +593,6 @@ export interface ProviderCatalogEntry {
 
 export const providerCatalogAPI = {
   getRegistry: () => apiCall<{ success: boolean; data: ProviderRegistryItem[] }>('/settings/providers/registry', { skipCache: true }),
-  initializeRegistry: () => apiCall<{ success: boolean; data: { created: number; skipped: number } }>('/settings/providers/initialize', {
-    method: 'POST',
-    skipErrorToast: true,
-  }),
   list: (params: { page: number; pageSize: number; status: 'active' | 'deleted' | 'all'; category?: string; search?: string }) => {
     const query = new URLSearchParams({ page: String(params.page), pageSize: String(params.pageSize), status: params.status });
     if (params.category) query.set('category', params.category);
@@ -2821,12 +2817,20 @@ export interface ProviderRuntimeField {
   type: 'text' | 'secret' | 'url';
   configured: boolean;
   value: string | null;
-  source: 'environment' | 'runtime-default' | 'unset';
+  source: 'environment' | 'database' | 'runtime-default' | 'unset';
+}
+
+export interface ProviderRuntimeEntry {
+  providerCode: string;
+  managed: boolean;
+  status: 'configured' | 'incomplete' | 'not-configured' | 'not-managed';
+  fields: ProviderRuntimeField[];
 }
 
 export const providerConfigurationAPI = {
-  getRuntimeVnpay: () => apiCall<{ success: boolean; data: { providerCode: 'vnpay'; source: 'environment'; fields: ProviderRuntimeField[] } }>('/settings/provider-configs/runtime/vnpay', { skipCache: true, skipErrorToast: true }),
-  revealRuntimeVnpaySecret: (password: string) => apiCall<{ success: boolean; data: { key: 'VNPAY_HASH_SECRET'; value: string } }>('/settings/provider-configs/runtime/vnpay/reveal/hash-secret', {
+  getRuntimeProviders: () => apiCall<{ success: boolean; data: ProviderRuntimeEntry[] }>('/settings/provider-configs/runtime', { skipCache: true, skipErrorToast: true }),
+  getRuntimeProvider: (providerCode: string) => apiCall<{ success: boolean; data: ProviderRuntimeEntry }>(`/settings/provider-configs/runtime/${encodeURIComponent(providerCode)}`, { skipCache: true, skipErrorToast: true }),
+  revealRuntimeSecret: (providerCode: string, key: string, password: string) => apiCall<{ success: boolean; data: { key: string; value: string } }>(`/settings/provider-configs/runtime/${encodeURIComponent(providerCode)}/reveal/${encodeURIComponent(key)}`, {
     method: 'POST',
     body: JSON.stringify({ password }),
     skipCache: true,

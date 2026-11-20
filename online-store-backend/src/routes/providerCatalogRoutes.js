@@ -6,7 +6,6 @@ const router = express.Router();
 
 router.use(protect, superAdmin);
 router.get('/registry', providerCatalogController.getRegistry);
-router.post('/initialize', providerCatalogController.initializeRegistry);
 router.get('/', providerCatalogController.list);
 router.post('/', providerCatalogController.create);
 router.get('/:id/audit', providerCatalogController.getAudit);
