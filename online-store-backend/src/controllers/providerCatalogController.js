@@ -20,15 +20,12 @@ const PROVIDERS = {
 
 const noStore = (res) => res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
 const supportedProviders = () => Object.entries(PROVIDERS).map(([code, provider]) => ({ code, ...provider }));
-const decorate = (entry) => {
-  const data = { ...entry };
-  delete data.keyValues;
-  return {
-    ...data,
-    capability: PROVIDERS[entry.providerCode]?.adapter || 'not-implemented',
-    capabilityNote: PROVIDERS[entry.providerCode]?.note || 'Chưa có adapter được xác nhận.',
-  };
-};
+const decorate = (entry) => ({
+  ...entry,
+  keyValues: entry.keyValues || [],
+  capability: PROVIDERS[entry.providerCode]?.adapter || 'not-implemented',
+  capabilityNote: PROVIDERS[entry.providerCode]?.note || 'Chưa có adapter được xác nhận.',
+});
 const userName = (user) => user.name || user.username || user.email || '';
 
 const parsePagination = (query) => {
@@ -40,8 +37,8 @@ const parsePagination = (query) => {
 
 const parsePayload = (body, creating) => {
   const allowed = creating
-    ? ['category', 'providerCode', 'name']
-    : ['name'];
+    ? ['category', 'providerCode', 'name', 'keyValues']
+    : ['name', 'keyValues'];
   if (!body || typeof body !== 'object' || Array.isArray(body)
     || Object.keys(body).some((field) => !allowed.includes(field))) {
     return { error: 'INVALID_PROVIDER_FIELDS' };
@@ -63,6 +60,29 @@ const parsePayload = (body, creating) => {
     }
     data.name = body.name.trim();
     changedFields.push('name');
+  }
+  if (Object.hasOwn(body, 'keyValues')) {
+    const pairs = body.keyValues;
+    if (!Array.isArray(pairs) || pairs.length > 50) return { error: 'INVALID_PROVIDER_KEY_VALUES' };
+    const sensitiveValue = /\b(api[\s_-]*key|access[\s_-]*key|secret|token|password|credential|authorization|bearer)\b/i;
+    const seenKeys = new Set();
+    const normalizedPairs = [];
+    for (const pair of pairs) {
+      if (!pair || typeof pair !== 'object' || Array.isArray(pair)
+        || Object.keys(pair).some((key) => !['key', 'value'].includes(key))
+        || typeof pair.key !== 'string' || typeof pair.value !== 'string'
+        || pair.key.trim().length < 1 || pair.key.length > 100 || pair.value.length > 2048) {
+        return { error: 'INVALID_PROVIDER_KEY_VALUES' };
+      }
+      const key = pair.key.trim();
+      if (sensitiveValue.test(key) || sensitiveValue.test(pair.value)) return { error: 'PROVIDER_CREDENTIALS_NOT_ALLOWED' };
+      const normalizedKey = key.toLowerCase();
+      if (seenKeys.has(normalizedKey)) return { error: 'DUPLICATE_PROVIDER_KEY' };
+      seenKeys.add(normalizedKey);
+      normalizedPairs.push({ key, value: pair.value });
+    }
+    data.keyValues = normalizedPairs;
+    changedFields.push('keyValues');
   }
   if (creating) {
     data.category = body.category;
