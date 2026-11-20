@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const asyncHandler = require('express-async-handler');
 const ProviderCatalogEntry = require('../models/ProviderCatalogEntry');
 const ProviderCatalogAudit = require('../models/ProviderCatalogAudit');
+const ProviderConfiguration = require('../models/ProviderConfiguration');
 
 const PROVIDERS = {
   smtp: { category: 'email', name: 'SMTP', adapter: 'available', note: 'Backend có luồng gửi SMTP; hồ sơ này không thay đổi cấu hình SMTP runtime.' },
@@ -202,6 +203,25 @@ exports.softDelete = asyncHandler(async (req, res) => {
   });
   noStore(res);
   res.json({ success: true, data: decorate(entry.toObject()) });
+});
+
+exports.hardDelete = asyncHandler(async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ success: false, code: 'INVALID_PROVIDER_ID' });
+  const entry = await ProviderCatalogEntry.findOne({ _id: req.params.id, isDeleted: true });
+  if (!entry) return res.status(404).json({ success: false, code: 'PROVIDER_NOT_FOUND' });
+  await ProviderCatalogAudit.create({
+    providerId: entry._id,
+    providerCode: entry.providerCode,
+    action: 'hard-delete',
+    changedFields: ['deleted'],
+    version: entry.version,
+    userId: req.user._id,
+    userName: userName(req.user),
+  });
+  await ProviderConfiguration.deleteOne({ providerId: entry._id });
+  await entry.deleteOne();
+  noStore(res);
+  res.json({ success: true, data: { _id: entry._id } });
 });
 
 exports.restore = asyncHandler(async (req, res) => {

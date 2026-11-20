@@ -616,6 +616,9 @@ export const providerCatalogAPI = {
   restore: (id: string) => apiCall<{ success: boolean; data: ProviderCatalogEntry }>(`/settings/providers/${id}/restore`, {
     method: 'POST', skipErrorToast: true,
   }),
+  hardDelete: (id: string) => apiCall<{ success: boolean; data: { _id: string } }>(`/settings/providers/${id}/hard`, {
+    method: 'DELETE', skipErrorToast: true,
+  }),
   getAudit: (id: string, page: number, pageSize = 10) => apiCall<{
     success: boolean;
     data: Array<{ _id: string; action: string; providerCode: string; changedFields: string[]; version: number; userName: string; createdAt: string }>;
@@ -2843,6 +2846,12 @@ export const providerConfigurationAPI = {
     skipErrorToast: true,
   }),
   saveVnpayRuntime: (values: Record<string, string | boolean> & { password: string }) => apiCall<{ success: boolean; data: { configurationVersion: number } }>('/settings/provider-configs/runtime/vnpay', {
+    method: 'PUT',
+    body: JSON.stringify(values),
+    skipCache: true,
+    skipErrorToast: true,
+  }),
+  saveCloudflareAiRuntime: (values: Record<string, string> & { password: string }) => apiCall<{ success: boolean; data: { configurationVersion: number } }>('/settings/provider-configs/runtime/cloudflare_ai', {
     method: 'PUT',
     body: JSON.stringify(values),
     skipCache: true,

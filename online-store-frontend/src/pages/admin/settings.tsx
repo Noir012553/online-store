@@ -3,6 +3,7 @@ import { ImagePlus, LoaderCircle, RotateCcw, Save, Settings2 } from 'lucide-reac
 import { toast } from 'sonner';
 import { withAdminLayout } from '../../components/admin/withAdminLayout';
 import { settingsAPI, type StoreSettingsRecord } from '../../lib/api';
+import { useTranslation } from '../../lib/i18n';
 
 const EMPTY_SETTINGS: StoreSettingsRecord = {
   branding: { storeName: '', supportEmail: '', logoUrl: '', darkLogoUrl: '', faviconUrl: '' },
@@ -24,6 +25,7 @@ const toLocalDateTime = (value: string | null) => {
 };
 
 function SettingsAdminPage() {
+  const { t, loadNamespace } = useTranslation();
   const [settings, setSettings] = useState<StoreSettingsRecord>(EMPTY_SETTINGS);
   const [scheduledStart, setScheduledStart] = useState('');
   const [scheduledEnd, setScheduledEnd] = useState('');
@@ -37,11 +39,20 @@ function SettingsAdminPage() {
   const previewsRef = useRef(previews);
 
   const loadSettings = useCallback(async () => {
+    await Promise.all([loadNamespace('common'), loadNamespace('contact')]);
     const response = await settingsAPI.getAdmin();
-    setSettings(response.data);
-    setScheduledStart(toLocalDateTime(response.data.maintenance.scheduledStart));
-    setScheduledEnd(toLocalDateTime(response.data.maintenance.scheduledEnd));
-  }, []);
+    const data = response.data;
+    setSettings({
+      ...data,
+      branding: {
+        ...data.branding,
+        storeName: data.branding.storeName || t('brand_name', 'common'),
+        supportEmail: data.branding.supportEmail || t('contact_email', 'contact'),
+      },
+    });
+    setScheduledStart(toLocalDateTime(data.maintenance.scheduledStart));
+    setScheduledEnd(toLocalDateTime(data.maintenance.scheduledEnd));
+  }, [loadNamespace, t]);
 
   const loadAudit = useCallback(async () => {
     setAudit(await settingsAPI.getAudit(auditPage));
@@ -144,9 +155,9 @@ function SettingsAdminPage() {
   if (loadError) return <div role="alert" className="mx-auto max-w-2xl rounded-2xl border border-amber-300 bg-amber-50 p-6 text-sm text-amber-950"><h1 className="text-lg font-semibold">{loadError === 'backend-missing' ? 'Backend chưa có API cài đặt.' : 'Không thể tải cấu hình.'}</h1><p className="mt-2 leading-6">{loadError === 'backend-missing' ? 'Hãy triển khai phiên bản backend có các route /api/settings trên môi trường preview hoặc staging rồi thử lại. Form bị khóa để tránh lưu đè cấu hình bằng dữ liệu rỗng.' : 'Kiểm tra kết nối và quyền Super Admin rồi thử tải lại.'}</p><button type="button" onClick={() => void loadData()} className="mt-4 rounded-lg border border-amber-400 px-4 py-2 font-medium hover:bg-amber-100">Thử lại</button></div>;
 
   const assetInputs: Array<{ field: AssetField; label: string; value: string }> = [
-    { field: 'logo', label: 'Logo chính', value: settings.branding.logoUrl },
-    { field: 'darkLogo', label: 'Logo nền tối', value: settings.branding.darkLogoUrl },
-    { field: 'favicon', label: 'Favicon', value: settings.branding.faviconUrl },
+    { field: 'logo', label: 'Logo chính', value: settings.branding.logoUrl || '/assets/branding/logo-cropped.png' },
+    { field: 'darkLogo', label: 'Logo nền tối', value: settings.branding.darkLogoUrl || '/assets/branding/logo.png' },
+    { field: 'favicon', label: 'Favicon', value: settings.branding.faviconUrl || '/favicon.ico' },
   ];
 
   return (
@@ -162,52 +173,71 @@ function SettingsAdminPage() {
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
         <div className="mb-6">
-          <h2 className="text-lg font-semibold text-slate-900">Thương hiệu và liên hệ</h2>
-          <p className="mt-1 text-sm text-slate-500">Ảnh được kiểm tra định dạng và tải qua kho asset hiện có.</p>
+          <h2 className="text-lg font-semibold text-slate-900">Cấu hình cửa hàng</h2>
+          <p className="mt-1 text-sm text-slate-500">Chỉnh sửa thương hiệu, liên hệ và thông báo bảo trì. Ảnh được kiểm tra định dạng và tải qua kho asset hiện có.</p>
         </div>
-        <div className="grid gap-5 sm:grid-cols-2">
-          <label className="block text-sm font-medium text-slate-700 sm:col-span-2">
-            Tên cửa hàng
-            <input value={settings.branding.storeName} maxLength={120} onChange={(event) => updateBranding('storeName', event.target.value)} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" />
-          </label>
-          <label className="block text-sm font-medium text-slate-700 sm:col-span-2">
-            Email hỗ trợ
-            <input type="email" value={settings.branding.supportEmail} maxLength={254} onChange={(event) => updateBranding('supportEmail', event.target.value)} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" />
-          </label>
-          {assetInputs.map(({ field, label, value }) => (
-            <div key={field} className="rounded-xl border border-slate-200 p-4">
-              <p className="mb-3 text-sm font-medium text-slate-700">{label}</p>
-              <div className="flex min-h-24 items-center justify-center rounded-lg bg-slate-50 p-3">
-                {(previews[field] || value) ? <img src={previews[field] || value} alt={`${label} xem trước`} className="max-h-20 max-w-full object-contain" /> : <span className="text-xs text-slate-400">Chưa có ảnh</span>}
-              </div>
-              <label className="mt-3 flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
-                {uploading === field ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
-                Chọn ảnh
-                <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" className="sr-only" disabled={uploading !== null} onChange={(event) => { void uploadAsset(field, event.target.files?.[0]); event.currentTarget.value = ''; }} />
-              </label>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900">Thông báo bảo trì</h2>
-            <p className="mt-1 max-w-2xl text-sm text-slate-500">Khi bật, storefront chuyển đến trang thông báo. API, callback thanh toán, health check và Super Admin vẫn được truy cập.</p>
-          </div>
-          <label className="inline-flex items-center gap-3 text-sm font-medium text-slate-800">
-            <input type="checkbox" checked={settings.maintenance.enabled} onChange={(event) => setSettings((current) => ({ ...current, maintenance: { ...current.maintenance, enabled: event.target.checked } }))} className="h-5 w-5 accent-red-600" />
-            {settings.maintenance.enabled ? 'Đang bật' : 'Đang tắt'}
-          </label>
-        </div>
-        <label className="mt-6 block text-sm font-medium text-slate-700">
-          Nội dung thông báo
-          <textarea value={settings.maintenance.message} maxLength={1000} rows={4} onChange={(event) => setSettings((current) => ({ ...current, maintenance: { ...current.maintenance, message: event.target.value } }))} className="mt-2 w-full resize-y rounded-lg border border-slate-300 px-3 py-2.5 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" placeholder="Website đang được nâng cấp. Vui lòng quay lại sau." />
-        </label>
-        <div className="mt-5 grid gap-5 sm:grid-cols-2">
-          <label className="block text-sm font-medium text-slate-700">Bắt đầu dự kiến<input type="datetime-local" value={scheduledStart} onChange={(event) => setScheduledStart(event.target.value)} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal" /></label>
-          <label className="block text-sm font-medium text-slate-700">Kết thúc dự kiến<input type="datetime-local" value={scheduledEnd} onChange={(event) => setScheduledEnd(event.target.value)} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal" /></label>
+        <div className="overflow-x-auto rounded-xl border border-slate-200">
+          <table className="w-full min-w-[760px] text-left text-sm">
+            <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+              <tr><th scope="col" className="w-36 px-4 py-3 font-semibold">Nhóm</th><th scope="col" className="w-48 px-4 py-3 font-semibold">Cài đặt</th><th scope="col" className="px-4 py-3 font-semibold">Giá trị</th></tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              <tr>
+                <td className="px-4 py-3"><span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">Thương hiệu</span></td>
+                <th scope="row" className="px-4 py-3 text-sm font-medium text-slate-800"><label htmlFor="store-name">Tên cửa hàng</label></th>
+                <td className="px-4 py-3"><input id="store-name" value={settings.branding.storeName} maxLength={120} onChange={(event) => updateBranding('storeName', event.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" /></td>
+              </tr>
+              <tr>
+                <td className="px-4 py-3"><span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">Thương hiệu</span></td>
+                <th scope="row" className="px-4 py-3 text-sm font-medium text-slate-800"><label htmlFor="store-support-email">Email hỗ trợ</label></th>
+                <td className="px-4 py-3"><input id="store-support-email" type="email" value={settings.branding.supportEmail} maxLength={254} onChange={(event) => updateBranding('supportEmail', event.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" /></td>
+              </tr>
+              {assetInputs.map(({ field, label, value }) => (
+                <tr key={field}>
+                  <td className="px-4 py-3"><span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">Thương hiệu</span></td>
+                  <th scope="row" className="px-4 py-3 text-sm font-medium text-slate-800">{label}</th>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-20 w-32 shrink-0 items-center justify-center rounded-lg bg-slate-50 p-2">
+                        {(previews[field] || value) ? <img src={previews[field] || value} alt={`${label} xem trước`} className="max-h-full max-w-full object-contain" /> : <span className="text-xs text-slate-400">Chưa có ảnh</span>}
+                      </div>
+                      <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                        {uploading === field ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
+                        Chọn ảnh
+                        <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" className="sr-only" disabled={uploading !== null} onChange={(event) => { void uploadAsset(field, event.target.files?.[0]); event.currentTarget.value = ''; }} />
+                      </label>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              <tr>
+                <td className="px-4 py-3"><span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-800">Bảo trì</span></td>
+                <th scope="row" className="px-4 py-3 text-sm font-medium text-slate-800">Thông báo bảo trì</th>
+                <td className="px-4 py-3">
+                  <label className="inline-flex items-center gap-3 text-sm font-medium text-slate-800">
+                    <input type="checkbox" checked={settings.maintenance.enabled} onChange={(event) => setSettings((current) => ({ ...current, maintenance: { ...current.maintenance, enabled: event.target.checked } }))} className="h-5 w-5 accent-red-600" />
+                    {settings.maintenance.enabled ? 'Đang bật' : 'Đang tắt'}
+                  </label>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">Khi bật, storefront chuyển đến trang thông báo. API, callback thanh toán, health check và Super Admin vẫn được truy cập.</p>
+                </td>
+              </tr>
+              <tr>
+                <td className="px-4 py-3"><span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-800">Bảo trì</span></td>
+                <th scope="row" className="px-4 py-3 text-sm font-medium text-slate-800"><label htmlFor="maintenance-message">Nội dung thông báo</label></th>
+                <td className="px-4 py-3"><textarea id="maintenance-message" value={settings.maintenance.message} maxLength={1000} rows={3} onChange={(event) => setSettings((current) => ({ ...current, maintenance: { ...current.maintenance, message: event.target.value } }))} className="w-full resize-y rounded-lg border border-slate-300 px-3 py-2.5 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" placeholder="Website đang được nâng cấp. Vui lòng quay lại sau." /></td>
+              </tr>
+              <tr>
+                <td className="px-4 py-3"><span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-800">Bảo trì</span></td>
+                <th scope="row" className="px-4 py-3 text-sm font-medium text-slate-800"><label htmlFor="maintenance-start">Bắt đầu dự kiến</label></th>
+                <td className="px-4 py-3"><input id="maintenance-start" type="datetime-local" value={scheduledStart} onChange={(event) => setScheduledStart(event.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal" /></td>
+              </tr>
+              <tr>
+                <td className="px-4 py-3"><span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-800">Bảo trì</span></td>
+                <th scope="row" className="px-4 py-3 text-sm font-medium text-slate-800"><label htmlFor="maintenance-end">Kết thúc dự kiến</label></th>
+                <td className="px-4 py-3"><input id="maintenance-end" type="datetime-local" value={scheduledEnd} onChange={(event) => setScheduledEnd(event.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal" /></td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </section>
 

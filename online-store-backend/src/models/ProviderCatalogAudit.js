@@ -4,7 +4,7 @@ const providerCatalogAuditSchema = new mongoose.Schema(
   {
     providerId: { type: mongoose.Schema.Types.ObjectId, ref: 'ProviderCatalogEntry', required: true, index: true },
     providerCode: { type: String, required: true },
-    action: { type: String, enum: ['create', 'update', 'delete', 'restore'], required: true },
+    action: { type: String, enum: ['create', 'update', 'delete', 'restore', 'hard-delete'], required: true },
     changedFields: { type: [String], required: true },
     version: { type: Number, required: true },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },

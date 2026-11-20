@@ -64,9 +64,11 @@ const joinTranslatedChunks = (sourceChunks, translatedChunks) => {
     .join('');
 };
 
-const getChunkSize = () => {
-  const configured = Number(process.env.CLOUDFLARE_AI_INPUT_CHUNK_SIZE);
-  if (process.env.CLOUDFLARE_AI_INPUT_CHUNK_SIZE !== undefined && (!Number.isInteger(configured) || configured < 1)) {
+const getChunkSize = async () => {
+  await cloudflareAiService.reloadRuntimeConfiguration();
+  const raw = cloudflareAiService.getRuntimeValue('CLOUDFLARE_AI_INPUT_CHUNK_SIZE');
+  const configured = Number(raw);
+  if (raw !== undefined && raw !== '' && (!Number.isInteger(configured) || configured < 1)) {
     throw new Error('CLOUDFLARE_AI_INPUT_CHUNK_SIZE must be a positive integer');
   }
   return configured || 1800;
@@ -108,7 +110,7 @@ const translateChunkSafely = async (chunk, sourceLang, targetLang, splitDepth = 
 };
 
 const translateWithCloudflare = async (text, sourceLang, targetLang, additionalInstructions = '') => {
-  const chunks = splitText(text, getChunkSize());
+  const chunks = splitText(text, await getChunkSize());
   const translatedChunks = [];
 
   for (const chunk of chunks) {
