@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArchiveRestore, ChevronLeft, ChevronRight, Clock3, Plus, Search, Settings2, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { withAdminLayout } from '../../components/admin/withAdminLayout';
 import {
   providerCatalogAPI,
@@ -31,6 +32,8 @@ function ProviderCatalogPage() {
   const [registry, setRegistry] = useState<ProviderRegistryItem[]>([]);
   const [items, setItems] = useState<ProviderCatalogEntry[]>([]);
   const [selected, setSelected] = useState<ProviderCatalogEntry | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ProviderCatalogEntry | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [audit, setAudit] = useState<Awaited<ReturnType<typeof providerCatalogAPI.getAudit>> | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [configFields, setConfigFields] = useState<ProviderConfigField[]>([]);
@@ -326,15 +329,21 @@ function ProviderCatalogPage() {
     }
   };
 
-  const remove = async (entry: ProviderCatalogEntry) => {
-    if (!window.confirm(`Xóa mềm hồ sơ “${entry.name}”? Nhật ký sẽ được giữ lại.`)) return;
+  const remove = (entry: ProviderCatalogEntry) => setDeleteTarget(entry);
+
+  const confirmRemove = async () => {
+    if (!deleteTarget || deleting) return;
+    setDeleting(true);
     try {
-      await providerCatalogAPI.remove(entry._id);
+      await providerCatalogAPI.remove(deleteTarget._id);
       toast.success('Đã chuyển hồ sơ vào mục đã xóa');
       setSelected(null);
+      setDeleteTarget(null);
       await loadList();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Không thể xóa hồ sơ');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -371,7 +380,7 @@ function ProviderCatalogPage() {
         <strong>Trạng thái adapter không đồng nghĩa với trạng thái kết nối.</strong> “Có adapter” chỉ xác nhận backend có luồng tương ứng; cấu hình/credential vẫn được quản lý ngoài catalog. Provider chưa có adapter được đánh dấu rõ và không thể kích hoạt tại đây.
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.85fr)]">
+      <div className="grid gap-6">
         <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="mb-4 flex flex-wrap gap-2">
             <button type="button" onClick={() => setFilter(() => setStatus('active'))} className={`rounded-full px-4 py-2 text-sm font-medium ${status === 'active' ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-600'}`}>Hồ sơ hiện tại</button>
@@ -399,7 +408,22 @@ function ProviderCatalogPage() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <Dialog modal open={editing || Boolean(selected) || runtimeView} onOpenChange={(open) => {
+          if (!open) {
+            setEditing(false);
+            setSelected(null);
+            setAudit(null);
+            setRuntimeView(false);
+            setRuntimeSecret('');
+            setRuntimeRevealOpen(false);
+            setRuntimeRevealKey('');
+            setRuntimeReauthPassword('');
+            setRevealedSecrets({});
+            setReauthPassword('');
+          }
+        }}>
+          <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto p-5 sm:p-6">
+            <DialogHeader className="sr-only"><DialogTitle>{editing ? (selected ? 'Sửa hồ sơ nhà cung cấp' : 'Thêm hồ sơ nhà cung cấp') : runtimeView ? 'Cấu hình runtime nhà cung cấp' : selected?.name || 'Chi tiết hồ sơ nhà cung cấp'}</DialogTitle></DialogHeader>
           {editing ? <>
             <div className="mb-5 flex items-center justify-between"><h2 className="text-lg font-semibold text-slate-900">{selected ? 'Sửa hồ sơ' : 'Thêm hồ sơ'}</h2><button type="button" onClick={() => setEditing(false)} aria-label="Đóng biểu mẫu" className="rounded-md p-2 text-slate-500 hover:bg-slate-100"><X className="h-4 w-4" /></button></div>
             {!selected && <label className="mb-4 block text-sm font-medium text-slate-700">Nhà cung cấp<select value={selectedCode} onChange={(event) => { const code = event.target.value; setSelectedCode(code); const match = registry.find((provider) => provider.code === code); if (match) setForm((current) => ({ ...current, name: match.name })); void loadProviderConfig(code); }} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal">{registry.map((provider) => <option key={provider.code} value={provider.code}>{CATEGORY_LABELS[provider.category]} · {provider.name} ({provider.code})</option>)}</select><span className="mt-1 block text-xs font-normal text-slate-500">Chỉ các provider có trong registry allowlist mới được tạo.</span></label>}
@@ -437,7 +461,18 @@ function ProviderCatalogPage() {
             <div className="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-4">{selected.isDeleted ? <button type="button" onClick={() => void restore(selected)} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm"><ArchiveRestore className="h-4 w-4" />Khôi phục</button> : <><button type="button" onClick={() => { setForm({ name: selected.name, description: selected.description, notes: selected.notes }); setEditing(true); }} className="rounded-lg border border-slate-300 px-3 py-2 text-sm">Sửa hồ sơ</button><button type="button" onClick={() => void remove(selected)} className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-sm text-red-700 hover:bg-red-50"><Trash2 className="h-4 w-4" />Xóa mềm</button></>}</div>
             <div className="mt-6 border-t border-slate-100 pt-5"><div className="mb-3 flex items-center gap-2"><Clock3 className="h-4 w-4 text-slate-500" /><h3 className="text-sm font-semibold text-slate-800">Nhật ký</h3></div><div className="space-y-3">{audit?.data.map((record) => <div key={record._id} className="border-l-2 border-slate-200 pl-3 text-xs"><p className="font-medium text-slate-700">{record.action} · v{record.version}</p><p className="mt-1 text-slate-500">{record.changedFields.join(', ')}</p><p className="mt-1 text-slate-500">{record.userName || 'Super Admin'} · {new Date(record.createdAt).toLocaleString()}</p></div>)}{audit && !audit.data.length && <p className="text-xs text-slate-500">Chưa có nhật ký.</p>}</div>{(audit?.pagination.totalPages || 0) > 1 && <div className="mt-4 flex items-center justify-end gap-2 text-xs"><button type="button" disabled={auditPage <= 1} onClick={() => { const nextPage = auditPage - 1; setAuditPage(nextPage); if (selected) void loadAudit(selected, nextPage); }} className="rounded border px-2 py-1 disabled:opacity-40">Trước</button><span>{auditPage} / {audit?.pagination.totalPages}</span><button type="button" disabled={auditPage >= (audit?.pagination.totalPages || 1)} onClick={() => { const nextPage = auditPage + 1; setAuditPage(nextPage); if (selected) void loadAudit(selected, nextPage); }} className="rounded border px-2 py-1 disabled:opacity-40">Sau</button></div>}</div>
           </> : <div className="flex min-h-80 flex-col items-center justify-center text-center"><div className="mb-3 rounded-2xl bg-slate-100 p-3 text-slate-500"><Settings2 className="h-5 w-5" /></div><h2 className="font-semibold text-slate-800">Chọn một hồ sơ</h2><p className="mt-1 max-w-xs text-sm leading-6 text-slate-500">Xem các trường đã lưu, trạng thái tích hợp và nhật ký thay đổi.</p></div>}
-        </section>
+          </DialogContent>
+        </Dialog>
+        <Dialog modal open={Boolean(deleteTarget)} onOpenChange={(open) => !open && !deleting && setDeleteTarget(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader><DialogTitle>Xóa mềm hồ sơ?</DialogTitle></DialogHeader>
+            <p className="text-sm leading-6 text-slate-600">Hồ sơ “{deleteTarget?.name}” sẽ được chuyển vào mục đã xóa mềm. Nhật ký vẫn được giữ lại.</p>
+            <div className="flex justify-end gap-2">
+              <button type="button" disabled={deleting} onClick={() => setDeleteTarget(null)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm disabled:opacity-50">Hủy</button>
+              <button type="button" disabled={deleting} onClick={() => void confirmRemove()} className="rounded-lg bg-red-700 px-4 py-2 text-sm font-medium text-white hover:bg-red-800 disabled:opacity-50">{deleting ? 'Đang xóa…' : 'Xóa mềm'}</button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
