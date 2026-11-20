@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArchiveRestore, ChevronLeft, ChevronRight, Clock3, Plus, Search, Settings2, Trash2, X } from 'lucide-react';
+import { ArchiveRestore, ChevronLeft, ChevronRight, Clock3, Eye, Plus, Search, Settings2, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { withAdminLayout } from '../../components/admin/withAdminLayout';
@@ -494,7 +494,7 @@ function ProviderCatalogPage() {
                       <td className="px-4 py-3 text-slate-700">{CATEGORY_LABELS[entry.category]}</td>
                       <td className="px-4 py-3"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${entry.isDeleted ? 'bg-slate-100 text-slate-600' : 'bg-emerald-100 text-emerald-800'}`}>{entry.isDeleted ? 'Đã xóa mềm' : 'Hiện tại'}</span></td>
                       <td className="px-4 py-3"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${entry.capability === 'not-implemented' || entry.capability === 'not-verified' || entry.capability === 'launcher-only' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'}`}>{entry.capability === 'not-implemented' ? 'Chưa tích hợp' : entry.capability === 'not-verified' ? 'Chưa xác minh' : entry.capability === 'launcher-only' ? 'Chỉ có launcher' : entry.capability === 'payment-method' ? 'Phương thức hiện có' : 'Có adapter'}</span><p className="mt-1 max-w-xs text-xs leading-5 text-slate-500">{entry.capabilityNote}</p></td>
-                      <td className="px-4 py-3"><div className="flex justify-end gap-2"><button type="button" onClick={() => void openEntry(entry)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-white">Xem</button>{!entry.isDeleted && <button type="button" onClick={() => void remove(entry)} className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50">Xóa mềm</button>}</div></td>
+                      <td className="px-4 py-3"><div className="flex justify-end gap-2"><button type="button" onClick={() => void openEntry(entry)} aria-label="Xem" title="Xem" className="rounded-lg border border-slate-300 p-2 text-slate-700 hover:bg-white"><Eye className="h-4 w-4" aria-hidden="true" /></button>{!entry.isDeleted && <button type="button" onClick={() => void remove(entry)} aria-label="Xóa mềm" title="Xóa mềm" className="rounded-lg border border-red-200 p-2 text-red-700 hover:bg-red-50"><Trash2 className="h-4 w-4" aria-hidden="true" /></button>}</div></td>
                     </tr>
                   ))}
                 </tbody>
