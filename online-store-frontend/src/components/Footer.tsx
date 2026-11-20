@@ -168,7 +168,7 @@ export function Footer() {
                         placeholder={t('emailPlaceholder', 'newsletter')}
                         value={email}
                         onChange={handleEmailChange}
-                        autoComplete="email"
+                        autoComplete="off"
                         disabled={isSubmitting}
                         className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 disabled:opacity-50 text-sm"
                       />
@@ -186,7 +186,7 @@ export function Footer() {
                         placeholder={t('phonePlaceholder', 'newsletter')}
                         value={phone}
                         onChange={handlePhoneChange}
-                        autoComplete="tel"
+                        autoComplete="off"
                         disabled={isSubmitting}
                         className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 disabled:opacity-50 text-sm"
                       />
