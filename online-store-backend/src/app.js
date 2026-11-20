@@ -35,6 +35,7 @@ const languageRoutes = require('./routes/languageRoutes');
 const currencyRoutes = require('./routes/currencyRoutes');
 const exchangeRateRoutes = require('./routes/exchangeRateRoutes');
 const paymentMethodService = require('./services/paymentMethodService');
+const paymentService = require('./services/paymentService');
 const healthRoutes = require('./routes/healthRoutes');
 const r2AssetRoutes = require('./routes/r2AssetRoutes');
 const storeSettingsRoutes = require('./routes/storeSettingsRoutes');
@@ -326,6 +327,7 @@ const connectDB = async () => {
     assertMongoConnected();
     assertStorageConfigured();
     await paymentMethodService.ensurePaymentMethods();
+    await paymentService.refreshVnpayAdapter();
     await startServer();
     startExportJobWorker();
     startInventoryReservationWorker();

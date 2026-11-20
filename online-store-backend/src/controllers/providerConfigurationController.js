@@ -5,6 +5,9 @@ const ProviderCatalogEntry = require('../models/ProviderCatalogEntry');
 const ProviderConfiguration = require('../models/ProviderConfiguration');
 const ProviderConfigurationAudit = require('../models/ProviderConfigurationAudit');
 const ProviderRuntimeAudit = require('../models/ProviderRuntimeAudit');
+const ProviderRuntimeConfiguration = require('../models/ProviderRuntimeConfiguration');
+const { encryptSecret, loadVnpayRuntimeConfig } = require('../services/vnpayRuntimeConfigService');
+const paymentService = require('../services/paymentService');
 const PaymentMethod = require('../models/PaymentMethod');
 const ShippingProvider = require('../models/ShippingProvider');
 const User = require('../models/User');
@@ -200,6 +203,7 @@ const getRuntimeProviderData = async (providerCode) => {
   const schema = getRuntimeSchema(providerCode);
   let shippingProvider;
   let paymentMethod;
+  const vnpayRuntime = providerCode === 'vnpay' ? await loadVnpayRuntimeConfig() : null;
   if (providerCode === 'ghn') {
     shippingProvider = await ShippingProvider.findOne({ code: 'ghn', isDeleted: false }).select('+apiKey +token').lean();
   }
@@ -208,6 +212,17 @@ const getRuntimeProviderData = async (providerCode) => {
   }
 
   const fields = (schema || []).map((field) => {
+    const runtimeValue = vnpayRuntime?.values[field.key];
+    if (runtimeValue) {
+      return {
+        key: field.key,
+        label: field.label,
+        type: field.type,
+        configured: Boolean(runtimeValue.value),
+        value: field.type === 'secret' ? null : String(runtimeValue.value),
+        source: runtimeValue.source,
+      };
+    }
     const envKey = field.envKey || field.key;
     let rawValue = process.env[envKey];
     let source = rawValue ? 'environment' : 'unset';
@@ -231,14 +246,15 @@ const getRuntimeProviderData = async (providerCode) => {
   });
 
   if (shippingProvider) fields.push({ key: 'GHN_PROVIDER_ACTIVE', label: 'GHN provider active', type: 'text', configured: true, value: String(shippingProvider.isActive), source: 'database' });
-  if (paymentMethod) fields.push({ key: `${providerCode.toUpperCase()}_CHECKOUT_ENABLED`, label: 'Checkout enabled', type: 'text', configured: true, value: String(paymentMethod.isEnabled), source: 'database' });
+  if (providerCode === 'vnpay') fields.push({ key: 'VNPAY_CHECKOUT_ENABLED', label: 'Checkout enabled', type: 'text', configured: true, value: String(vnpayRuntime.checkoutEnabled), source: 'database' });
+  else if (paymentMethod) fields.push({ key: `${providerCode.toUpperCase()}_CHECKOUT_ENABLED`, label: 'Checkout enabled', type: 'text', configured: true, value: String(paymentMethod.isEnabled), source: 'database' });
 
   const managed = schema !== null;
   const configuredKeys = new Set(fields.filter((field) => field.configured).map((field) => field.key));
   const requiredKeys = {
     smtp: ['EMAIL_USER', 'EMAIL_PASSWORD'],
     sendgrid: ['SENDGRID_API_KEY', 'EMAIL_FROM'],
-    vnpay: ['VNPAY_TMN_CODE', 'VNPAY_HASH_SECRET'],
+    vnpay: ['VNPAY_TMN_CODE', 'VNPAY_HASH_SECRET', 'VNPAY_RETURN_URL'],
     ghn: ['GHN_API_TOKEN', 'GHN_SHOP_ID'],
   }[providerCode];
   let ready = Boolean(paymentMethod);
@@ -263,7 +279,7 @@ const getRuntimeProviderData = async (providerCode) => {
   }
   const hasRuntimeData = Boolean(paymentMethod || shippingProvider || fields.some((field) => field.configured));
   const status = !managed ? 'not-managed' : ready ? 'configured' : hasRuntimeData ? 'incomplete' : 'not-configured';
-  return { providerCode, managed, status, fields };
+  return { providerCode, managed, status, fields, ...(vnpayRuntime ? { configurationVersion: vnpayRuntime.version, storeAvailable: vnpayRuntime.storeAvailable } : {}) };
 };
 
 exports.getRuntimeProviders = asyncHandler(async (_req, res) => {
@@ -293,7 +309,8 @@ exports.revealRuntimeSecret = asyncHandler(async (req, res) => {
   const field = (getRuntimeSchema(providerCode) || []).find((item) => item.key === key && item.type === 'secret');
   if (!field) return res.status(404).json({ success: false, code: 'PROVIDER_SECRET_NOT_FOUND' });
 
-  let value = process.env[field.envKey || field.key] || '';
+  const vnpayRuntime = providerCode === 'vnpay' ? await loadVnpayRuntimeConfig() : null;
+  let value = vnpayRuntime?.values[key]?.value || process.env[field.envKey || field.key] || '';
   if (!value && field.fallbackKey) value = process.env[field.fallbackKey] || '';
   if (!value && field.databaseField && providerCode === 'ghn') {
     const provider = await ShippingProvider.findOne({ code: 'ghn', isDeleted: false }).select(`+${field.databaseField}`).lean();
@@ -310,6 +327,83 @@ exports.revealRuntimeSecret = asyncHandler(async (req, res) => {
   });
   noStore(res);
   res.json({ success: true, data: { key, value } });
+});
+
+exports.updateVnpayRuntime = asyncHandler(async (req, res) => {
+  const allowedFields = ['VNPAY_TMN_CODE', 'VNPAY_HASH_SECRET', 'VNPAY_ENDPOINT', 'VNPAY_RETURN_URL', 'VNPAY_CALLBACK_URL', 'VNPAY_CHECKOUT_ENABLED', 'password'];
+  if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)
+    || Object.keys(req.body).some((key) => !allowedFields.includes(key))
+    || typeof req.body.password !== 'string' || typeof req.body.VNPAY_CHECKOUT_ENABLED !== 'boolean'
+    || (Object.hasOwn(req.body, 'VNPAY_HASH_SECRET') && typeof req.body.VNPAY_HASH_SECRET !== 'string')) {
+    return res.status(400).json({ success: false, code: 'INVALID_VNPAY_RUNTIME_FIELDS' });
+  }
+  const user = await User.findById(req.user._id);
+  if (!user || !(await user.matchPassword(req.body.password))) {
+    return res.status(401).json({ success: false, code: 'REAUTHENTICATION_FAILED' });
+  }
+  if (!/^[a-f0-9]{64}$/i.test(process.env.PROVIDER_CONFIG_ENCRYPTION_KEY || '')) {
+    return res.status(503).json({ success: false, code: 'PROVIDER_CONFIG_STORE_UNAVAILABLE' });
+  }
+
+  const current = await loadVnpayRuntimeConfig();
+  const values = {
+    VNPAY_TMN_CODE: req.body.VNPAY_TMN_CODE,
+    VNPAY_ENDPOINT: req.body.VNPAY_ENDPOINT,
+    VNPAY_RETURN_URL: req.body.VNPAY_RETURN_URL,
+    VNPAY_CALLBACK_URL: req.body.VNPAY_CALLBACK_URL,
+    VNPAY_CHECKOUT_ENABLED: req.body.VNPAY_CHECKOUT_ENABLED,
+  };
+  for (const key of ['VNPAY_TMN_CODE', 'VNPAY_ENDPOINT', 'VNPAY_RETURN_URL', 'VNPAY_CALLBACK_URL']) {
+    if (typeof values[key] !== 'string' || values[key].length > 2048) return res.status(400).json({ success: false, code: `INVALID_${key}` });
+  }
+  if (values.VNPAY_TMN_CODE && !/^[A-Za-z0-9]{1,20}$/.test(values.VNPAY_TMN_CODE)) return res.status(400).json({ success: false, code: 'INVALID_VNPAY_TMN_CODE' });
+  if (values.VNPAY_ENDPOINT) {
+    let endpoint;
+    try { endpoint = new URL(values.VNPAY_ENDPOINT); } catch { return res.status(400).json({ success: false, code: 'INVALID_VNPAY_ENDPOINT' }); }
+    if (endpoint.protocol !== 'https:' || !['sandbox.vnpayment.vn', 'pay.vnpay.vn'].includes(endpoint.hostname)) return res.status(400).json({ success: false, code: 'INVALID_VNPAY_ENDPOINT' });
+  } else if (values.VNPAY_CHECKOUT_ENABLED) {
+    return res.status(400).json({ success: false, code: 'INVALID_VNPAY_ENDPOINT' });
+  }
+  for (const key of ['VNPAY_RETURN_URL', 'VNPAY_CALLBACK_URL']) {
+    if (values[key]) {
+      let url;
+      try { url = new URL(values[key]); } catch { return res.status(400).json({ success: false, code: `INVALID_${key}` }); }
+      if (url.protocol !== 'https:') return res.status(400).json({ success: false, code: `INVALID_${key}` });
+    }
+  }
+
+  const submittedSecret = typeof req.body.VNPAY_HASH_SECRET === 'string' ? req.body.VNPAY_HASH_SECRET.trim() : '';
+  if (submittedSecret.length > 2048) return res.status(400).json({ success: false, code: 'INVALID_VNPAY_HASH_SECRET' });
+  const encryptedSecrets = current.config.partnerKey
+    ? (await ProviderRuntimeConfiguration.findOne({ providerCode: 'vnpay' }).lean())?.encryptedSecrets || {}
+    : {};
+  if (submittedSecret) {
+    encryptedSecrets.VNPAY_HASH_SECRET = encryptSecret(submittedSecret);
+  } else if (!current.config.partnerKey && values.VNPAY_CHECKOUT_ENABLED) {
+    return res.status(400).json({ success: false, code: 'REQUIRED_VNPAY_HASH_SECRET' });
+  }
+  const effectiveSecret = submittedSecret || current.config.partnerKey;
+  if (values.VNPAY_CHECKOUT_ENABLED && (!values.VNPAY_TMN_CODE || !effectiveSecret || !values.VNPAY_ENDPOINT || !values.VNPAY_RETURN_URL)) {
+    return res.status(400).json({ success: false, code: 'VNPAY_RUNTIME_CONFIG_INCOMPLETE' });
+  }
+
+  const existing = await ProviderRuntimeConfiguration.findOne({ providerCode: 'vnpay' }).lean();
+  const version = (existing?.version || 0) + 1;
+  await ProviderRuntimeConfiguration.findOneAndUpdate(
+    { providerCode: 'vnpay' },
+    { $set: { providerCode: 'vnpay', values, encryptedSecrets, version, updatedBy: req.user._id } },
+    { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true },
+  );
+  await ProviderRuntimeAudit.create({
+    providerCode: 'vnpay',
+    action: 'update',
+    changedFields: Object.keys(values).concat(req.body.VNPAY_HASH_SECRET ? ['VNPAY_HASH_SECRET'] : []),
+    userId: req.user._id,
+    userName: userName(req.user),
+  });
+  await paymentService.refreshVnpayAdapter();
+  noStore(res);
+  res.json({ success: true, data: { configurationVersion: version } });
 });
 
 exports.getSchema = asyncHandler(async (req, res) => {

@@ -13,6 +13,7 @@ const Payment = require('../models/Payment');
 const Order = require('../models/Order');
 const PaymentMethod = require('../models/PaymentMethod');
 const VnpayAdapter = require('../adapters/payment/VnpayAdapter');
+const { loadVnpayRuntimeConfig } = require('./vnpayRuntimeConfigService');
 const { broadcastPaymentSuccess, broadcastOrderStatusUpdate } = require('../socket/socketHandler');
 const { getMessage } = require('../i18n/messages');
 const { getDefaultLanguage } = require('../config/languageInventory');
@@ -29,6 +30,7 @@ const createPaymentFailure = (code, params = {}) => ({
 class PaymentService {
   constructor() {
     this.adapters = {};
+    this.vnpayCheckoutEnabled = false;
     this.initializeAdapters();
   }
 
@@ -51,6 +53,20 @@ class PaymentService {
       }
     } catch (error) {
       console.error('[PaymentService.initializeAdapters] Error:', error.message);
+    }
+  }
+
+  async refreshVnpayAdapter() {
+    const { config, checkoutEnabled } = await loadVnpayRuntimeConfig();
+    this.vnpayCheckoutEnabled = checkoutEnabled;
+    const adapter = new VnpayAdapter(config);
+    try {
+      adapter.validateConfig();
+      this.adapters.vnpay = adapter;
+      return true;
+    } catch {
+      delete this.adapters.vnpay;
+      return false;
     }
   }
 
@@ -92,12 +108,14 @@ class PaymentService {
 
       // Kiểm tra gateway được support
       const normalizedGateway = gateway.toLowerCase();
+      if (normalizedGateway === 'vnpay') await this.refreshVnpayAdapter();
       const adapter = this.adapters[normalizedGateway];
       if (!adapter) {
         throw new Error(getMessage(lang, 'checkout.error_unsupported_gateway'));
       }
       const method = await PaymentMethod.findOne({ code: normalizedGateway }).lean();
-      if (!method?.isEnabled || method.isDeleted) {
+      const enabled = normalizedGateway === 'vnpay' ? this.vnpayCheckoutEnabled : method?.isEnabled;
+      if (!enabled || !method || method.isDeleted) {
         const error = new Error('Selected payment method is unavailable.');
         error.code = 'PAYMENT_METHOD_UNAVAILABLE';
         throw error;
@@ -230,6 +248,7 @@ class PaymentService {
    */
   async handleWebhook(gateway, webhookData, signature, io = null, lang) {
     try {
+      if (gateway.toLowerCase() === 'vnpay') await this.refreshVnpayAdapter();
       const adapter = this.adapters[gateway.toLowerCase()];
       if (!adapter) {
         return {
