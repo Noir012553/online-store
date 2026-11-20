@@ -12,6 +12,7 @@ router.get('/:id/audit', providerCatalogController.getAudit);
 router.get('/:id', providerCatalogController.getById);
 router.put('/:id', providerCatalogController.update);
 router.delete('/:id', providerCatalogController.softDelete);
+router.delete('/:id/hard', providerCatalogController.hardDelete);
 router.post('/:id/restore', providerCatalogController.restore);
 
 module.exports = router;

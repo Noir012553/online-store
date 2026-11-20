@@ -36,7 +36,9 @@ function ProviderCatalogPage() {
   const [items, setItems] = useState<ProviderCatalogEntry[]>([]);
   const [selected, setSelected] = useState<ProviderCatalogEntry | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ProviderCatalogEntry | null>(null);
+  const [hardDeleteTarget, setHardDeleteTarget] = useState<ProviderCatalogEntry | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [hardDeleting, setHardDeleting] = useState(false);
   const [audit, setAudit] = useState<Awaited<ReturnType<typeof providerCatalogAPI.getAudit>> | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [configFields, setConfigFields] = useState<ProviderConfigField[]>([]);
@@ -435,6 +437,22 @@ function ProviderCatalogPage() {
     }
   };
 
+  const confirmHardDelete = async () => {
+    if (!hardDeleteTarget || hardDeleting) return;
+    setHardDeleting(true);
+    try {
+      await providerCatalogAPI.hardDelete(hardDeleteTarget._id);
+      toast.success('Đã xóa vĩnh viễn hồ sơ');
+      if (selected?._id === hardDeleteTarget._id) setSelected(null);
+      setHardDeleteTarget(null);
+      await loadList();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Không thể xóa vĩnh viễn hồ sơ');
+    } finally {
+      setHardDeleting(false);
+    }
+  };
+
   const catalogKeyValues = form.keyValues || [];
   const normalizedKeys = catalogKeyValues.map((pair) => pair.key.trim().toLowerCase());
   const hasInvalidKeyValues = catalogKeyValues.some((pair) => (
@@ -494,7 +512,7 @@ function ProviderCatalogPage() {
                       <td className="px-4 py-3 text-slate-700">{CATEGORY_LABELS[entry.category]}</td>
                       <td className="px-4 py-3"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${entry.isDeleted ? 'bg-slate-100 text-slate-600' : 'bg-emerald-100 text-emerald-800'}`}>{entry.isDeleted ? 'Đã xóa mềm' : 'Hiện tại'}</span></td>
                       <td className="px-4 py-3"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${entry.capability === 'not-implemented' || entry.capability === 'not-verified' || entry.capability === 'launcher-only' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'}`}>{entry.capability === 'not-implemented' ? 'Chưa tích hợp' : entry.capability === 'not-verified' ? 'Chưa xác minh' : entry.capability === 'launcher-only' ? 'Chỉ có launcher' : entry.capability === 'payment-method' ? 'Phương thức hiện có' : 'Có adapter'}</span><p className="mt-1 max-w-xs text-xs leading-5 text-slate-500">{entry.capabilityNote}</p></td>
-                      <td className="px-4 py-3"><div className="flex justify-end gap-2"><button type="button" onClick={() => void openEntry(entry)} aria-label="Xem" title="Xem" className="rounded-lg border border-slate-300 p-2 text-slate-700 hover:bg-white"><Eye className="h-4 w-4" aria-hidden="true" /></button>{!entry.isDeleted && <button type="button" onClick={() => void remove(entry)} aria-label="Xóa mềm" title="Xóa mềm" className="rounded-lg border border-red-200 p-2 text-red-700 hover:bg-red-50"><Trash2 className="h-4 w-4" aria-hidden="true" /></button>}</div></td>
+                      <td className="px-4 py-3"><div className="flex justify-end gap-2"><button type="button" onClick={() => void openEntry(entry)} aria-label="Xem" title="Xem" className="rounded-lg border border-slate-300 p-2 text-slate-700 hover:bg-white"><Eye className="h-4 w-4" aria-hidden="true" /></button>{entry.isDeleted ? <><button type="button" onClick={() => void restore(entry)} aria-label="Khôi phục" title="Khôi phục" className="rounded-lg border border-emerald-200 p-2 text-emerald-700 hover:bg-emerald-50"><ArchiveRestore className="h-4 w-4" aria-hidden="true" /></button><button type="button" onClick={() => setHardDeleteTarget(entry)} aria-label="Xóa cứng" title="Xóa cứng" className="rounded-lg border border-red-200 p-2 text-red-700 hover:bg-red-50"><Trash2 className="h-4 w-4" aria-hidden="true" /></button></> : <button type="button" onClick={() => void remove(entry)} aria-label="Xóa mềm" title="Xóa mềm" className="rounded-lg border border-red-200 p-2 text-red-700 hover:bg-red-50"><Trash2 className="h-4 w-4" aria-hidden="true" /></button>}</div></td>
                     </tr>
                   ))}
                 </tbody>
@@ -607,6 +625,16 @@ function ProviderCatalogPage() {
             <div className="flex justify-end gap-2">
               <button type="button" disabled={deleting} onClick={() => setDeleteTarget(null)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm disabled:opacity-50">Hủy</button>
               <button type="button" disabled={deleting} onClick={() => void confirmRemove()} className="rounded-lg bg-red-700 px-4 py-2 text-sm font-medium text-white hover:bg-red-800 disabled:opacity-50">{deleting ? 'Đang xóa…' : 'Xóa mềm'}</button>
+            </div>
+          </DialogContent>
+        </Dialog>
+        <Dialog modal open={Boolean(hardDeleteTarget)} onOpenChange={(open) => !open && !hardDeleting && setHardDeleteTarget(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader><DialogTitle>Xóa vĩnh viễn hồ sơ?</DialogTitle></DialogHeader>
+            <p className="text-sm leading-6 text-slate-600">Hồ sơ “{hardDeleteTarget?.name}” và cấu hình credentials liên kết sẽ bị xóa vĩnh viễn. Nhật ký thay đổi được giữ lại; thao tác này không thể hoàn tác.</p>
+            <div className="flex justify-end gap-2">
+              <button type="button" disabled={hardDeleting} onClick={() => setHardDeleteTarget(null)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm disabled:opacity-50">Hủy</button>
+              <button type="button" disabled={hardDeleting} onClick={() => void confirmHardDelete()} className="rounded-lg bg-red-700 px-4 py-2 text-sm font-medium text-white hover:bg-red-800 disabled:opacity-50">{hardDeleting ? 'Đang xóa…' : 'Xóa vĩnh viễn'}</button>
             </div>
           </DialogContent>
         </Dialog>
