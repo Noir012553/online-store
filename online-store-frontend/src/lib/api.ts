@@ -576,13 +576,17 @@ export interface ProviderRegistryItem {
   note: string;
 }
 
+export interface ProviderCatalogKeyValue {
+  key: string;
+  value: string;
+}
+
 export interface ProviderCatalogEntry {
   _id: string;
   category: ProviderCatalogCategory;
   providerCode: string;
   name: string;
-  description: string;
-  notes: string;
+  keyValues?: ProviderCatalogKeyValue[];
   capability: string;
   capabilityNote: string;
   version: number;
@@ -600,10 +604,10 @@ export const providerCatalogAPI = {
     return apiCall<{ success: boolean; data: ProviderCatalogEntry[]; pagination: { page: number; pageSize: number; total: number; totalPages: number } }>(`/settings/providers?${query}`, { skipCache: true });
   },
   getById: (id: string) => apiCall<{ success: boolean; data: ProviderCatalogEntry; registry: ProviderRegistryItem[] }>(`/settings/providers/${id}`, { skipCache: true }),
-  create: (data: { category: ProviderCatalogCategory; providerCode: string; name: string; description: string; notes: string }) => apiCall<{ success: boolean; data: ProviderCatalogEntry }>('/settings/providers', {
+  create: (data: { category: ProviderCatalogCategory; providerCode: string; name: string; keyValues: ProviderCatalogKeyValue[] }) => apiCall<{ success: boolean; data: ProviderCatalogEntry }>('/settings/providers', {
     method: 'POST', body: JSON.stringify(data), skipErrorToast: true,
   }),
-  update: (id: string, data: { name: string; description: string; notes: string }) => apiCall<{ success: boolean; data: ProviderCatalogEntry }>(`/settings/providers/${id}`, {
+  update: (id: string, data: { name: string; keyValues: ProviderCatalogKeyValue[] }) => apiCall<{ success: boolean; data: ProviderCatalogEntry }>(`/settings/providers/${id}`, {
     method: 'PUT', body: JSON.stringify(data), skipErrorToast: true,
   }),
   remove: (id: string) => apiCall<{ success: boolean; data: ProviderCatalogEntry }>(`/settings/providers/${id}`, {
