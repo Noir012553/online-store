@@ -576,13 +576,17 @@ export interface ProviderRegistryItem {
   note: string;
 }
 
+export interface ProviderCatalogKeyValue {
+  key: string;
+  value: string;
+}
+
 export interface ProviderCatalogEntry {
   _id: string;
   category: ProviderCatalogCategory;
   providerCode: string;
   name: string;
-  description: string;
-  notes: string;
+  keyValues?: ProviderCatalogKeyValue[];
   capability: string;
   capabilityNote: string;
   version: number;
@@ -600,10 +604,10 @@ export const providerCatalogAPI = {
     return apiCall<{ success: boolean; data: ProviderCatalogEntry[]; pagination: { page: number; pageSize: number; total: number; totalPages: number } }>(`/settings/providers?${query}`, { skipCache: true });
   },
   getById: (id: string) => apiCall<{ success: boolean; data: ProviderCatalogEntry; registry: ProviderRegistryItem[] }>(`/settings/providers/${id}`, { skipCache: true }),
-  create: (data: { category: ProviderCatalogCategory; providerCode: string; name: string; description: string; notes: string }) => apiCall<{ success: boolean; data: ProviderCatalogEntry }>('/settings/providers', {
+  create: (data: { category: ProviderCatalogCategory; providerCode: string; name: string; keyValues: ProviderCatalogKeyValue[] }) => apiCall<{ success: boolean; data: ProviderCatalogEntry }>('/settings/providers', {
     method: 'POST', body: JSON.stringify(data), skipErrorToast: true,
   }),
-  update: (id: string, data: { name: string; description: string; notes: string }) => apiCall<{ success: boolean; data: ProviderCatalogEntry }>(`/settings/providers/${id}`, {
+  update: (id: string, data: { name: string; keyValues: ProviderCatalogKeyValue[] }) => apiCall<{ success: boolean; data: ProviderCatalogEntry }>(`/settings/providers/${id}`, {
     method: 'PUT', body: JSON.stringify(data), skipErrorToast: true,
   }),
   remove: (id: string) => apiCall<{ success: boolean; data: ProviderCatalogEntry }>(`/settings/providers/${id}`, {
@@ -2802,18 +2806,55 @@ export interface ProviderConfigField {
   required?: boolean;
   options?: string[];
   defaultValue?: string;
+  helpText?: string;
+}
+
+export interface ProviderSetupGuide {
+  label: string;
+  url: string;
+  note: string;
+}
+
+export interface ProviderRuntimeField {
+  key: string;
+  label: string;
+  type: 'text' | 'secret' | 'url';
+  configured: boolean;
+  value: string | null;
+  source: 'environment' | 'database' | 'runtime-default' | 'unset';
+}
+
+export interface ProviderRuntimeEntry {
+  providerCode: string;
+  managed: boolean;
+  status: 'configured' | 'incomplete' | 'not-configured' | 'not-managed';
+  fields: ProviderRuntimeField[];
 }
 
 export const providerConfigurationAPI = {
-  getSchema: (providerCode: string) => apiCall<{ success: boolean; data: { fields: ProviderConfigField[]; storeAvailable: boolean } }>(`/settings/provider-configs/schema/${encodeURIComponent(providerCode)}`, { skipCache: true }),
-  get: (providerId: string) => apiCall<{ success: boolean; data: { fields: ProviderConfigField[]; values: Record<string, string>; configuredSecrets: string[]; version: number; storeAvailable: boolean } }>(`/settings/provider-configs/${providerId}`, { skipCache: true }),
-  save: (providerId: string, values: Record<string, string>) => apiCall(`/settings/provider-configs/${providerId}`, {
+  getRuntimeProviders: () => apiCall<{ success: boolean; data: ProviderRuntimeEntry[] }>('/settings/provider-configs/runtime', { skipCache: true, skipErrorToast: true }),
+  getRuntimeProvider: (providerCode: string) => apiCall<{ success: boolean; data: ProviderRuntimeEntry }>(`/settings/provider-configs/runtime/${encodeURIComponent(providerCode)}`, { skipCache: true, skipErrorToast: true }),
+  revealRuntimeSecret: (providerCode: string, key: string, password: string) => apiCall<{ success: boolean; data: { key: string; value: string } }>(`/settings/provider-configs/runtime/${encodeURIComponent(providerCode)}/reveal/${encodeURIComponent(key)}`, {
+    method: 'POST',
+    body: JSON.stringify({ password }),
+    skipCache: true,
+    skipErrorToast: true,
+  }),
+  getSchema: (providerCode: string) => apiCall<{ success: boolean; data: { fields: ProviderConfigField[]; setupGuide: ProviderSetupGuide | null; storeAvailable: boolean } }>(`/settings/provider-configs/schema/${encodeURIComponent(providerCode)}`, { skipCache: true, skipErrorToast: true }),
+  get: (providerId: string) => apiCall<{ success: boolean; data: { fields: ProviderConfigField[]; setupGuide: ProviderSetupGuide | null; values: Record<string, string>; configuredSecrets: string[]; version: number; storeAvailable: boolean } }>(`/settings/provider-configs/${providerId}`, { skipCache: true }),
+  save: (providerId: string, values: Record<string, string>) => apiCall<{ success: boolean; data: { version: number } }>(`/settings/provider-configs/${providerId}`, {
     method: 'PUT',
     body: JSON.stringify(values),
     skipErrorToast: true,
   }),
-  reveal: (providerId: string, key: string) => apiCall<{ success: boolean; data: { key: string; value: string } }>(`/settings/provider-configs/${providerId}/reveal/${encodeURIComponent(key)}`, {
+  remove: (providerId: string, password: string) => apiCall<{ success: boolean; data: { version: number } }>(`/settings/provider-configs/${providerId}`, {
+    method: 'DELETE',
+    body: JSON.stringify({ password }),
+    skipErrorToast: true,
+  }),
+  reveal: (providerId: string, key: string, password: string) => apiCall<{ success: boolean; data: { key: string; value: string } }>(`/settings/provider-configs/${providerId}/reveal/${encodeURIComponent(key)}`, {
     method: 'POST',
+    body: JSON.stringify({ password }),
     skipCache: true,
     skipErrorToast: true,
   }),

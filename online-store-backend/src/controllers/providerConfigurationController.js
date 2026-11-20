@@ -4,27 +4,30 @@ const mongoose = require('mongoose');
 const ProviderCatalogEntry = require('../models/ProviderCatalogEntry');
 const ProviderConfiguration = require('../models/ProviderConfiguration');
 const ProviderConfigurationAudit = require('../models/ProviderConfigurationAudit');
+const ProviderRuntimeAudit = require('../models/ProviderRuntimeAudit');
+const PaymentMethod = require('../models/PaymentMethod');
+const ShippingProvider = require('../models/ShippingProvider');
 const User = require('../models/User');
 
 const PROVIDER_SCHEMAS = {
   paypal: [
-    { key: 'PAYPAL_CLIENT_ID', label: 'Client ID Sandbox', type: 'text', required: true },
-    { key: 'PAYPAL_CLIENT_SECRET', label: 'Client Secret Sandbox', type: 'secret', required: true },
-    { key: 'PAYPAL_API_BASE_URL', label: 'API base URL', type: 'select', required: true, options: ['https://api-m.sandbox.paypal.com'], defaultValue: 'https://api-m.sandbox.paypal.com' },
-    { key: 'PAYPAL_WEBHOOK_ID', label: 'Webhook ID Sandbox', type: 'text' },
-    { key: 'PAYPAL_RETURN_URL', label: 'Return URL', type: 'url', required: true },
-    { key: 'PAYPAL_CANCEL_URL', label: 'Cancel URL', type: 'url', required: true },
-    { key: 'PAYPAL_WEBHOOK_URL', label: 'Webhook URL', type: 'url' },
+    { key: 'PAYPAL_CLIENT_ID', label: 'Client ID Sandbox', type: 'text', required: true, helpText: 'Trong PayPal Developer Dashboard, mở app sandbox và sao chép Client ID.' },
+    { key: 'PAYPAL_CLIENT_SECRET', label: 'Client Secret Sandbox', type: 'secret', required: true, helpText: 'Lấy cùng app sandbox với Client ID; không dùng credential Live.' },
+    { key: 'PAYPAL_API_BASE_URL', label: 'API base URL', type: 'select', required: true, options: ['https://api-m.sandbox.paypal.com'], defaultValue: 'https://api-m.sandbox.paypal.com', helpText: 'Endpoint sandbox cố định; không chuyển sang Live.' },
+    { key: 'PAYPAL_WEBHOOK_ID', label: 'Webhook ID Sandbox', type: 'text', helpText: 'Webhook ID của webhook sandbox đã tạo cho URL callback bên dưới; chỉ cần khi adapter xác minh webhook.' },
+    { key: 'PAYPAL_RETURN_URL', label: 'Return URL', type: 'url', required: true, helpText: 'HTTPS URL của storefront nhận khách quay lại sau thanh toán; phải thuộc môi trường staging.' },
+    { key: 'PAYPAL_CANCEL_URL', label: 'Cancel URL', type: 'url', required: true, helpText: 'HTTPS URL staging mà khách được chuyển về khi hủy thanh toán.' },
+    { key: 'PAYPAL_WEBHOOK_URL', label: 'Webhook URL', type: 'url', helpText: 'HTTPS endpoint backend staging nhận sự kiện PayPal; endpoint phải xử lý và xác minh webhook.' },
   ],
   momo: [
-    { key: 'MOMO_PARTNER_CODE', label: 'Partner Code Sandbox', type: 'text', required: true },
-    { key: 'MOMO_ACCESS_KEY', label: 'Access Key Sandbox', type: 'secret', required: true },
-    { key: 'MOMO_SECRET_KEY', label: 'Secret Key Sandbox', type: 'secret', required: true },
-    { key: 'MOMO_API_BASE_URL', label: 'API base URL', type: 'select', required: true, options: ['https://test-payment.momo.vn'], defaultValue: 'https://test-payment.momo.vn' },
-    { key: 'MOMO_PARTNER_NAME', label: 'Partner name', type: 'text' },
-    { key: 'MOMO_STORE_ID', label: 'Store ID', type: 'text' },
-    { key: 'MOMO_REDIRECT_URL', label: 'Redirect URL', type: 'url', required: true },
-    { key: 'MOMO_IPN_URL', label: 'IPN URL', type: 'url', required: true },
+    { key: 'MOMO_PARTNER_CODE', label: 'Partner Code Sandbox', type: 'text', required: true, helpText: 'Lấy trong bộ thông tin tích hợp thử nghiệm được MoMo cấp.' },
+    { key: 'MOMO_ACCESS_KEY', label: 'Access Key Sandbox', type: 'secret', required: true, helpText: 'Credential sandbox đi kèm Partner Code; không dùng key production.' },
+    { key: 'MOMO_SECRET_KEY', label: 'Secret Key Sandbox', type: 'secret', required: true, helpText: 'Dùng để ký/xác minh request sandbox; không dùng key production.' },
+    { key: 'MOMO_API_BASE_URL', label: 'API base URL', type: 'select', required: true, options: ['https://test-payment.momo.vn'], defaultValue: 'https://test-payment.momo.vn', helpText: 'Host sandbox cố định theo hướng dẫn tích hợp MoMo.' },
+    { key: 'MOMO_PARTNER_NAME', label: 'Partner name', type: 'text', helpText: 'Tên đối tác nếu bộ API/merchant sandbox của bạn yêu cầu.' },
+    { key: 'MOMO_STORE_ID', label: 'Store ID', type: 'text', helpText: 'Mã cửa hàng nếu bộ API/merchant sandbox của bạn yêu cầu.' },
+    { key: 'MOMO_REDIRECT_URL', label: 'Redirect URL', type: 'url', required: true, helpText: 'HTTPS URL staging để MoMo chuyển khách quay lại; không dùng redirect làm căn cứ duy nhất cập nhật đơn.' },
+    { key: 'MOMO_IPN_URL', label: 'IPN URL', type: 'url', required: true, helpText: 'HTTPS endpoint backend staging nhận IPN; backend phải xác minh chữ ký trước khi cập nhật đơn.' },
   ],
   sendgrid: [
     { key: 'EMAIL_HOST', label: 'SMTP host', type: 'select', required: true, options: ['smtp.sendgrid.net'], defaultValue: 'smtp.sendgrid.net' },
@@ -34,22 +37,115 @@ const PROVIDER_SCHEMAS = {
     { key: 'EMAIL_FROM', label: 'Địa chỉ gửi đã xác minh', type: 'text', required: true },
   ],
   vercel: [
-    { key: 'VERCEL_ACCESS_TOKEN', label: 'Access Token', type: 'secret', required: true },
-    { key: 'VERCEL_TEAM_ID', label: 'Team ID', type: 'text' },
-    { key: 'VERCEL_PROJECT_ID', label: 'Project ID staging', type: 'text', required: true },
+    { key: 'VERCEL_ACCESS_TOKEN', label: 'Access Token', type: 'secret', required: true, helpText: 'Tạo token trong Vercel Account Settings → Tokens; giới hạn quyền vào project staging cần thiết.' },
+    { key: 'VERCEL_TEAM_ID', label: 'Team ID', type: 'text', helpText: 'Chỉ nhập khi project thuộc team; lấy ID team từ dashboard/API. Để trống với personal account.' },
+    { key: 'VERCEL_PROJECT_ID', label: 'Project ID staging', type: 'text', required: true, helpText: 'Lấy trong Project Settings → General của project staging, không dùng tên project.' },
     { key: 'VERCEL_API_BASE_URL', label: 'API base URL', type: 'select', required: true, options: ['https://api.vercel.com'], defaultValue: 'https://api.vercel.com' },
-    { key: 'VERCEL_DEPLOY_ENVIRONMENT', label: 'Môi trường deploy', type: 'select', required: true, options: ['preview'], defaultValue: 'preview' },
-    { key: 'VERCEL_STAGING_BRANCH', label: 'Branch staging', type: 'text', required: true },
-    { key: 'VERCEL_STAGING_DOMAIN', label: 'Domain staging', type: 'url' },
+    { key: 'VERCEL_DEPLOY_ENVIRONMENT', label: 'Môi trường deploy', type: 'select', required: true, options: ['preview'], defaultValue: 'preview', helpText: 'Chỉ cho phép Preview; không dùng Production trong cấu hình này.' },
+    { key: 'VERCEL_STAGING_BRANCH', label: 'Branch staging', type: 'text', required: true, helpText: 'Tên branch Git đã liên kết với project và dùng cho Preview deployment.' },
+    { key: 'VERCEL_STAGING_DOMAIN', label: 'Domain staging', type: 'url', helpText: 'URL HTTPS tùy chọn trỏ tới Preview/branch staging; không bắt buộc để tạo Preview deployment.' },
   ],
   render: [
-    { key: 'RENDER_API_KEY', label: 'API key', type: 'secret', required: true },
-    { key: 'RENDER_OWNER_ID', label: 'Workspace owner ID', type: 'text', required: true },
-    { key: 'RENDER_SERVICE_ID', label: 'Service ID staging', type: 'text', required: true },
+    { key: 'RENDER_API_KEY', label: 'API key', type: 'secret', required: true, helpText: 'Tạo tại Account Settings → API Keys và chỉ cấp quyền cần thiết cho workspace/service staging.' },
+    { key: 'RENDER_OWNER_ID', label: 'Workspace owner ID', type: 'text', helpText: 'ID workspace/owner, có thể xem từ thông tin service/API. Không phải tên workspace.' },
+    { key: 'RENDER_SERVICE_ID', label: 'Service ID staging', type: 'text', required: true, helpText: 'ID của service staging; có thể lấy từ URL Dashboard hoặc kết quả API của service.' },
     { key: 'RENDER_API_BASE_URL', label: 'API base URL', type: 'select', required: true, options: ['https://api.render.com/v1'], defaultValue: 'https://api.render.com/v1' },
-    { key: 'RENDER_STAGING_BRANCH', label: 'Branch staging', type: 'text', required: true },
-    { key: 'RENDER_STAGING_URL', label: 'URL staging', type: 'url' },
+    { key: 'RENDER_STAGING_BRANCH', label: 'Branch staging', type: 'text', required: true, helpText: 'Branch đã cấu hình trong phần Build & Deploy của service Render staging.' },
+    { key: 'RENDER_STAGING_URL', label: 'URL staging', type: 'url', helpText: 'URL HTTPS của service staging; Free web services có thể ngủ sau thời gian không hoạt động.' },
   ],
+};
+
+const RUNTIME_SCHEMAS = {
+  smtp: [
+    { key: 'EMAIL_SERVICE', label: 'Email service', type: 'text' },
+    { key: 'EMAIL_HOST', label: 'SMTP host', type: 'text', defaultValue: 'smtp.gmail.com' },
+    { key: 'EMAIL_PORT', label: 'SMTP port', type: 'text', defaultValue: '587' },
+    { key: 'EMAIL_SECURE', label: 'SMTP secure', type: 'text', defaultValue: 'false' },
+    { key: 'EMAIL_USER', label: 'SMTP username', type: 'text' },
+    { key: 'EMAIL_PASSWORD', label: 'SMTP password', type: 'secret' },
+    { key: 'EMAIL_FROM', label: 'From address', type: 'text', fallbackKey: 'EMAIL_USER' },
+  ],
+  sendgrid: [
+    { key: 'EMAIL_SERVICE', label: 'Email service', type: 'text' },
+    { key: 'SENDGRID_API_KEY', label: 'SendGrid API key', type: 'secret' },
+    { key: 'EMAIL_FROM', label: 'Verified sender', type: 'text' },
+  ],
+  cod: [],
+  vnpay: [
+    { key: 'VNPAY_TMN_CODE', label: 'Mã terminal / merchant', type: 'text' },
+    { key: 'VNPAY_HASH_SECRET', label: 'Hash Secret', type: 'secret' },
+    { key: 'VNPAY_ENDPOINT', label: 'Payment endpoint', type: 'url', defaultValue: 'https://sandbox.vnpayment.vn/paygate' },
+    { key: 'VNPAY_RETURN_URL', label: 'Return URL', type: 'url' },
+    { key: 'VNPAY_CALLBACK_URL', label: 'Callback / IPN URL', type: 'url' },
+  ],
+  ghn: [
+    { key: 'GHN_API_TOKEN', label: 'GHN API token', type: 'secret', envKey: 'GHN_API_TOKEN', databaseField: 'apiKey' },
+    { key: 'GHN_SHOP_ID', label: 'GHN shop ID', type: 'text', envKey: 'GHN_SHOP_ID', databaseField: 'token' },
+    { key: 'GHN_API_URL', label: 'GHN API URL', type: 'url', databaseField: 'apiUrl', defaultValue: 'https://dev-online-gateway.ghn.vn/shiip/public-api' },
+    { key: 'GHN_WAREHOUSE_DISTRICT_ID', label: 'Warehouse district ID', type: 'text' },
+    { key: 'GHN_WAREHOUSE_WARD_CODE', label: 'Warehouse ward code', type: 'text' },
+  ],
+  paypal: null,
+  momo: null,
+  vercel: null,
+  render: null,
+  cloudflare_tunnel: null,
+};
+
+const RUNTIME_PROVIDER_CODES = ['smtp', 'sendgrid', 'cod', 'vnpay', 'paypal', 'momo', 'vercel', 'render', 'ghn', 'cloudflare_tunnel', 'cloudflare_r2', 'cloudflare_ai'];
+
+const getRuntimeSchema = (providerCode) => {
+  if (providerCode === 'cloudflare_r2') {
+    const policies = [
+      { key: 'R2_UPLOAD_ENABLED', label: 'Uploads enabled', type: 'text' },
+      { key: 'R2_MAX_UPLOAD_COUNT', label: 'Daily upload limit', type: 'text' },
+      { key: 'R2_MAX_UPLOAD_BYTES', label: 'Daily upload byte limit', type: 'text' },
+      { key: 'R2_MAX_IMAGE_BYTES', label: 'Image size limit', type: 'text' },
+      { key: 'R2_MAX_VIDEO_BYTES', label: 'Video size limit', type: 'text' },
+      { key: 'R2_MAX_RETRIES', label: 'Retry limit', type: 'text', defaultValue: '2' },
+    ];
+    const accounts = Array.from({ length: 9 }, (_, index) => {
+      const suffix = index === 0 ? '' : `_${index + 1}`;
+      const fields = [
+        { key: `R2_ACCOUNT_ID${suffix}`, label: `Account ID ${index + 1}`, type: 'text' },
+        { key: `R2_ACCESS_KEY_ID${suffix}`, label: `Access key ${index + 1}`, type: 'secret' },
+        { key: `R2_SECRET_ACCESS_KEY${suffix}`, label: `Secret key ${index + 1}`, type: 'secret' },
+        { key: `R2_BUCKET_NAME${suffix}`, label: `Bucket ${index + 1}`, type: 'text' },
+        { key: `R2_PUBLIC_BASE_URL${suffix}`, label: `Public URL ${index + 1}`, type: 'url' },
+      ];
+      return fields.some((field) => process.env[field.key]) ? fields : [];
+    }).flat();
+    return [...policies, ...accounts];
+  }
+  if (providerCode === 'cloudflare_ai') {
+    const policies = [
+      { key: 'CLOUDFLARE_AI_ENABLED', label: 'Cloudflare AI enabled', type: 'text' },
+      { key: 'CLOUDFLARE_AI_MAX_REQUESTS_PER_DAY', label: 'Daily request limit', type: 'text' },
+      { key: 'CLOUDFLARE_AI_MAX_INPUT_CHARS_PER_DAY', label: 'Daily input character limit', type: 'text' },
+      { key: 'CLOUDFLARE_MAX_REQUESTS_PER_SEC', label: 'Requests per second limit', type: 'text' },
+      { key: 'CLOUDFLARE_MAX_PARALLEL_REQUESTS', label: 'Parallel request limit', type: 'text' },
+      { key: 'CLOUDFLARE_AI_INPUT_CHUNK_SIZE', label: 'Input chunk size', type: 'text' },
+    ];
+    const accounts = Array.from({ length: 13 }, (_, index) => {
+      const suffix = `_${index + 1}`;
+      const fields = [
+        { key: `CLOUDFLARE_ACCOUNT_ID${suffix}`, label: `Account ID ${index + 1}`, type: 'text' },
+        { key: `CLOUDFLARE_API_TOKEN${suffix}`, label: `API token ${index + 1}`, type: 'secret' },
+        { key: `CLOUDFLARE_AI_MODEL${suffix}`, label: `AI model ${index + 1}`, type: 'text' },
+      ];
+      return fields.some((field) => process.env[field.key]) ? fields : [];
+    }).flat();
+    return [...policies, ...accounts];
+  }
+  return RUNTIME_SCHEMAS[providerCode];
+};
+
+const PROVIDER_SETUP_GUIDES = {
+  paypal: { label: 'PayPal REST Authentication & Sandbox', url: 'https://developer.paypal.com/api/rest/authentication/', note: 'Tạo app trong Sandbox và dùng cặp Client ID/Secret của app đó. Webhook ID lấy từ webhook sandbox đã đăng ký.' },
+  momo: { label: 'MoMo Payment API Init', url: 'https://developers.momo.vn/v3/docs/payment/api/payment-api/init/', note: 'Dùng bộ credential thử nghiệm được cấp cho merchant; partnerName/Store ID phụ thuộc API và tài khoản.' },
+  sendgrid: { label: 'SendGrid SMTP', url: 'https://docs.sendgrid.com/for-developers/sending-email/getting-started-smtp', note: 'Chỉ dùng API key và sender đã xác minh cho môi trường staging.' },
+  vercel: { label: 'Vercel REST API', url: 'https://vercel.com/docs/rest-api#creating-an-access-token', note: 'Preview branch có thể dùng cho staging; không mặc định dùng Vercel Hobby cho cửa hàng thương mại, hãy xác minh điều khoản hiện hành. Cấu hình tại đây chưa tự deploy.' },
+  render: { label: 'Render API', url: 'https://render.com/docs/api', note: 'Render Free có thể spin down sau 15 phút không có traffic và filesystem không bền vững; Preview Environments đa dịch vụ không có trên Free. Cấu hình tại đây chưa tự deploy.' },
 };
 
 const noStore = (res) => res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
@@ -100,12 +196,128 @@ const audit = async (provider, req, action, changedFields, version) => ProviderC
   userName: userName(req.user),
 });
 
+const getRuntimeProviderData = async (providerCode) => {
+  const schema = getRuntimeSchema(providerCode);
+  let shippingProvider;
+  let paymentMethod;
+  if (providerCode === 'ghn') {
+    shippingProvider = await ShippingProvider.findOne({ code: 'ghn', isDeleted: false }).select('+apiKey +token').lean();
+  }
+  if (providerCode === 'cod' || providerCode === 'vnpay') {
+    paymentMethod = await PaymentMethod.findOne({ code: providerCode, isDeleted: false }).lean();
+  }
+
+  const fields = (schema || []).map((field) => {
+    const envKey = field.envKey || field.key;
+    let rawValue = process.env[envKey];
+    let source = rawValue ? 'environment' : 'unset';
+    if (!rawValue && field.fallbackKey && process.env[field.fallbackKey]) {
+      rawValue = process.env[field.fallbackKey];
+      source = 'environment';
+    }
+    if (!rawValue && field.databaseField && shippingProvider?.[field.databaseField]) {
+      rawValue = shippingProvider[field.databaseField];
+      source = 'database';
+    }
+    const value = rawValue || field.defaultValue || '';
+    return {
+      key: field.key,
+      label: field.label,
+      type: field.type,
+      configured: Boolean(value),
+      value: field.type === 'secret' ? null : String(value),
+      source: rawValue ? source : field.defaultValue ? 'runtime-default' : 'unset',
+    };
+  });
+
+  if (shippingProvider) fields.push({ key: 'GHN_PROVIDER_ACTIVE', label: 'GHN provider active', type: 'text', configured: true, value: String(shippingProvider.isActive), source: 'database' });
+  if (paymentMethod) fields.push({ key: `${providerCode.toUpperCase()}_CHECKOUT_ENABLED`, label: 'Checkout enabled', type: 'text', configured: true, value: String(paymentMethod.isEnabled), source: 'database' });
+
+  const managed = schema !== null;
+  const configuredKeys = new Set(fields.filter((field) => field.configured).map((field) => field.key));
+  const requiredKeys = {
+    smtp: ['EMAIL_USER', 'EMAIL_PASSWORD'],
+    sendgrid: ['SENDGRID_API_KEY', 'EMAIL_FROM'],
+    vnpay: ['VNPAY_TMN_CODE', 'VNPAY_HASH_SECRET'],
+    ghn: ['GHN_API_TOKEN', 'GHN_SHOP_ID'],
+  }[providerCode];
+  let ready = Boolean(paymentMethod);
+  if (providerCode === 'sendgrid') {
+    ready = process.env.EMAIL_SERVICE === 'sendgrid' && ['SENDGRID_API_KEY', 'EMAIL_FROM'].every((key) => configuredKeys.has(key));
+  } else if (providerCode === 'smtp') {
+    ready = process.env.EMAIL_SERVICE !== 'sendgrid' && ['EMAIL_USER', 'EMAIL_PASSWORD'].every((key) => configuredKeys.has(key));
+  } else if (providerCode === 'cloudflare_r2') {
+    ready = Array.from({ length: 9 }, (_, index) => {
+      const suffix = index === 0 ? '' : `_${index + 1}`;
+      return ['R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET_NAME'].every((key) => configuredKeys.has(`${key}${suffix}`));
+    }).some(Boolean);
+  } else if (providerCode === 'cloudflare_ai') {
+    ready = Array.from({ length: 13 }, (_, index) => {
+      const suffix = `_${index + 1}`;
+      return configuredKeys.has(`CLOUDFLARE_ACCOUNT_ID${suffix}`) && configuredKeys.has(`CLOUDFLARE_API_TOKEN${suffix}`);
+    }).some(Boolean);
+  } else if (requiredKeys) {
+    ready = requiredKeys.every((key) => configuredKeys.has(key));
+  } else if (providerCode === 'ghn') {
+    ready = Boolean(shippingProvider);
+  }
+  const hasRuntimeData = Boolean(paymentMethod || shippingProvider || fields.some((field) => field.configured));
+  const status = !managed ? 'not-managed' : ready ? 'configured' : hasRuntimeData ? 'incomplete' : 'not-configured';
+  return { providerCode, managed, status, fields };
+};
+
+exports.getRuntimeProviders = asyncHandler(async (_req, res) => {
+  const providers = await Promise.all(RUNTIME_PROVIDER_CODES.map(getRuntimeProviderData));
+  noStore(res);
+  res.json({ success: true, data: providers });
+});
+
+exports.getRuntimeProvider = asyncHandler(async (req, res) => {
+  const { providerCode } = req.params;
+  if (!RUNTIME_PROVIDER_CODES.includes(providerCode)) return res.status(404).json({ success: false, code: 'PROVIDER_RUNTIME_UNSUPPORTED' });
+  noStore(res);
+  res.json({ success: true, data: await getRuntimeProviderData(providerCode) });
+});
+
+exports.revealRuntimeSecret = asyncHandler(async (req, res) => {
+  if (!req.body || typeof req.body.password !== 'string' || Object.keys(req.body).some((key) => key !== 'password')) {
+    return res.status(400).json({ success: false, code: 'REAUTHENTICATION_REQUIRED' });
+  }
+  const user = await User.findById(req.user._id);
+  if (!user || !(await user.matchPassword(req.body.password))) {
+    return res.status(401).json({ success: false, code: 'REAUTHENTICATION_FAILED' });
+  }
+
+  const { providerCode, key } = req.params;
+  if (!RUNTIME_PROVIDER_CODES.includes(providerCode)) return res.status(404).json({ success: false, code: 'PROVIDER_RUNTIME_UNSUPPORTED' });
+  const field = (getRuntimeSchema(providerCode) || []).find((item) => item.key === key && item.type === 'secret');
+  if (!field) return res.status(404).json({ success: false, code: 'PROVIDER_SECRET_NOT_FOUND' });
+
+  let value = process.env[field.envKey || field.key] || '';
+  if (!value && field.fallbackKey) value = process.env[field.fallbackKey] || '';
+  if (!value && field.databaseField && providerCode === 'ghn') {
+    const provider = await ShippingProvider.findOne({ code: 'ghn', isDeleted: false }).select(`+${field.databaseField}`).lean();
+    value = provider?.[field.databaseField] || '';
+  }
+  if (!value) return res.status(404).json({ success: false, code: 'PROVIDER_SECRET_NOT_CONFIGURED' });
+
+  await ProviderRuntimeAudit.create({
+    providerCode,
+    action: 'reveal',
+    changedFields: [key],
+    userId: req.user._id,
+    userName: userName(req.user),
+  });
+  noStore(res);
+  res.json({ success: true, data: { key, value } });
+});
+
 exports.getSchema = asyncHandler(async (req, res) => {
   const fields = PROVIDER_SCHEMAS[req.params.providerCode];
   if (!fields) return res.status(404).json({ success: false, code: 'PROVIDER_CONFIG_UNSUPPORTED' });
   const storeAvailable = /^[a-f0-9]{64}$/i.test(process.env.PROVIDER_CONFIG_ENCRYPTION_KEY || '');
   noStore(res);
-  res.json({ success: true, data: { fields, storeAvailable } });
+  res.json({ success: true, data: { fields, setupGuide: PROVIDER_SETUP_GUIDES[req.params.providerCode] || null, storeAvailable } });
 });
 
 exports.get = asyncHandler(async (req, res) => {
@@ -121,7 +333,7 @@ exports.get = asyncHandler(async (req, res) => {
   const configuredSecrets = Object.keys(configuration?.encryptedSecrets || {});
   noStore(res);
   const storeAvailable = /^[a-f0-9]{64}$/i.test(process.env.PROVIDER_CONFIG_ENCRYPTION_KEY || '');
-  res.json({ success: true, data: { providerCode: provider.providerCode, fields, values, configuredSecrets, version: configuration?.version || 0, storeAvailable } });
+  res.json({ success: true, data: { providerCode: provider.providerCode, fields, setupGuide: PROVIDER_SETUP_GUIDES[provider.providerCode] || null, values, configuredSecrets, version: configuration?.version || 0, storeAvailable } });
 });
 
 exports.save = asyncHandler(async (req, res) => {
@@ -163,6 +375,26 @@ exports.save = asyncHandler(async (req, res) => {
   await audit(provider, req, current ? 'update' : 'create', changedFields, version);
   noStore(res);
   res.json({ success: true, data: { providerCode: provider.providerCode, values, configuredSecrets: Object.keys(encryptedSecrets), version: configuration.version } });
+});
+
+exports.remove = asyncHandler(async (req, res) => {
+  if (!req.body || typeof req.body.password !== 'string' || Object.keys(req.body).some((key) => key !== 'password')) {
+    return res.status(400).json({ success: false, code: 'REAUTHENTICATION_REQUIRED' });
+  }
+  const user = await User.findById(req.user._id);
+  if (!user || !(await user.matchPassword(req.body.password))) {
+    return res.status(401).json({ success: false, code: 'REAUTHENTICATION_FAILED' });
+  }
+  const provider = await getProvider(req.params.id);
+  if (!provider) return res.status(404).json({ success: false, code: 'PROVIDER_NOT_FOUND' });
+  const configuration = await ProviderConfiguration.findOne({ providerId: provider._id });
+  if (!configuration) return res.status(404).json({ success: false, code: 'PROVIDER_CONFIG_NOT_FOUND' });
+  const changedFields = [...Object.keys(configuration.values || {}), ...Object.keys(configuration.encryptedSecrets || {})];
+  const version = configuration.version + 1;
+  await ProviderConfiguration.deleteOne({ _id: configuration._id });
+  await audit(provider, req, 'delete', changedFields, version);
+  noStore(res);
+  res.json({ success: true, data: { providerCode: provider.providerCode, version } });
 });
 
 exports.reveal = asyncHandler(async (req, res) => {
