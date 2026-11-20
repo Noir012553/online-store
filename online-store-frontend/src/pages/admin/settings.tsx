@@ -155,9 +155,9 @@ function SettingsAdminPage() {
   if (loadError) return <div role="alert" className="mx-auto max-w-2xl rounded-2xl border border-amber-300 bg-amber-50 p-6 text-sm text-amber-950"><h1 className="text-lg font-semibold">{loadError === 'backend-missing' ? 'Backend chưa có API cài đặt.' : 'Không thể tải cấu hình.'}</h1><p className="mt-2 leading-6">{loadError === 'backend-missing' ? 'Hãy triển khai phiên bản backend có các route /api/settings trên môi trường preview hoặc staging rồi thử lại. Form bị khóa để tránh lưu đè cấu hình bằng dữ liệu rỗng.' : 'Kiểm tra kết nối và quyền Super Admin rồi thử tải lại.'}</p><button type="button" onClick={() => void loadData()} className="mt-4 rounded-lg border border-amber-400 px-4 py-2 font-medium hover:bg-amber-100">Thử lại</button></div>;
 
   const assetInputs: Array<{ field: AssetField; label: string; value: string }> = [
-    { field: 'logo', label: 'Logo chính', value: settings.branding.logoUrl },
-    { field: 'darkLogo', label: 'Logo nền tối', value: settings.branding.darkLogoUrl },
-    { field: 'favicon', label: 'Favicon', value: settings.branding.faviconUrl },
+    { field: 'logo', label: 'Logo chính', value: settings.branding.logoUrl || '/assets/branding/logo-cropped.png' },
+    { field: 'darkLogo', label: 'Logo nền tối', value: settings.branding.darkLogoUrl || '/assets/branding/logo.png' },
+    { field: 'favicon', label: 'Favicon', value: settings.branding.faviconUrl || '/favicon.ico' },
   ];
 
   return (
