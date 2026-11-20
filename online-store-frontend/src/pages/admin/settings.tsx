@@ -3,6 +3,7 @@ import { ImagePlus, LoaderCircle, RotateCcw, Save, Settings2 } from 'lucide-reac
 import { toast } from 'sonner';
 import { withAdminLayout } from '../../components/admin/withAdminLayout';
 import { settingsAPI, type StoreSettingsRecord } from '../../lib/api';
+import { useTranslation } from '../../lib/i18n';
 
 const EMPTY_SETTINGS: StoreSettingsRecord = {
   branding: { storeName: '', supportEmail: '', logoUrl: '', darkLogoUrl: '', faviconUrl: '' },
@@ -24,6 +25,7 @@ const toLocalDateTime = (value: string | null) => {
 };
 
 function SettingsAdminPage() {
+  const { t, loadNamespace } = useTranslation();
   const [settings, setSettings] = useState<StoreSettingsRecord>(EMPTY_SETTINGS);
   const [scheduledStart, setScheduledStart] = useState('');
   const [scheduledEnd, setScheduledEnd] = useState('');
@@ -37,11 +39,20 @@ function SettingsAdminPage() {
   const previewsRef = useRef(previews);
 
   const loadSettings = useCallback(async () => {
+    await Promise.all([loadNamespace('common'), loadNamespace('footer')]);
     const response = await settingsAPI.getAdmin();
-    setSettings(response.data);
-    setScheduledStart(toLocalDateTime(response.data.maintenance.scheduledStart));
-    setScheduledEnd(toLocalDateTime(response.data.maintenance.scheduledEnd));
-  }, []);
+    const data = response.data;
+    setSettings({
+      ...data,
+      branding: {
+        ...data.branding,
+        storeName: data.branding.storeName || t('brand_name', 'common'),
+        supportEmail: data.branding.supportEmail || t('contact_email_display', 'footer'),
+      },
+    });
+    setScheduledStart(toLocalDateTime(data.maintenance.scheduledStart));
+    setScheduledEnd(toLocalDateTime(data.maintenance.scheduledEnd));
+  }, [loadNamespace, t]);
 
   const loadAudit = useCallback(async () => {
     setAudit(await settingsAPI.getAudit(auditPage));
