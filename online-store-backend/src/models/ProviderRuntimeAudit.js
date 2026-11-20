@@ -1,3 +1,5 @@
+const mongoose = require('mongoose');
+
 const providerRuntimeAuditSchema = new mongoose.Schema(
   {
     providerCode: { type: String, required: true },
