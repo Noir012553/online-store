@@ -76,6 +76,7 @@ function ProviderCatalogPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<'backend-missing' | 'load-failed' | null>(null);
   const [saving, setSaving] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
   const [editing, setEditing] = useState(false);
 
   const loadList = useCallback(async () => {
@@ -304,6 +305,21 @@ function ProviderCatalogPage() {
       await loadAudit(entry, 1);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Không thể tải nhật ký');
+    }
+  };
+
+  const editEntry = async (entry: ProviderCatalogEntry) => {
+    setEditLoading(true);
+    try {
+      const response = await providerCatalogAPI.getById(entry._id);
+      setSelected(response.data);
+      setSelectedCode(response.data.providerCode);
+      setForm({ name: response.data.name, keyValues: response.data.keyValues || [] });
+      setEditing(true);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Không thể tải hồ sơ để chỉnh sửa');
+    } finally {
+      setEditLoading(false);
     }
   };
 
@@ -555,7 +571,7 @@ function ProviderCatalogPage() {
                 {runtimeStatus === 'loading' ? <p className="mt-3 text-sm text-slate-500">Đang đọc runtime từ backend…</p> : runtimeStatus === 'unavailable' ? <p className="mt-3 text-sm text-slate-600">Backend hiện không trả được dữ liệu runtime. Kiểm tra route provider-configs/runtime.</p> : selectedRuntimeProvider?.managed ? <>{selectedRuntimeProvider.fields.some((field) => field.configured) ? <dl className="mt-3 space-y-2">{selectedRuntimeProvider.fields.filter((field) => field.configured).map((field) => <div key={field.key} className="grid gap-1 rounded-lg bg-white p-3 sm:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]"><dt className="break-all text-xs font-semibold text-slate-600">{field.key}</dt><dd className="break-all whitespace-pre-wrap text-sm text-slate-800">{field.type === 'secret' ? '•••••••• (đã cấu hình)' : field.value || '—'}</dd><p className="sm:col-span-2 text-xs text-slate-500">{field.source === 'environment' ? 'Nguồn: biến môi trường' : field.source === 'database' ? 'Nguồn: MongoDB' : 'Nguồn: mặc định runtime'}</p></div>)}</dl> : <p className="mt-2 text-sm text-slate-500">Chưa có runtime key nào được cấu hình cho provider này.</p>}</> : <p className="mt-3 text-sm text-slate-600">Chưa có runtime mapping cho provider này.</p>}
               </div>
             </section>
-            <div className="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-4">{selected.isDeleted ? <button type="button" onClick={() => void restore(selected)} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm"><ArchiveRestore className="h-4 w-4" />Khôi phục</button> : <><button type="button" onClick={() => { setForm({ name: selected.name, keyValues: selected.keyValues || [] }); setEditing(true); }} className="rounded-lg border border-slate-300 px-3 py-2 text-sm">Sửa hồ sơ</button><button type="button" onClick={() => void remove(selected)} className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-sm text-red-700 hover:bg-red-50"><Trash2 className="h-4 w-4" />Xóa mềm</button></>}</div>
+            <div className="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-4">{selected.isDeleted ? <button type="button" onClick={() => void restore(selected)} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm"><ArchiveRestore className="h-4 w-4" />Khôi phục</button> : <><button type="button" disabled={editLoading} onClick={() => void editEntry(selected)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:opacity-50">{editLoading ? 'Đang tải…' : 'Sửa hồ sơ'}</button><button type="button" onClick={() => void remove(selected)} className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-sm text-red-700 hover:bg-red-50"><Trash2 className="h-4 w-4" />Xóa mềm</button></>}</div>
             <div className="mt-6 border-t border-slate-100 pt-5"><div className="mb-3 flex items-center gap-2"><Clock3 className="h-4 w-4 text-slate-500" /><h3 className="text-sm font-semibold text-slate-800">Nhật ký</h3></div><div className="space-y-3">{audit?.data.map((record) => <div key={record._id} className="border-l-2 border-slate-200 pl-3 text-xs"><p className="font-medium text-slate-700">{record.action} · v{record.version}</p><p className="mt-1 text-slate-500">{record.changedFields.join(', ')}</p><p className="mt-1 text-slate-500">{record.userName || 'Super Admin'} · {new Date(record.createdAt).toLocaleString()}</p></div>)}{audit && !audit.data.length && <p className="text-xs text-slate-500">Chưa có nhật ký.</p>}</div>{(audit?.pagination.totalPages || 0) > 1 && <div className="mt-4 flex items-center justify-end gap-2 text-xs"><button type="button" disabled={auditPage <= 1} onClick={() => { const nextPage = auditPage - 1; setAuditPage(nextPage); if (selected) void loadAudit(selected, nextPage); }} className="rounded border px-2 py-1 disabled:opacity-40">Trước</button><span>{auditPage} / {audit?.pagination.totalPages}</span><button type="button" disabled={auditPage >= (audit?.pagination.totalPages || 1)} onClick={() => { const nextPage = auditPage + 1; setAuditPage(nextPage); if (selected) void loadAudit(selected, nextPage); }} className="rounded border px-2 py-1 disabled:opacity-40">Sau</button></div>}</div>
           </> : <div className="flex min-h-80 flex-col items-center justify-center text-center"><div className="mb-3 rounded-2xl bg-slate-100 p-3 text-slate-500"><Settings2 className="h-5 w-5" /></div><h2 className="font-semibold text-slate-800">Chọn một hồ sơ</h2><p className="mt-1 max-w-xs text-sm leading-6 text-slate-500">Xem các trường đã lưu, trạng thái tích hợp và nhật ký thay đổi.</p></div>}
           </DialogContent>
