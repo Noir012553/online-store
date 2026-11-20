@@ -477,14 +477,13 @@ function ProviderCatalogPage() {
           </div>
           {loading ? <p className="py-10 text-center text-sm text-slate-500">Đang tải catalog…</p> : loadError ? <div role="alert" className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-8 text-center text-sm text-amber-950"><p className="font-semibold">{loadError === 'backend-missing' ? 'Backend chưa có API catalog.' : 'Không thể tải catalog.'}</p><p className="mx-auto mt-2 max-w-md leading-6">{loadError === 'backend-missing' ? 'Hãy triển khai phiên bản backend có các route /api/settings/providers trên môi trường preview hoặc staging rồi thử lại. Không có dữ liệu mẫu được hiển thị.' : 'Kiểm tra kết nối và quyền Super Admin rồi thử lại.'}</p><button type="button" onClick={() => void loadData()} className="mt-4 rounded-lg border border-amber-400 px-4 py-2 font-medium hover:bg-amber-100">Thử lại</button></div> : items.length ? (
             <div className="overflow-x-auto rounded-xl border border-slate-200">
-              <table className="w-full min-w-[900px] text-left text-sm">
+              <table className="w-full min-w-[760px] text-left text-sm">
                 <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                   <tr>
                     <th scope="col" className="px-4 py-3 font-semibold">Nhà cung cấp</th>
                     <th scope="col" className="px-4 py-3 font-semibold">Nhóm</th>
                     <th scope="col" className="px-4 py-3 font-semibold">Trạng thái</th>
                     <th scope="col" className="px-4 py-3 font-semibold">Khả năng</th>
-                    <th scope="col" className="px-4 py-3 font-semibold">Key-value</th>
                     <th scope="col" className="px-4 py-3 text-right font-semibold">Thao tác</th>
                   </tr>
                 </thead>
@@ -495,7 +494,6 @@ function ProviderCatalogPage() {
                       <td className="px-4 py-3 text-slate-700">{CATEGORY_LABELS[entry.category]}</td>
                       <td className="px-4 py-3"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${entry.isDeleted ? 'bg-slate-100 text-slate-600' : 'bg-emerald-100 text-emerald-800'}`}>{entry.isDeleted ? 'Đã xóa mềm' : 'Hiện tại'}</span></td>
                       <td className="px-4 py-3"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${entry.capability === 'not-implemented' || entry.capability === 'not-verified' || entry.capability === 'launcher-only' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'}`}>{entry.capability === 'not-implemented' ? 'Chưa tích hợp' : entry.capability === 'not-verified' ? 'Chưa xác minh' : entry.capability === 'launcher-only' ? 'Chỉ có launcher' : entry.capability === 'payment-method' ? 'Phương thức hiện có' : 'Có adapter'}</span><p className="mt-1 max-w-xs text-xs leading-5 text-slate-500">{entry.capabilityNote}</p></td>
-                      <td className="px-4 py-3 text-slate-600">{(entry.keyValues || []).length ? `${entry.keyValues?.length} cặp` : '—'}</td>
                       <td className="px-4 py-3"><div className="flex justify-end gap-2"><button type="button" onClick={() => void openEntry(entry)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-white">Xem</button>{!entry.isDeleted && <button type="button" onClick={() => void remove(entry)} className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50">Xóa mềm</button>}</div></td>
                     </tr>
                   ))}
