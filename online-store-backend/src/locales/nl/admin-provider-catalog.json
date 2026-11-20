@@ -314,5 +314,10 @@
   "metadata_runtime_r2_public_url_label": "Openbare URL {index}",
   "metadata_runtime_cloudflare_account_id_label": "Account-ID {index}",
   "metadata_runtime_cloudflare_api_token_label": "API-token {index}",
-  "metadata_runtime_cloudflare_ai_model_label": "AI-model {index}"
+  "metadata_runtime_cloudflare_ai_model_label": "AI-model {index}",
+  "audit_action_create": "Aangemaakt",
+  "audit_action_update": "Bijgewerkt",
+  "audit_action_delete": "Verwijderd",
+  "audit_action_hard_delete": "Permanent verwijderd",
+  "audit_action_restore": "Hersteld"
 }

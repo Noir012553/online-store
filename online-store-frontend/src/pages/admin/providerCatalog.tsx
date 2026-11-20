@@ -36,6 +36,14 @@ const PROVIDER_METADATA_KEYS: Record<string, string> = {
   cloudflare_r2: 'cloudflare_r2', cloudflare_ai: 'cloudflare_ai',
 };
 
+const AUDIT_ACTION_KEYS: Record<string, string> = {
+  create: 'audit_action_create',
+  update: 'audit_action_update',
+  delete: 'audit_action_delete',
+  'hard-delete': 'audit_action_hard_delete',
+  restore: 'audit_action_restore',
+};
+
 const RUNTIME_FIELD_METADATA_KEYS: Record<string, string> = {
   EMAIL_SERVICE: 'email_service', EMAIL_HOST: 'email_host', EMAIL_PORT: 'email_port', EMAIL_SECURE: 'email_secure',
   EMAIL_USER: 'email_user', EMAIL_PASSWORD: 'email_password', EMAIL_FROM: 'email_from', SENDGRID_API_KEY: 'sendgrid_api_key',
@@ -96,6 +104,10 @@ function ProviderCatalogPage() {
   }, [loadNamespace]);
 
   const categoryLabel = (value: ProviderCatalogCategory) => tr(CATEGORY_KEYS[value]);
+  const auditActionLabel = (action: string) => {
+    const key = AUDIT_ACTION_KEYS[action];
+    return key ? tr(key) : action;
+  };
   const [registry, setRegistry] = useState<ProviderRegistryItem[]>([]);
   const [items, setItems] = useState<ProviderCatalogEntry[]>([]);
   const [selected, setSelected] = useState<ProviderCatalogEntry | null>(null);
@@ -385,7 +397,7 @@ function ProviderCatalogPage() {
     setRuntimeReauthPassword('');
     setSelected(null);
     setSelectedCode(code);
-    setForm({ ...EMPTY_FORM, name: provider?.name || '' });
+    setForm({ ...EMPTY_FORM, name: provider ? localizedProviderName(code, provider.name) : '' });
     setEditing(true);
     setAudit(null);
     void loadProviderConfig(code);
@@ -654,7 +666,7 @@ function ProviderCatalogPage() {
             <DialogHeader className="sr-only"><DialogTitle>{editing ? (selected ? tr('edit_profile_title') : tr('add_profile_title')) : runtimeView ? tr('runtime_config_title') : selected?.name || tr('profile_details_title')}</DialogTitle></DialogHeader>
           {editing ? <>
             <div className="mb-5 flex items-center justify-between"><h2 className="text-lg font-semibold text-slate-900">{selected ? tr('edit_profile') : tr('add_profile')}</h2><button type="button" onClick={() => setEditing(false)} aria-label={tr('close_form')} className="rounded-md p-2 text-slate-500 hover:bg-slate-100"><X className="h-4 w-4" /></button></div>
-            {!selected && <label className="mb-4 block text-sm font-medium text-slate-700">{tr('provider')}<select value={selectedCode} onChange={(event) => { const code = event.target.value; setSelectedCode(code); const match = registry.find((provider) => provider.code === code); if (match) setForm((current) => ({ ...current, name: match.name })); void loadProviderConfig(code); }} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal">{registry.map((provider) => <option key={provider.code} value={provider.code}>{categoryLabel(provider.category)} · {localizedProviderName(provider.code, provider.name)} ({provider.code})</option>)}</select><span className="mt-1 block text-xs font-normal text-slate-500">{tr('registry_allowlist_help')}</span></label>}
+            {!selected && <label className="mb-4 block text-sm font-medium text-slate-700">{tr('provider')}<select value={selectedCode} onChange={(event) => { const code = event.target.value; setSelectedCode(code); const match = registry.find((provider) => provider.code === code); if (match) setForm((current) => ({ ...current, name: localizedProviderName(code, match.name) })); void loadProviderConfig(code); }} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal">{registry.map((provider) => <option key={provider.code} value={provider.code}>{categoryLabel(provider.category)} · {localizedProviderName(provider.code, provider.name)} ({provider.code})</option>)}</select><span className="mt-1 block text-xs font-normal text-slate-500">{tr('registry_allowlist_help')}</span></label>}
             {selected && <div className="mb-4 rounded-lg bg-slate-50 p-3 text-sm text-slate-600">{categoryLabel(selected.category)} · {selected.providerCode}</div>}
             <label className="mb-4 block text-sm font-medium text-slate-700">{tr('profile_name')}<input value={form.name} maxLength={100} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal" /></label>
             <section className="space-y-3">
@@ -722,7 +734,7 @@ function ProviderCatalogPage() {
               </div>
             </section>
             <div className="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-4">{selected.isDeleted ? <button type="button" onClick={() => void restore(selected)} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm"><ArchiveRestore className="h-4 w-4" />{tr('restore')}</button> : <><button type="button" disabled={editLoading} onClick={() => void editEntry(selected)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:opacity-50">{editLoading ? tr('loading') : tr('edit_profile')}</button><button type="button" onClick={() => void remove(selected)} className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-sm text-red-700 hover:bg-red-50"><Trash2 className="h-4 w-4" />{tr('soft_delete')}</button></>}</div>
-            <div className="mt-6 border-t border-slate-100 pt-5"><div className="mb-3 flex items-center gap-2"><Clock3 className="h-4 w-4 text-slate-500" /><h3 className="text-sm font-semibold text-slate-800">{tr('audit_log')}</h3></div><div className="space-y-3">{audit?.data.map((record) => <div key={record._id} className="border-l-2 border-slate-200 pl-3 text-xs"><p className="font-medium text-slate-700">{record.action} · v{record.version}</p><p className="mt-1 text-slate-500">{record.changedFields.join(', ')}</p><p className="mt-1 text-slate-500">{record.userName || tr('super_admin')} · {new Date(record.createdAt).toLocaleString()}</p></div>)}{audit && !audit.data.length && <p className="text-xs text-slate-500">{tr('no_audit_log')}</p>}</div>{(audit?.pagination.totalPages || 0) > 1 && <div className="mt-4 flex items-center justify-end gap-2 text-xs"><button type="button" disabled={auditPage <= 1} onClick={() => { const nextPage = auditPage - 1; setAuditPage(nextPage); if (selected) void loadAudit(selected, nextPage); }} className="rounded border px-2 py-1 disabled:opacity-40">{tr('previous')}</button><span>{auditPage} / {audit?.pagination.totalPages}</span><button type="button" disabled={auditPage >= (audit?.pagination.totalPages || 1)} onClick={() => { const nextPage = auditPage + 1; setAuditPage(nextPage); if (selected) void loadAudit(selected, nextPage); }} className="rounded border px-2 py-1 disabled:opacity-40">{tr('next')}</button></div>}</div>
+            <div className="mt-6 border-t border-slate-100 pt-5"><div className="mb-3 flex items-center gap-2"><Clock3 className="h-4 w-4 text-slate-500" /><h3 className="text-sm font-semibold text-slate-800">{tr('audit_log')}</h3></div><div className="space-y-3">{audit?.data.map((record) => <div key={record._id} className="border-l-2 border-slate-200 pl-3 text-xs"><p className="font-medium text-slate-700">{auditActionLabel(record.action)} · v{record.version}</p><p className="mt-1 text-slate-500">{record.changedFields.join(', ')}</p><p className="mt-1 text-slate-500">{record.userName || tr('super_admin')} · {new Date(record.createdAt).toLocaleString()}</p></div>)}{audit && !audit.data.length && <p className="text-xs text-slate-500">{tr('no_audit_log')}</p>}</div>{(audit?.pagination.totalPages || 0) > 1 && <div className="mt-4 flex items-center justify-end gap-2 text-xs"><button type="button" disabled={auditPage <= 1} onClick={() => { const nextPage = auditPage - 1; setAuditPage(nextPage); if (selected) void loadAudit(selected, nextPage); }} className="rounded border px-2 py-1 disabled:opacity-40">{tr('previous')}</button><span>{auditPage} / {audit?.pagination.totalPages}</span><button type="button" disabled={auditPage >= (audit?.pagination.totalPages || 1)} onClick={() => { const nextPage = auditPage + 1; setAuditPage(nextPage); if (selected) void loadAudit(selected, nextPage); }} className="rounded border px-2 py-1 disabled:opacity-40">{tr('next')}</button></div>}</div>
           </> : <div className="flex min-h-80 flex-col items-center justify-center text-center"><div className="mb-3 rounded-2xl bg-slate-100 p-3 text-slate-500"><Settings2 className="h-5 w-5" /></div><h2 className="font-semibold text-slate-800">{tr('select_profile')}</h2><p className="mt-1 max-w-xs text-sm leading-6 text-slate-500">{tr('select_profile_help')}</p></div>}
           </DialogContent>
         </Dialog>

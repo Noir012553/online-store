@@ -314,5 +314,10 @@
   "metadata_runtime_r2_public_url_label": "URL công khai {index}",
   "metadata_runtime_cloudflare_account_id_label": "ID tài khoản {index}",
   "metadata_runtime_cloudflare_api_token_label": "Token API {index}",
-  "metadata_runtime_cloudflare_ai_model_label": "Mô hình AI {index}"
+  "metadata_runtime_cloudflare_ai_model_label": "Mô hình AI {index}",
+  "audit_action_create": "Đã tạo",
+  "audit_action_update": "Đã cập nhật",
+  "audit_action_delete": "Đã xóa",
+  "audit_action_hard_delete": "Đã xóa vĩnh viễn",
+  "audit_action_restore": "Đã khôi phục"
 }

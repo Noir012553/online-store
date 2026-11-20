@@ -314,5 +314,10 @@
   "metadata_runtime_r2_public_url_label": "URL pública {index}",
   "metadata_runtime_cloudflare_account_id_label": "ID da conta {index}",
   "metadata_runtime_cloudflare_api_token_label": "Token API {index}",
-  "metadata_runtime_cloudflare_ai_model_label": "Modelo de IA {index}"
+  "metadata_runtime_cloudflare_ai_model_label": "Modelo de IA {index}",
+  "audit_action_create": "Criado",
+  "audit_action_update": "Atualizado",
+  "audit_action_delete": "Excluído",
+  "audit_action_hard_delete": "Excluído permanentemente",
+  "audit_action_restore": "Restaurado"
 }

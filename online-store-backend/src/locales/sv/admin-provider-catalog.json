@@ -314,5 +314,10 @@
   "metadata_runtime_r2_public_url_label": "Offentlig URL {index}",
   "metadata_runtime_cloudflare_account_id_label": "Konto-ID {index}",
   "metadata_runtime_cloudflare_api_token_label": "API-token {index}",
-  "metadata_runtime_cloudflare_ai_model_label": "AI-modell {index}"
+  "metadata_runtime_cloudflare_ai_model_label": "AI-modell {index}",
+  "audit_action_create": "Skapad",
+  "audit_action_update": "Uppdaterad",
+  "audit_action_delete": "Borttagen",
+  "audit_action_hard_delete": "Permanent borttagen",
+  "audit_action_restore": "Återställd"
 }
