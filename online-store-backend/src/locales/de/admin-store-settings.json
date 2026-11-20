@@ -13,6 +13,7 @@
   "settings_reset": "Einstellungen auf Standardwerte zurückgesetzt",
   "reset_failed": "Einstellungen konnten nicht zurückgesetzt werden",
   "page_title": "Shop-Einstellungen",
+  "settings_group_title": "Systemeinstellungen",
   "page_subtitle": "Shop-Branding und Wartungshinweise.",
   "version": "Version",
   "updated": "Aktualisiert",

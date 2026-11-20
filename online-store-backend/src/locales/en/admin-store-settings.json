@@ -13,6 +13,7 @@
   "settings_reset": "Settings restored to defaults",
   "reset_failed": "Unable to restore settings",
   "page_title": "Store settings",
+  "settings_group_title": "System settings",
   "page_subtitle": "Storefront branding and maintenance notices.",
   "version": "Version",
   "updated": "Updated",

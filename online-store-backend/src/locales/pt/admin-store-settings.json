@@ -13,6 +13,7 @@
   "settings_reset": "Configurações restauradas para os valores padrão",
   "reset_failed": "Não foi possível restaurar as configurações",
   "page_title": "Configurações da loja",
+  "settings_group_title": "Configurações do sistema",
   "page_subtitle": "Identidade visual da loja e avisos de manutenção.",
   "version": "Versão",
   "updated": "Atualizado",

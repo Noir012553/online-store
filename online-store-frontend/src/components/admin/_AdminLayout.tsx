@@ -91,6 +91,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     Promise.all([
       loadNamespace('admin'),
       loadNamespace('admin-common'),
+      loadNamespace('admin-store-settings'),
+      loadNamespace('admin-provider-catalog'),
       loadNamespace('admin-banners'),
       loadNamespace('admin-coupons'),
       loadNamespace('admin-customers'),
@@ -236,11 +238,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         type: "group" as const,
         group: {
           id: "settings",
-          title: 'Cài đặt hệ thống',
+          title: t('settings_group_title', 'admin-store-settings'),
           icon: Settings2,
           children: [
-            { path: "/admin/settings", icon: Settings2, label: 'Cấu hình cửa hàng' },
-            { path: "/admin/providerCatalog", icon: Package, label: 'Catalog nhà cung cấp' },
+            { path: "/admin/settings", icon: Settings2, label: t('page_title', 'admin-store-settings') },
+            { path: "/admin/providerCatalog", icon: Package, label: t('provider_catalog_title', 'admin-provider-catalog') },
           ],
         },
       },

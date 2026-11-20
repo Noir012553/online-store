@@ -13,6 +13,7 @@
   "settings_reset": "Configuración restablecida a los valores predeterminados",
   "reset_failed": "No se pudo restablecer la configuración",
   "page_title": "Configuración de la tienda",
+  "settings_group_title": "Configuración del sistema",
   "page_subtitle": "Imagen de marca de la tienda y avisos de mantenimiento.",
   "version": "Versión",
   "updated": "Actualizado",

@@ -13,6 +13,7 @@
   "settings_reset": "Paramètres rétablis par défaut",
   "reset_failed": "Impossible de rétablir les paramètres",
   "page_title": "Paramètres de la boutique",
+  "settings_group_title": "Paramètres du système",
   "page_subtitle": "Identité visuelle de la boutique et avis de maintenance.",
   "version": "Version",
   "updated": "Mis à jour",

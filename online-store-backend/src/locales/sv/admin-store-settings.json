@@ -13,6 +13,7 @@
   "settings_reset": "Inställningarna har återställts till standardvärdena",
   "reset_failed": "Det gick inte att återställa inställningarna",
   "page_title": "Butiksinställningar",
+  "settings_group_title": "Systeminställningar",
   "page_subtitle": "Webbutikens varumärke och underhållsmeddelanden.",
   "version": "Version",
   "updated": "Uppdaterad",
