@@ -39,7 +39,7 @@ function SettingsAdminPage() {
   const previewsRef = useRef(previews);
 
   const loadSettings = useCallback(async () => {
-    await Promise.all([loadNamespace('common'), loadNamespace('footer')]);
+    await Promise.all([loadNamespace('common'), loadNamespace('contact')]);
     const response = await settingsAPI.getAdmin();
     const data = response.data;
     setSettings({
@@ -47,7 +47,7 @@ function SettingsAdminPage() {
       branding: {
         ...data.branding,
         storeName: data.branding.storeName || t('brand_name', 'common'),
-        supportEmail: data.branding.supportEmail || t('contact_email_display', 'footer'),
+        supportEmail: data.branding.supportEmail || t('contact_email', 'contact'),
       },
     });
     setScheduledStart(toLocalDateTime(data.maintenance.scheduledStart));
