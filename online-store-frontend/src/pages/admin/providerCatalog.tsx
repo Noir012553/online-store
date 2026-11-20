@@ -25,6 +25,7 @@ const CATEGORY_LABELS: Record<ProviderCatalogCategory, string> = {
 };
 
 const EMPTY_FORM = { name: '', description: '', notes: '' };
+const CONFIG_SCHEMA_CODES = new Set(['paypal', 'momo', 'sendgrid', 'vercel', 'render']);
 
 export const getServerSideProps = async () => ({ props: {} });
 
@@ -144,8 +145,11 @@ function ProviderCatalogPage() {
         setRuntimeFields(preferred.fields);
       }
     } catch (error) {
+      const apiError = error as Error & { code?: string };
       setRuntimeStatus('unavailable');
-      toast.error(error instanceof Error ? error.message : 'Không thể đọc cấu hình runtime provider');
+      toast.error(apiError.code === 'PROVIDER_NOT_FOUND'
+        ? 'Backend đang chạy bản cũ và định tuyến nhầm API runtime. Hãy cập nhật backend rồi khởi động lại dịch vụ.'
+        : error instanceof Error ? error.message : 'Không thể đọc cấu hình runtime provider');
     } finally {
       setRuntimeLoading(false);
     }
@@ -188,6 +192,10 @@ function ProviderCatalogPage() {
     setDeleteConfigOpen(false);
     setDeleteConfigPassword('');
     setConfigStoreAvailable(false);
+    if (!CONFIG_SCHEMA_CODES.has(code)) {
+      setConfigStoreAvailable(true);
+      return;
+    }
     try {
       const schemaResponse = await providerConfigurationAPI.getSchema(code);
       let values = Object.fromEntries(schemaResponse.data.fields.map((field) => [field.key, field.defaultValue || '']));
