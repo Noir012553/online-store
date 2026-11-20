@@ -40,6 +40,7 @@ function ProviderCatalogPage() {
   const [configFields, setConfigFields] = useState<ProviderConfigField[]>([]);
   const [schemaGuide, setSchemaGuide] = useState<ProviderSetupGuide | null>(null);
   const [configValues, setConfigValues] = useState<Record<string, string>>({});
+  const [configDirty, setConfigDirty] = useState(false);
   const [configuredSecrets, setConfiguredSecrets] = useState<string[]>([]);
   const [configVersion, setConfigVersion] = useState(0);
   const [revealedSecrets, setRevealedSecrets] = useState<Record<string, string>>({});
@@ -182,6 +183,7 @@ function ProviderCatalogPage() {
   };
 
   const loadProviderConfig = async (code: string, providerId?: string) => {
+    setConfigDirty(false);
     setConfigFields([]);
     setSchemaGuide(null);
     setConfigValues({});
@@ -269,6 +271,7 @@ function ProviderCatalogPage() {
     const provider = registry.find((item) => item.code === selectedCode);
     if (!selected && !provider) return;
     setSaving(true);
+    let catalogSaved = false;
     try {
       let entry = selected;
       if (selected) {
@@ -285,19 +288,25 @@ function ProviderCatalogPage() {
         setStatus('active');
         setPage(1);
       }
-      if (configFields.length && entry) {
+      if (entry) {
+        catalogSaved = true;
+        setSelected(entry);
+      }
+      if (configDirty && configFields.length && entry) {
         const configResponse = await providerConfigurationAPI.save(entry._id, configValues);
         setConfigVersion(configResponse.data.version);
         setConfiguredSecrets(configFields.filter((field) => field.type === 'secret' && (configValues[field.key] || configuredSecrets.includes(field.key))).map((field) => field.key));
         setConfigValues((current) => Object.fromEntries(Object.entries(current).map(([key, value]) => [key, configFields.some((field) => field.key === key && field.type === 'secret') ? '' : value])));
       }
       setSelected(entry);
-      toast.success(selected ? 'Đã lưu hồ sơ và cấu hình' : 'Đã tạo hồ sơ');
+      setConfigDirty(false);
+      toast.success(configDirty ? (selected ? 'Đã lưu hồ sơ và cấu hình' : 'Đã tạo hồ sơ và cấu hình') : (selected ? 'Đã lưu hồ sơ' : 'Đã tạo hồ sơ'));
       if (!selected && entry) await loadAudit(entry, 1);
       setEditing(false);
       await Promise.all([loadList(), selected ? loadAudit(selected) : Promise.resolve()]);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Không thể lưu hồ sơ');
+      const message = error instanceof Error ? error.message : 'Không thể lưu hồ sơ';
+      toast.error(catalogSaved ? `Hồ sơ đã lưu, nhưng cấu hình chưa được lưu: ${message}` : message);
     } finally {
       setSaving(false);
     }
@@ -444,11 +453,11 @@ function ProviderCatalogPage() {
                 <span>{field.label}{field.required ? ' *' : ''}</span>
                 <code className="mt-1 block break-all text-xs font-normal text-slate-500">{field.key}</code>
                 {field.helpText && <span className="mt-1 block text-xs font-normal leading-5 text-slate-500">{field.helpText}</span>}
-                {field.type === 'select' ? <select value={configValues[field.key] || ''} onChange={(event) => setConfigValues((current) => ({ ...current, [field.key]: event.target.value }))} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal">{field.options?.map((option) => <option value={option} key={option}>{option}</option>)}</select> : <input type={field.type === 'secret' ? 'password' : field.type === 'url' ? 'url' : 'text'} autoComplete="new-password" value={configValues[field.key] || ''} placeholder={field.type === 'secret' && configuredSecrets.includes(field.key) ? 'Đã lưu — nhập giá trị mới để xoay vòng' : field.defaultValue || ''} onChange={(event) => setConfigValues((current) => ({ ...current, [field.key]: event.target.value }))} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal" />}
+                {field.type === 'select' ? <select value={configValues[field.key] || ''} onChange={(event) => { setConfigDirty(true); setConfigValues((current) => ({ ...current, [field.key]: event.target.value })); }} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal">{field.options?.map((option) => <option value={option} key={option}>{option}</option>)}</select> : <input type={field.type === 'secret' ? 'password' : field.type === 'url' ? 'url' : 'text'} autoComplete="new-password" value={configValues[field.key] || ''} placeholder={field.type === 'secret' && configuredSecrets.includes(field.key) ? 'Đã lưu — nhập giá trị mới để xoay vòng' : field.defaultValue || ''} onChange={(event) => { setConfigDirty(true); setConfigValues((current) => ({ ...current, [field.key]: event.target.value })); }} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal" />}
               </label>)}
             </section>}
             <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900"><strong>Không nhập credential production.</strong> Catalog vẫn chỉ lưu hồ sơ; việc lưu cấu hình không có nghĩa provider đã kết nối hoặc adapter đã sẵn sàng.</div>
-            <div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setEditing(false)} className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm">Hủy</button><button type="button" disabled={saving || !form.name.trim() || (!selected && !selectedRegistry) || (['paypal', 'momo', 'sendgrid', 'vercel', 'render'].includes(selectedCode) && !configStoreAvailable) || (configFields.some((field) => field.required && field.type !== 'secret' && !configValues[field.key]) || configFields.some((field) => field.required && field.type === 'secret' && !configValues[field.key] && !configuredSecrets.includes(field.key)))} onClick={() => void save()} className="rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50">{saving ? 'Đang lưu…' : 'Lưu hồ sơ'}</button></div>
+            <div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setEditing(false)} className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm">Hủy</button><button type="button" disabled={saving || !form.name.trim() || (!selected && !selectedRegistry) || (configDirty && ((['paypal', 'momo', 'sendgrid', 'vercel', 'render'].includes(selectedCode) && !configStoreAvailable) || configFields.some((field) => field.required && field.type !== 'secret' && !configValues[field.key]) || configFields.some((field) => field.required && field.type === 'secret' && !configValues[field.key] && !configuredSecrets.includes(field.key))))} onClick={() => void save()} className="rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50">{saving ? 'Đang lưu…' : 'Lưu hồ sơ'}</button></div>
           </> : runtimeView ? <>
             <div className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wide text-blue-700">Nguồn runtime: {runtimeSelectedProvider?.status === 'not-managed' ? 'chưa tích hợp' : 'environment / database'}</p><h2 className="mt-1 text-xl font-semibold text-slate-950">{registry.find((provider) => provider.code === runtimeSelectedCode)?.name || runtimeSelectedCode} runtime</h2><p className="mt-1 text-sm text-slate-500">Trạng thái: {runtimeSelectedProvider?.status === 'configured' ? 'đã có dữ liệu runtime' : runtimeSelectedProvider?.status === 'incomplete' ? 'có dữ liệu runtime một phần' : runtimeSelectedProvider?.status === 'not-configured' ? 'chưa cấu hình' : 'chưa có mapping runtime'} · giá trị runtime không phải hồ sơ catalog.</p></div><button type="button" onClick={() => { setRuntimeView(false); setRuntimeSecret(''); setRuntimeRevealOpen(false); setRuntimeRevealKey(''); setRuntimeReauthPassword(''); }} aria-label="Đóng cấu hình runtime" className="rounded-md p-2 text-slate-500 hover:bg-slate-100"><X className="h-4 w-4" /></button></div>
             <label className="mt-5 block text-sm font-medium text-slate-700">Provider<select value={runtimeSelectedCode} onChange={(event) => selectRuntimeProvider(event.target.value)} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5">{runtimeProviders.map((provider) => <option key={provider.providerCode} value={provider.providerCode}>{registry.find((item) => item.code === provider.providerCode)?.name || provider.providerCode}</option>)}</select></label>
