@@ -32,17 +32,22 @@ const getPaymentMethod = code => PaymentMethod.findOne({ code }).lean();
 
 const isPaymentMethodAvailable = async code => {
   if (!['cod', 'vnpay'].includes(code)) return false;
+  if (code === 'vnpay') await paymentService.refreshVnpayAdapter();
   const method = await getPaymentMethod(code);
+  const enabled = code === 'vnpay' ? paymentService.vnpayCheckoutEnabled : method?.isEnabled;
   return Boolean(method
-    && method.isEnabled
+    && enabled
     && !method.isDeleted
     && (code !== 'vnpay' || paymentService.isGatewaySupported('vnpay')));
 };
 
 const listAvailablePaymentMethods = async () => {
-  const methods = await PaymentMethod.find({ isEnabled: true, isDeleted: false }).sort({ code: 1 }).lean();
+  await paymentService.refreshVnpayAdapter();
+  const methods = await PaymentMethod.find({ isDeleted: false }).sort({ code: 1 }).lean();
   return methods.filter(method => ['cod', 'vnpay'].includes(method.code)
-    && (method.code !== 'vnpay' || paymentService.isGatewaySupported('vnpay')));
+    && (method.code === 'vnpay'
+      ? paymentService.vnpayCheckoutEnabled && paymentService.isGatewaySupported('vnpay')
+      : method.isEnabled));
 };
 
 module.exports = {

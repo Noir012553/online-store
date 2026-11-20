@@ -2829,6 +2829,8 @@ export interface ProviderRuntimeEntry {
   managed: boolean;
   status: 'configured' | 'incomplete' | 'not-configured' | 'not-managed';
   fields: ProviderRuntimeField[];
+  configurationVersion?: number;
+  storeAvailable?: boolean;
 }
 
 export const providerConfigurationAPI = {
@@ -2837,6 +2839,12 @@ export const providerConfigurationAPI = {
   revealRuntimeSecret: (providerCode: string, key: string, password: string) => apiCall<{ success: boolean; data: { key: string; value: string } }>(`/settings/provider-configs/runtime/${encodeURIComponent(providerCode)}/reveal/${encodeURIComponent(key)}`, {
     method: 'POST',
     body: JSON.stringify({ password }),
+    skipCache: true,
+    skipErrorToast: true,
+  }),
+  saveVnpayRuntime: (values: Record<string, string | boolean> & { password: string }) => apiCall<{ success: boolean; data: { configurationVersion: number } }>('/settings/provider-configs/runtime/vnpay', {
+    method: 'PUT',
+    body: JSON.stringify(values),
     skipCache: true,
     skipErrorToast: true,
   }),

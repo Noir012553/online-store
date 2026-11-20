@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const providerRuntimeAuditSchema = new mongoose.Schema(
   {
     providerCode: { type: String, required: true },
-    action: { type: String, enum: ['reveal'], required: true },
+    action: { type: String, enum: ['reveal', 'update'], required: true },
     changedFields: { type: [String], default: [] },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     userName: { type: String, default: '' },

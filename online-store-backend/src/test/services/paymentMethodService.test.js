@@ -10,6 +10,8 @@ describe('paymentMethodService', () => {
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
+    paymentService.vnpayCheckoutEnabled = false;
+    sandbox.stub(paymentService, 'refreshVnpayAdapter').resolves(false);
   });
 
   afterEach(() => {
@@ -43,13 +45,24 @@ describe('paymentMethodService', () => {
     expect(findOne.calledTwice).to.equal(true);
   });
 
-  it('requires both an enabled record and a configured VNPay adapter', async () => {
+  it('uses the runtime checkout switch and requires a configured VNPay adapter', async () => {
     sandbox.stub(PaymentMethod, 'findOne').returns({
       lean: () => Promise.resolve({ code: 'vnpay', isEnabled: true, isDeleted: false }),
     });
     sandbox.stub(paymentService, 'isGatewaySupported').withArgs('vnpay').returns(false);
+    paymentService.vnpayCheckoutEnabled = true;
 
     expect(await paymentMethodService.isPaymentMethodAvailable('vnpay')).to.equal(false);
+  });
+
+  it('allows VNPay when runtime checkout is enabled and the adapter is configured', async () => {
+    sandbox.stub(PaymentMethod, 'findOne').returns({
+      lean: () => Promise.resolve({ code: 'vnpay', isEnabled: false, isDeleted: false }),
+    });
+    sandbox.stub(paymentService, 'isGatewaySupported').withArgs('vnpay').returns(true);
+    paymentService.vnpayCheckoutEnabled = true;
+
+    expect(await paymentMethodService.isPaymentMethodAvailable('vnpay')).to.equal(true);
   });
 
   it('creates default records only when missing', async () => {
