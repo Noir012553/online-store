@@ -214,37 +214,6 @@ function ProviderCatalogPage() {
     ));
   }, [category, pageInfo.total, registry, search, status]);
 
-  const openRuntimeProviders = async () => {
-    setRuntimeEditing(false);
-    setRuntimeView(true);
-    setSelected(null);
-    setEditing(false);
-    setAudit(null);
-    setRuntimeSecret('');
-    setRuntimeRevealOpen(false);
-    setRuntimeRevealKey('');
-    setRuntimeReauthPassword('');
-    setRuntimeLoading(true);
-    try {
-      const response = await providerConfigurationAPI.getRuntimeProviders();
-      setRuntimeProviders(response.data);
-      setRuntimeStatus('loaded');
-      const preferred = response.data.find((provider) => provider.status === 'configured') || response.data.find((provider) => provider.providerCode === 'vnpay') || response.data[0];
-      if (preferred) {
-        setRuntimeSelectedCode(preferred.providerCode);
-        setRuntimeFields(preferred.fields);
-      }
-    } catch (error) {
-      const apiError = error as Error & { code?: string };
-      setRuntimeStatus('unavailable');
-      toast.error(apiError.code === 'PROVIDER_NOT_FOUND'
-        ? tr('runtime_backend_old')
-        : error instanceof Error ? error.message : tr('runtime_read_error'));
-    } finally {
-      setRuntimeLoading(false);
-    }
-  };
-
   const editVnpayRuntime = () => {
     const provider = runtimeProviders.find((item) => item.providerCode === 'vnpay');
     const values = Object.fromEntries((provider?.fields || []).map((field) => [field.key, field.value || '']));
@@ -588,7 +557,7 @@ function ProviderCatalogPage() {
           <h1 className="text-3xl font-semibold tracking-tight text-slate-950">{tr('provider_catalog_title')}</h1>
           <p className="mt-2 max-w-3xl text-sm text-slate-600">{tr('provider_catalog_description')}</p>
         </div>
-        <div className="flex flex-wrap gap-2"><button type="button" onClick={() => void openRuntimeProviders()} className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 px-4 py-2.5 text-sm font-medium text-blue-800 hover:bg-blue-50">{tr('view_all_runtime')}</button><button type="button" disabled={loading || Boolean(loadError) || !registry.length} onClick={() => openCreate()} className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"><Plus className="h-4 w-4" />{tr('add_profile')}</button></div>
+        <div className="flex flex-wrap gap-2"><button type="button" disabled={loading || Boolean(loadError) || !registry.length} onClick={() => openCreate()} className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"><Plus className="h-4 w-4" />{tr('add_profile')}</button></div>
       </header>
 
       <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
