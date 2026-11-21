@@ -70,11 +70,12 @@ const authUser = asyncHandler(async (req, res) => {
     const user = await User.findOne({ email: normalizedEmail, isDeleted: false }).select('+authVersion');
 
     if (user && (await user.matchPassword(password))) {
-        const authVersion = user.authVersion || '0';
+        const currentAuthVersion = user.authVersion || '0';
+        const authVersion = crypto.randomUUID();
         const { accessToken, refreshToken, refreshTokenId } = generateTokenPair(user._id, user.role, authVersion);
         const sessionResult = await User.updateOne(
-            { _id: user._id, isDeleted: false, ...getAuthVersionFilter(authVersion) },
-            { $set: { refreshTokenId } },
+            { _id: user._id, isDeleted: false, ...getAuthVersionFilter(currentAuthVersion) },
+            { $set: { authVersion, refreshTokenId } },
         );
         if (sessionResult.modifiedCount !== 1) {
             res.status(401);
@@ -963,11 +964,12 @@ const googleAuthCallback = asyncHandler(async (req, res) => {
   }
 
   // Issue our system's tokens
-  const authVersion = user.authVersion || '0';
+  const currentAuthVersion = user.authVersion || '0';
+  const authVersion = crypto.randomUUID();
   const { refreshToken, refreshTokenId } = generateTokenPair(user._id, user.role, authVersion);
   const sessionResult = await User.updateOne(
-    { _id: user._id, isDeleted: false, ...getAuthVersionFilter(authVersion) },
-    { $set: { refreshTokenId } },
+    { _id: user._id, isDeleted: false, ...getAuthVersionFilter(currentAuthVersion) },
+    { $set: { authVersion, refreshTokenId } },
   );
   if (sessionResult.modifiedCount !== 1) {
     res.status(401);

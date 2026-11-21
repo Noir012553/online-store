@@ -46,6 +46,10 @@ describe('User Controller - Dynamic Data Tests', () => {
       
       await authUser(req, res);
       expect(res.json.calledOnce).to.be.true;
+      const [filter, update] = User.updateOne.firstCall.args;
+      expect(filter._id).to.equal(userId);
+      expect(update.$set.authVersion).to.be.a('string').and.not.equal('0');
+      expect(update.$set.refreshTokenId).to.be.a('string');
     });
 
     it('should reject invalid credentials', async () => {
