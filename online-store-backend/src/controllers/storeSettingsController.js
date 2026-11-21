@@ -148,13 +148,17 @@ exports.updateAdminSettings = asyncHandler(async (req, res) => {
   }
 
   const settings = await StoreSettings.findOneAndUpdate(
-    { key: 'storefront' },
+    { key: 'storefront', version: current.version },
     {
       $set: { ...parsed.updates, updatedBy: req.user._id },
       $inc: { version: 1 },
     },
     { new: true, runValidators: true },
   );
+
+  if (!settings) {
+    return res.status(409).json({ success: false, code: 'SETTINGS_VERSION_CONFLICT' });
+  }
 
   await StoreSettingsAudit.create({
     action: 'update',

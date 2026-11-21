@@ -10,6 +10,7 @@ const expect = chai.expect;
 const sinon = require('sinon');
 const mongoose = require('mongoose');
 const User = require('../../../models/User');
+const adminUserGovernanceService = require('../../../services/adminUserGovernanceService');
 const { authUser, registerUser, getUserProfile, updateUserProfile, getUsers, updateUser, deleteUser, hardDeleteUser } = require('../../../controllers/userController');
 
 describe('User Controller - Dynamic Data Tests', () => {
@@ -170,8 +171,11 @@ describe('User Controller - Dynamic Data Tests', () => {
   describe('updateUser', () => {
     it('should prevent a super admin from demoting their own account', async () => {
       const userId = new mongoose.Types.ObjectId();
-      const user = { _id: userId, role: 'super-admin', save: sandbox.stub() };
-      sandbox.stub(User, 'findById').resolves(user);
+      const error = Object.assign(new Error('A super admin cannot demote their own account'), {
+        errorCode: 'SUPER_ADMIN_SELF_DEMOTION_FORBIDDEN',
+        statusCode: 403,
+      });
+      sandbox.stub(adminUserGovernanceService, 'updateManagedUser').rejects(error);
       const req = {
         params: { id: userId.toString() },
         user: { _id: userId },
@@ -182,23 +186,19 @@ describe('User Controller - Dynamic Data Tests', () => {
       try {
         await updateUser(req, res);
         throw new Error('Expected updateUser to reject');
-      } catch (error) {
-        expect(error.errorCode).to.equal('SUPER_ADMIN_SELF_DEMOTION_FORBIDDEN');
-        expect(error.statusCode).to.equal(403);
+      } catch (caught) {
+        expect(caught.errorCode).to.equal('SUPER_ADMIN_SELF_DEMOTION_FORBIDDEN');
+        expect(caught.statusCode).to.equal(403);
       }
 
-      expect(user.save.called).to.be.false;
+      expect(adminUserGovernanceService.updateManagedUser.calledOnce).to.be.true;
     });
 
     it('should allow a super admin to change another user\'s role', async () => {
       const userId = new mongoose.Types.ObjectId();
       const actorId = new mongoose.Types.ObjectId();
-      const user = {
-        _id: userId,
-        role: 'admin',
-        save: sandbox.stub().resolves({ _id: userId, username: 'admin', email: 'admin@example.com', role: 'user' }),
-      };
-      sandbox.stub(User, 'findById').resolves(user);
+      const user = { _id: userId, username: 'admin', email: 'admin@example.com', role: 'user' };
+      sandbox.stub(adminUserGovernanceService, 'updateManagedUser').resolves(user);
       const req = {
         params: { id: userId.toString() },
         user: { _id: actorId, role: 'super-admin' },
@@ -208,38 +208,34 @@ describe('User Controller - Dynamic Data Tests', () => {
 
       await updateUser(req, res);
 
-      expect(user.save.calledOnce).to.be.true;
+      expect(adminUserGovernanceService.updateManagedUser.calledOnce).to.be.true;
       expect(res.json.calledOnce).to.be.true;
     });
   });
 
   describe('deleteUser', () => {
     it('should soft delete user', async () => {
-      const user = { _id: new mongoose.Types.ObjectId(), isDeleted: false, save: sandbox.stub().resolves() };
-      sandbox.stub(User, 'findById').resolves(user);
+      const user = { _id: new mongoose.Types.ObjectId(), isDeleted: false };
+      sandbox.stub(adminUserGovernanceService, 'softDeleteManagedUser').resolves({ asset: null });
 
-      const req = { params: { id: user._id.toString() } };
+      const req = { params: { id: user._id.toString() }, user: { _id: new mongoose.Types.ObjectId() } };
       const res = { json: sandbox.stub() };
       
       await deleteUser(req, res);
-      expect(user.isDeleted).to.be.true;
+      expect(adminUserGovernanceService.softDeleteManagedUser.calledOnce).to.be.true;
     });
   });
 
   describe('hardDeleteUser', () => {
     it('should hard delete user', async () => {
       const userId = new mongoose.Types.ObjectId();
-      const user = { 
-        _id: userId, 
-        deleteOne: sandbox.stub().resolves() 
-      };
-      sandbox.stub(User, 'findById').resolves(user);
+      sandbox.stub(adminUserGovernanceService, 'hardDeleteManagedUser').resolves({ asset: null });
 
-      const req = { params: { id: userId.toString() }, query: {} };
+      const req = { params: { id: userId.toString() }, query: {}, user: { _id: new mongoose.Types.ObjectId() } };
       const res = { json: sandbox.stub() };
       
       await hardDeleteUser(req, res);
-      expect(user.deleteOne.calledOnce).to.be.true;
+      expect(adminUserGovernanceService.hardDeleteManagedUser.calledOnce).to.be.true;
     });
   });
 });

@@ -8,6 +8,8 @@
   "notAdminAuth": "Not authorized as an admin",
   "notSuperAdminAuth": "Not authorized as a super admin",
   "superAdminSelfDemotionForbidden": "A super admin cannot demote their own account",
+  "superAdminSelfDeletionForbidden": "A super admin cannot delete their own account",
+  "lastSuperAdminRequired": "At least one active super admin must remain",
   "invalid_token_type": "Invalid token type",
   "token_revoked": "Token has been revoked. Please login again.",
   "user_not_found": "User not found or account has been deleted",

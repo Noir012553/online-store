@@ -17,6 +17,7 @@ const { sendVerificationEmail, sendResetPasswordEmail } = require('../services/e
 const { revokeToken } = require('../utils/tokenBlacklist');
 const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
+const adminUserGovernanceService = require('../services/adminUserGovernanceService');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
@@ -330,33 +331,24 @@ const getUserById = asyncHandler(async (req, res) => {
  * @access Private/Admin
  */
 const updateUser = asyncHandler(async (req, res) => {
-    const user = await User.findById(req.params.id);
+    const updatedUser = await adminUserGovernanceService.updateManagedUser(
+        req.user._id,
+        req.params.id,
+        req.body,
+        req.lang,
+    );
 
-    if (user) {
-        const isSelf = String(user._id) === String(req.user?._id);
-        if (isSelf && user.role === 'super-admin' && req.body.role && req.body.role !== 'super-admin') {
-            const error = createUserError(req.lang, 'SUPER_ADMIN_SELF_DEMOTION_FORBIDDEN', 'auth-messages.superAdminSelfDemotionForbidden');
-            error.statusCode = 403;
-            error.exposeMessage = true;
-            throw error;
-        }
-
-        user.username = req.body.username || user.username;
-        user.email = req.body.email || user.email;
-        user.role = req.body.role || user.role;
-
-        const updatedUser = await user.save();
-
-        res.json({
-            _id: updatedUser._id,
-            username: updatedUser.username,
-            email: updatedUser.email,
-            role: updatedUser.role,
-        });
-    } else {
+    if (!updatedUser) {
         res.status(404);
         throw new Error(getMessage(req.lang, 'user-messages.notFound'));
     }
+
+    res.json({
+        _id: updatedUser._id,
+        username: updatedUser.username,
+        email: updatedUser.email,
+        role: updatedUser.role,
+    });
 });
 
 /**
@@ -366,19 +358,19 @@ const updateUser = asyncHandler(async (req, res) => {
  * @access Private/Admin
  */
 const deleteUser = asyncHandler(async (req, res) => {
-    const user = await User.findById(req.params.id);
+    const result = await adminUserGovernanceService.softDeleteManagedUser(
+        req.user._id,
+        req.params.id,
+        req.lang,
+    );
 
-    if (user) {
-        if (user.profileImageAsset) {
-            await cleanupUserAvatar(user.profileImageAsset);
-        }
-        user.isDeleted = true;
-        await user.save();
-        res.json({ message: getMessage(req.lang, 'admin-controllers-messages.user_removed') });
-    } else {
+    if (result === null) {
         res.status(404);
         throw new Error(getMessage(req.lang, 'user-messages.notFound'));
     }
+
+    await cleanupUserAvatar(result.asset);
+    res.json({ message: getMessage(req.lang, 'admin-controllers-messages.user_removed') });
 });
 
 /**
@@ -390,18 +382,18 @@ const deleteUser = asyncHandler(async (req, res) => {
 const hardDeleteUser = asyncHandler(async (req, res) => {
     const defaultLang = getDefaultLanguage();
     const lang = (req.query.lang || req.lang || defaultLang.code).toLowerCase();
-    const user = await User.findById(req.params.id);
+    const result = await adminUserGovernanceService.hardDeleteManagedUser(
+        req.user._id,
+        req.params.id,
+        lang,
+    );
 
-    if (!user) {
+    if (result === null) {
         res.status(404);
         throw new Error(getMessage(lang, 'user-messages.notFound'));
     }
 
-    if (user.profileImageAsset) {
-        await cleanupUserAvatar(user.profileImageAsset);
-    }
-
-    await user.deleteOne();
+    await cleanupUserAvatar(result.asset);
     res.json({ message: getMessage(lang, 'user-messages.hardDeleteSuccess') });
 });
 
@@ -412,22 +404,23 @@ const hardDeleteUser = asyncHandler(async (req, res) => {
  * @access Private/Admin
  */
 const restoreUser = asyncHandler(async (req, res) => {
-    const user = await User.findById(req.params.id);
+    const result = await adminUserGovernanceService.restoreManagedUser(
+        req.user._id,
+        req.params.id,
+        req.lang,
+    );
 
-    if (!user) {
+    if (!result) {
         res.status(404);
         throw new Error(getMessage(req.lang, 'user-messages.notFound'));
     }
 
-    if (!user.isDeleted) {
+    if (result.alreadyActive) {
         res.status(400);
         throw new Error(getMessage(req.lang, 'user-messages.notDeleted'));
     }
 
-    user.isDeleted = false;
-    await user.save();
-
-    res.json({ message: getMessage(req.lang, 'user-messages.restoreSuccess'), user });
+    res.json({ message: getMessage(req.lang, 'user-messages.restoreSuccess'), user: result.user });
 });
 
 /**
@@ -974,13 +967,13 @@ const createUserByAdmin = asyncHandler(async (req, res) => {
   const userRole = role && validRoles.includes(role) ? role : 'user';
 
   // Create the user
-  const user = await User.create({
+  const user = await adminUserGovernanceService.createManagedUser(req.user._id, {
     email,
     username,
     password,
     role: userRole,
-    isEmailVerified: true, // Admin-created users are auto-verified
-  });
+    isEmailVerified: true,
+  }, lang);
 
   if (user) {
     res.status(201).json({
