@@ -117,6 +117,8 @@ function ProviderCatalogPage() {
   const [deleting, setDeleting] = useState(false);
   const [hardDeleting, setHardDeleting] = useState(false);
   const [audit, setAudit] = useState<Awaited<ReturnType<typeof providerCatalogAPI.getAudit>> | null>(null);
+  const [auditOpen, setAuditOpen] = useState(false);
+  const [auditLoading, setAuditLoading] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [configFields, setConfigFields] = useState<ProviderConfigField[]>([]);
   const [schemaGuide, setSchemaGuide] = useState<ProviderSetupGuide | null>(null);
@@ -177,6 +179,34 @@ function ProviderCatalogPage() {
   const loadAudit = useCallback(async (entry: ProviderCatalogEntry, pageNumber = auditPage) => {
     setAudit(await providerCatalogAPI.getAudit(entry._id, pageNumber));
   }, [auditPage]);
+
+  const openAuditLog = async () => {
+    if (!selected) return;
+    setAuditOpen(true);
+    setAuditPage(1);
+    setAuditLoading(true);
+    try {
+      await loadAudit(selected, 1);
+    } catch (error) {
+      setAudit(null);
+      toast.error(error instanceof Error ? error.message : tr('audit_load_error'));
+    } finally {
+      setAuditLoading(false);
+    }
+  };
+
+  const changeAuditPage = async (pageNumber: number) => {
+    if (!selected) return;
+    setAuditPage(pageNumber);
+    setAuditLoading(true);
+    try {
+      await loadAudit(selected, pageNumber);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : tr('audit_load_error'));
+    } finally {
+      setAuditLoading(false);
+    }
+  };
 
   const loadRuntimeStatus = useCallback(async () => {
     try {
@@ -425,10 +455,11 @@ function ProviderCatalogPage() {
     setForm({ ...EMPTY_FORM, name: provider ? localizedProviderName(code, provider.name) : '' });
     setEditing(true);
     setAudit(null);
+    setAuditOpen(false);
     void loadProviderConfig(code);
   };
 
-  const openEntry = async (entry: ProviderCatalogEntry) => {
+  const openEntry = (entry: ProviderCatalogEntry) => {
     setRuntimeView(false);
     setRuntimeSecret('');
     setRuntimeRevealKey('');
@@ -436,15 +467,12 @@ function ProviderCatalogPage() {
     setRuntimeReauthPassword('');
     setSelected(entry);
     setSelectedCode(entry.providerCode);
+    setAudit(null);
+    setAuditOpen(false);
     setAuditPage(1);
     setForm({ name: entry.name, keyValues: entry.keyValues || [] });
     setEditing(false);
     void loadProviderConfig(entry.providerCode, entry._id);
-    try {
-      await loadAudit(entry, 1);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : tr('audit_load_error'));
-    }
   };
 
   const editEntry = async (entry: ProviderCatalogEntry) => {
@@ -677,6 +705,7 @@ function ProviderCatalogPage() {
             setEditing(false);
             setSelected(null);
             setAudit(null);
+            setAuditOpen(false);
             setRuntimeView(false);
             setRuntimeEditing(false);
             setRuntimeSecret('');
@@ -751,6 +780,7 @@ function ProviderCatalogPage() {
           </> : selected ? <>
             <div className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{categoryLabel(selected.category)}</p><h2 className="mt-1 text-xl font-semibold text-slate-950">{selected.name}</h2><p className="mt-1 text-sm text-slate-500">{selected.providerCode} · {tr('version')} {selected.version}</p></div><button type="button" onClick={() => { setSelected(null); setAudit(null); }} aria-label={tr('close')} title={tr('close')} className="inline-flex shrink-0 items-center justify-center rounded-lg border border-slate-300 p-2 text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700"><X className="h-4 w-4" aria-hidden="true" /></button></div>
             <div className="mt-5 rounded-xl border border-slate-200 p-4"><p className="text-sm font-semibold text-slate-800">{selected.capability === 'not-implemented' ? tr('not_integrated') : selected.capability === 'not-verified' ? tr('not_verified') : selected.capability === 'launcher-only' ? tr('launcher_only') : selected.capability === 'payment-method' ? tr('existing_payment_method') : tr('has_adapter_backend')}</p><p className="mt-1 text-sm leading-6 text-slate-600">{localizedProviderNote(selected.providerCode, selected.capabilityNote)}</p><p className="mt-2 text-xs text-slate-500">{tr('catalog_connection_warning')}</p></div>
+            <button type="button" onClick={() => void openAuditLog()} className="mt-4 inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"><Clock3 className="h-4 w-4" aria-hidden="true" />{tr('audit_log')}</button>
             {schemaGuide && <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs leading-5 text-slate-600"><h3 className="font-semibold text-slate-900">{tr('setup_guide_title')} {localizedProviderName(selected.providerCode, selected.name)}</h3><p className="mt-1">{localizedGuide(selectedCode, schemaGuide, 'note')}</p><a href={schemaGuide.url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center rounded-lg border border-blue-300 bg-white px-3 py-2 font-medium text-blue-800 hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700">{localizedGuide(selectedCode, schemaGuide, 'label')} {tr('open_new_tab')}</a></div>}
             {configFields.length > 0 && <section className="mt-5 rounded-xl border border-slate-200 p-4"><div className="flex items-start justify-between gap-3"><div><h3 className="font-semibold text-slate-900">{tr('saved_configuration')}</h3><p className="mt-1 text-xs text-slate-500">{configVersion ? `${tr('config_version_prefix')} ${configVersion}` : tr('no_saved_config')} · {tr('secrets_masked')}</p></div>{configVersion > 0 && !deleteConfigOpen && <button type="button" onClick={() => setDeleteConfigOpen(true)} className="shrink-0 rounded-lg border border-red-200 px-3 py-2 text-xs font-medium text-red-700 hover:bg-red-50">{tr('delete_configuration')}</button>}</div><div className="mt-4 space-y-3">{configFields.map((field) => { const isSecret = field.type === 'secret'; const isConfigured = isSecret ? configuredSecrets.includes(field.key) : Boolean(configValues[field.key]); return <div key={field.key} className="rounded-lg bg-slate-50 p-3"><p className="text-sm font-medium text-slate-800">{localizedSchemaField(selected?.providerCode || selectedCode, field, 'label')}</p><code className="mt-1 block break-all text-xs text-slate-500">{field.key}</code><p className="mt-2 break-all text-sm text-slate-700">{isSecret ? (revealedSecrets[field.key] || (isConfigured ? tr('masked_configured') : tr('not_configured'))) : (configVersion > 0 && configValues[field.key] ? configValues[field.key] : tr('not_configured'))}</p>{isSecret && isConfigured && <div className="mt-2">{revealedSecrets[field.key] ? <button type="button" onClick={() => setRevealedSecrets((current) => { const next = { ...current }; delete next[field.key]; return next; })} className="inline-flex items-center rounded-md border border-blue-200 bg-white px-2.5 py-1.5 text-xs font-medium text-blue-800 hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700">{tr('hide_secret')}</button> : revealingField === field.key ? <div className="flex flex-wrap gap-2"><input type="password" autoComplete="off" value={reauthPassword} onChange={(event) => setReauthPassword(event.target.value)} placeholder={tr('reauth_password_placeholder')} className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-xs" /><button type="button" disabled={!reauthPassword || configActionBusy} onClick={() => void revealSecret(field.key)} className="rounded-lg bg-slate-900 px-3 py-2 text-xs text-white disabled:opacity-50">{configActionBusy ? 'Đang xác minh…' : tr('confirm_reveal')}</button><button type="button" onClick={() => { setRevealingField(null); setReauthPassword(''); }} className="rounded-lg border px-3 py-2 text-xs">{tr('cancel')}</button></div> : <button type="button" onClick={() => setRevealingField(field.key)} className="inline-flex items-center rounded-md border border-blue-200 bg-white px-2.5 py-1.5 text-xs font-medium text-blue-800 hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700">{tr('reveal_secret')}</button>}</div>}</div>; })}</div>{deleteConfigOpen && <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3"><p className="text-sm font-medium text-red-900">{tr('delete_config_confirm_title')}</p><p className="mt-1 text-xs leading-5 text-red-800">{tr('delete_config_confirm_body')}</p><input type="password" autoComplete="off" value={deleteConfigPassword} onChange={(event) => setDeleteConfigPassword(event.target.value)} placeholder={tr('reauth_password_placeholder')} className="mt-3 w-full rounded-lg border border-red-300 bg-white px-3 py-2 text-sm" /><div className="mt-3 flex justify-end gap-2"><button type="button" onClick={() => { setDeleteConfigOpen(false); setDeleteConfigPassword(''); }} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs">{tr('cancel')}</button><button type="button" disabled={!deleteConfigPassword || configActionBusy} onClick={() => void deleteConfiguration()} className="rounded-lg bg-red-700 px-3 py-2 text-xs font-medium text-white disabled:opacity-50">{configActionBusy ? tr('deleting') : 'Xác nhận xóa'}</button></div></div>}</section>}
             <section className="mt-5 space-y-4">
@@ -764,8 +794,18 @@ function ProviderCatalogPage() {
                 {runtimeStatus === 'loading' ? <p className="mt-3 text-sm text-slate-500">{tr('runtime_reading_backend')}</p> : runtimeStatus === 'unavailable' ? <p className="mt-3 text-sm text-slate-600">{tr('runtime_backend_unavailable')}</p> : selectedRuntimeProvider?.managed ? <>{selectedRuntimeProvider.fields.some((field) => field.configured) ? <dl className="mt-3 space-y-2">{selectedRuntimeProvider.fields.filter((field) => field.configured).map((field) => <div key={field.key} className="grid gap-1 rounded-lg bg-white p-3 sm:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]"><dt className="break-all text-xs font-semibold text-slate-600">{localizedRuntimeField(field)}</dt><dd className="break-all whitespace-pre-wrap text-sm text-slate-800">{field.type === 'secret' ? tr('masked_configured') : field.value || '—'}</dd><p className="sm:col-span-2 text-xs text-slate-500">{field.source === 'environment' ? tr('source_label_environment') : field.source === 'database' ? tr('source_label_database') : tr('source_label_runtime')}</p></div>)}</dl> : <p className="mt-2 text-sm text-slate-500">{tr('no_runtime_keys')}</p>}</> : <p className="mt-3 text-sm text-slate-600">{tr('no_runtime_mapping')}</p>}
               </div>
             </section>
-            <div className="mt-6 border-t border-slate-100 pt-5"><div className="mb-3 flex items-center gap-2"><Clock3 className="h-4 w-4 text-slate-500" /><h3 className="text-sm font-semibold text-slate-800">{tr('audit_log')}</h3></div><div className="space-y-3">{audit?.data.map((record) => <div key={record._id} className="border-l-2 border-slate-200 pl-3 text-xs"><p className="font-medium text-slate-700">{auditActionLabel(record.action)} · v{record.version}</p><p className="mt-1 text-slate-500">{record.changedFields.join(', ')}</p><p className="mt-1 text-slate-500">{record.userName || tr('super_admin')} · {new Date(record.createdAt).toLocaleString()}</p></div>)}{audit && !audit.data.length && <p className="text-xs text-slate-500">{tr('no_audit_log')}</p>}</div>{(audit?.pagination.totalPages || 0) > 1 && <div className="mt-4 flex items-center justify-end gap-2 text-xs"><button type="button" disabled={auditPage <= 1} onClick={() => { const nextPage = auditPage - 1; setAuditPage(nextPage); if (selected) void loadAudit(selected, nextPage); }} className="rounded border px-2 py-1 disabled:opacity-40">{tr('previous')}</button><span>{auditPage} / {audit?.pagination.totalPages}</span><button type="button" disabled={auditPage >= (audit?.pagination.totalPages || 1)} onClick={() => { const nextPage = auditPage + 1; setAuditPage(nextPage); if (selected) void loadAudit(selected, nextPage); }} className="rounded border px-2 py-1 disabled:opacity-40">{tr('next')}</button></div>}</div>
           </> : <div className="flex min-h-80 flex-col items-center justify-center text-center"><div className="mb-3 rounded-2xl bg-slate-100 p-3 text-slate-500"><Settings2 className="h-5 w-5" /></div><h2 className="font-semibold text-slate-800">{tr('select_profile')}</h2><p className="mt-1 max-w-xs text-sm leading-6 text-slate-500">{tr('select_profile_help')}</p></div>}
+          </DialogContent>
+        </Dialog>
+        <Dialog modal open={auditOpen} onOpenChange={(open) => setAuditOpen(open)}>
+          <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto p-5 sm:p-6">
+            <DialogHeader><DialogTitle>{tr('audit_log')}</DialogTitle></DialogHeader>
+            {selected && <p className="text-sm text-slate-500">{selected.name} · {selected.providerCode}</p>}
+            {auditLoading ? <p className="py-8 text-center text-sm text-slate-500">{tr('loading')}</p> : <>
+              <div className="space-y-3">{audit?.data.map((record) => <div key={record._id} className="border-l-2 border-slate-200 pl-3 text-xs"><p className="font-medium text-slate-700">{auditActionLabel(record.action)} · v{record.version}</p><p className="mt-1 text-slate-500">{record.changedFields.join(', ')}</p><p className="mt-1 text-slate-500">{record.userName || tr('super_admin')} · {new Date(record.createdAt).toLocaleString()}</p></div>)}{audit && !audit.data.length && <p className="text-xs text-slate-500">{tr('no_audit_log')}</p>}</div>
+              {(audit?.pagination.totalPages || 0) > 1 && <div className="mt-4 flex items-center justify-end gap-2 text-xs"><button type="button" disabled={auditPage <= 1 || auditLoading} onClick={() => void changeAuditPage(auditPage - 1)} className="rounded border px-2 py-1 disabled:opacity-40">{tr('previous')}</button><span>{auditPage} / {audit?.pagination.totalPages}</span><button type="button" disabled={auditLoading || auditPage >= (audit?.pagination.totalPages || 1)} onClick={() => void changeAuditPage(auditPage + 1)} className="rounded border px-2 py-1 disabled:opacity-40">{tr('next')}</button></div>}
+            </>}
+            <div className="flex justify-end border-t border-slate-100 pt-4"><button type="button" onClick={() => setAuditOpen(false)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm">{tr('close')}</button></div>
           </DialogContent>
         </Dialog>
         <Dialog modal open={Boolean(deleteTarget)} onOpenChange={(open) => !open && !deleting && setDeleteTarget(null)}>
