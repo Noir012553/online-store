@@ -378,14 +378,14 @@ const validateRuntimeValues = (providerCode, values) => {
 
   if (providerCode === 'smtp' || providerCode === 'sendgrid') {
     const port = values.EMAIL_PORT;
-    if (port && (!/^\\d+$/.test(port) || Number(port) < 1 || Number(port) > 65535)) return 'INVALID_EMAIL_PORT';
+    if (port && (!/^\d+$/.test(port) || Number(port) < 1 || Number(port) > 65535)) return 'INVALID_EMAIL_PORT';
     if (values.EMAIL_SECURE && !['true', 'false'].includes(values.EMAIL_SECURE)) return 'INVALID_EMAIL_SECURE';
   }
   if (providerCode === 'ghn') {
     const shopId = values.GHN_SHOP_ID;
-    if (shopId && !/^\\d{1,12}$/.test(shopId)) return 'INVALID_GHN_SHOP_ID';
+    if (shopId && !/^\d{1,12}$/.test(shopId)) return 'INVALID_GHN_SHOP_ID';
     const districtId = values.GHN_WAREHOUSE_DISTRICT_ID;
-    if (districtId && (!/^\\d+$/.test(districtId) || Number(districtId) <= 0)) return 'INVALID_GHN_WAREHOUSE_DISTRICT_ID';
+    if (districtId && (!/^\d+$/.test(districtId) || Number(districtId) <= 0)) return 'INVALID_GHN_WAREHOUSE_DISTRICT_ID';
     const apiUrl = values.GHN_API_URL;
     if (apiUrl) {
       let parsed;
@@ -396,7 +396,7 @@ const validateRuntimeValues = (providerCode, values) => {
   if (providerCode === 'cloudflare_r2') {
     const integerFields = ['R2_MAX_UPLOAD_COUNT', 'R2_MAX_UPLOAD_BYTES', 'R2_MAX_IMAGE_BYTES', 'R2_MAX_VIDEO_BYTES', 'R2_MAX_RETRIES'];
     for (const key of integerFields) {
-      if (values[key] !== undefined && values[key] !== '' && (!/^\\d+$/.test(values[key]) || !Number.isSafeInteger(Number(values[key])))) return `INVALID_${key}`;
+      if (values[key] !== undefined && values[key] !== '' && (!/^\d+$/.test(values[key]) || !Number.isSafeInteger(Number(values[key])))) return `INVALID_${key}`;
     }
     if (values.R2_UPLOAD_ENABLED !== undefined && !['true', 'false'].includes(values.R2_UPLOAD_ENABLED)) return 'INVALID_R2_UPLOAD_ENABLED';
     for (let index = 1; index <= 9; index += 1) {
