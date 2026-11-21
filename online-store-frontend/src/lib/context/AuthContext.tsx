@@ -216,6 +216,9 @@ export const AuthProvider = ({
       const response = await authAPI.register(name, email, password);
       const accessToken = response.accessToken || response.token;
 
+      authVersionRef.current += 1;
+      try { sessionStorage.setItem("auth_session_active", "1"); } catch {}
+      clearPersistedRefreshBlockState();
       // Store access token in Memory (RAM) - XSS Protection
       setInMemoryAccessToken(accessToken);
 
@@ -232,7 +235,7 @@ export const AuthProvider = ({
       setUser(userData);
       return true;
     } catch (error) {
-      return false;
+      throw error;
     } finally {
       setIsLoading(false);
     }

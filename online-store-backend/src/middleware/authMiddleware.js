@@ -5,7 +5,6 @@
 const jwt = require('jsonwebtoken');
 const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
-const { isTokenRevoked } = require('../utils/tokenBlacklist');
 const { ACCESS_TOKEN_SECRET, JWT_ALGORITHM } = require('../utils/generateToken');
 const { getMessage } = require('../i18n/messages');
 
@@ -33,15 +32,8 @@ const protect = asyncHandler(async (req, res, next) => {
         throw new Error(getMessage(req.lang, 'auth-messages.invalidTokenType'));
       }
 
-      authStage = 'token revocation check';
-      const revoked = await isTokenRevoked(token);
-      if (revoked) {
-        res.status(401);
-        throw new Error(getMessage(req.lang, 'auth-messages.tokenRevoked'));
-      }
-
       authStage = 'user lookup';
-      const user = await User.findById(decoded.id).select('-password');
+      const user = await User.findById(decoded.id).select('-password +authVersion');
 
       // Check if user exists and hasn't been soft-deleted
       if (!user || user.isDeleted) {
@@ -51,12 +43,21 @@ const protect = asyncHandler(async (req, res, next) => {
         throw error;
       }
 
+      const tokenAuthVersion = decoded.authVersion;
+      if (typeof tokenAuthVersion !== 'string' || tokenAuthVersion !== (user.authVersion || '0')) {
+        const error = new Error(getMessage(req.lang, 'auth-messages.tokenRevoked'));
+        error.errorCode = 'SESSION_REVOKED';
+        error.exposeMessage = true;
+        res.status(401);
+        throw error;
+      }
+
       req.user = user;
       return next();
     } catch (error) {
-      const expectedAuthFailure = error.errorCode === 'USER_NOT_FOUND'
+      const expectedAuthFailure = ['USER_NOT_FOUND', 'SESSION_REVOKED'].includes(error.errorCode)
         || error instanceof jwt.JsonWebTokenError
-        || ['token extraction', 'token type validation', 'token revocation check'].includes(authStage);
+        || ['token extraction', 'token type validation'].includes(authStage);
 
       if (!expectedAuthFailure) {
         console.error('Authentication failed', {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../lib/context/AuthContext';
@@ -44,16 +44,6 @@ export default function Profile() {
     confirmPassword: '',
   });
   const [changePasswordErrors, setChangePasswordErrors] = useState<Record<string, string>>({});
-  const redirectTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Cleanup redirect timer on unmount
-  useEffect(() => {
-    return () => {
-      if (redirectTimerRef.current) {
-        clearTimeout(redirectTimerRef.current);
-      }
-    };
-  }, []);
 
   useEffect(() => {
     loadNamespace('profile');
@@ -198,12 +188,6 @@ export default function Profile() {
       setShowChangePasswordModal(false);
       setChangePasswordData({ newPassword: '', confirmPassword: '' });
       setChangePasswordErrors({});
-      if (redirectTimerRef.current) {
-        clearTimeout(redirectTimerRef.current);
-      }
-      redirectTimerRef.current = setTimeout(() => {
-        router.push("/login");
-      }, 1000);
     } catch (error) {
       toast.error(t('profile_password_error', 'profile'));
     } finally {

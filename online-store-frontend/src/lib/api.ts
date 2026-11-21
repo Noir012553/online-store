@@ -783,6 +783,7 @@ async function executeRequest<T = any>(
       let errorMessage = `api_error`;
       let errorCode: string | undefined;
       let errorParams: Record<string, unknown> | undefined;
+      let errorFields: string[] | undefined;
       try {
         const errorData = await response.json();
         if (errorData && errorData.message) {
@@ -790,6 +791,9 @@ async function executeRequest<T = any>(
         }
         errorCode = errorData?.code;
         errorParams = errorData?.params;
+        errorFields = Array.isArray(errorData?.errors)
+          ? errorData.errors.map((item: any) => item?.field).filter((field: unknown): field is string => typeof field === 'string')
+          : undefined;
       } catch (parseError) {
         // If response body is not JSON, use status code
         errorMessage = `http_error`;
@@ -811,9 +815,11 @@ async function executeRequest<T = any>(
         params?: Record<string, unknown>;
         status?: number;
         retryAfter?: number;
+        fields?: string[];
       };
       apiError.code = errorCode;
       apiError.params = errorParams;
+      apiError.fields = errorFields;
       apiError.status = response.status;
       const retryAfter = Number(response.headers.get('Retry-After'));
       if (Number.isFinite(retryAfter) && retryAfter > 0) {
@@ -1639,6 +1645,7 @@ export const authAPI = {
       method: 'POST',
       body: JSON.stringify({ email, password, name }),
       skipAuthRecovery: true,
+      skipErrorToast: true,
     });
   },
 
@@ -1698,10 +1705,14 @@ export const authAPI = {
    * @param newPassword - Mật khẩu mới
    */
   changePassword: async (newPassword: string) => {
-    return apiCall('/users/profile', {
+    const response = await apiCall<{ accessToken?: string; token?: string }>('/users/profile', {
       method: 'PUT',
       body: JSON.stringify({ password: newPassword }),
+      skipErrorToast: true,
     });
+    const accessToken = response.accessToken || response.token;
+    if (accessToken) setInMemoryAccessToken(accessToken);
+    return response;
   },
 };
 

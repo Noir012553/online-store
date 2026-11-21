@@ -38,7 +38,8 @@ describe('User Controller - Dynamic Data Tests', () => {
         matchPassword: sandbox.stub().resolves(true),
         save: sandbox.stub().resolves() 
       };
-      sandbox.stub(User, 'findOne').resolves(user);
+      sandbox.stub(User, 'findOne').returns({ select: sandbox.stub().resolves(user) });
+      sandbox.stub(User, 'updateOne').resolves({ modifiedCount: 1 });
 
       const req = { body: { email: 'test@example.com', password: 'test123' } };
       const res = { cookie: sandbox.stub(), json: sandbox.stub(), status: sandbox.stub().returnsThis() };
@@ -75,6 +76,7 @@ describe('User Controller - Dynamic Data Tests', () => {
       
       sandbox.stub(User, 'findOne').resolves(null);
       sandbox.stub(User, 'create').resolves(newUser);
+      sandbox.stub(User, 'updateOne').resolves({ modifiedCount: 1 });
 
       const req = { body: { username: 'newuser', email: 'new@example.com', password: 'test123' } };
       const res = { cookie: sandbox.stub(), status: sandbox.stub().returnsThis(), json: sandbox.stub() };
@@ -132,7 +134,7 @@ describe('User Controller - Dynamic Data Tests', () => {
           role: 'user'
         })
       };
-      sandbox.stub(User, 'findById').resolves(user);
+      sandbox.stub(User, 'findById').returns({ select: sandbox.stub().resolves(user) });
       sandbox.stub(User, 'findOne').resolves(null);
 
       const req = {
