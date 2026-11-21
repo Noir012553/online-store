@@ -976,7 +976,7 @@ const getOrderById = asyncHandler(async (req, res) => {
   if (order) {
     const isOwner = req.user && (
       String(order.user?._id || order.user || '') === String(req.user._id) ||
-      (order.customer && order.customer.email && order.customer.email.toLowerCase() === req.user.email.toLowerCase())
+      (req.user.isEmailVerified && order.customer?.email && order.customer.email.toLowerCase() === req.user.email.toLowerCase())
     );
 
     if (!isOwner && !isAdmin) {
@@ -1018,7 +1018,7 @@ const getMyOrders = asyncHandler(async (req, res) => {
 
   // Fallback: Nếu user không có orders, match theo customer email (cho mock/old data)
   // Sử dụng aggregation pipeline để join với Customer collection
-  if (orders.length === 0 && req.user.email) {
+  if (orders.length === 0 && req.user.isEmailVerified && req.user.email) {
 
     const customerEmail = req.user.email.toLowerCase().trim();
 

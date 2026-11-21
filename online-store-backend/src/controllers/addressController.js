@@ -14,13 +14,17 @@ const { isAdmin } = require('../utils/resourceAuthorization');
 
 const findCustomerForRequest = (req, customerId) => {
   const query = { _id: customerId, isDeleted: false };
-  if (!isAdmin(req.user)) query.email = req.user.email.toLowerCase();
+  if (!isAdmin(req.user)) {
+    if (!req.user.isEmailVerified) return null;
+    query.email = req.user.email.toLowerCase();
+  }
   return Customer.findOne(query);
 };
 
 const findAddressForRequest = async (req, addressId) => {
   const query = { _id: addressId, isDeleted: false };
   if (!isAdmin(req.user)) {
+    if (!req.user.isEmailVerified) return null;
     const customer = await Customer.findOne({
       email: req.user.email.toLowerCase(),
       isDeleted: false,

@@ -9,11 +9,15 @@ test('order owner access accepts the matching user id', () => {
 
 test('order owner access preserves the customer email fallback', () => {
   assert.equal(
-    isOrderOwner({ customer: { email: 'buyer@example.com' } }, { email: 'BUYER@example.com' }),
+    isOrderOwner({ customer: { email: 'buyer@example.com' } }, { email: 'BUYER@example.com', isEmailVerified: true }),
     true,
   );
   assert.equal(
-    isOrderOwner({ customer: { email: 'buyer@example.com' } }, { email: 'other@example.com' }),
+    isOrderOwner({ customer: { email: 'buyer@example.com' } }, { email: 'other@example.com', isEmailVerified: true }),
+    false,
+  );
+  assert.equal(
+    isOrderOwner({ customer: { email: 'buyer@example.com' } }, { email: 'buyer@example.com', isEmailVerified: false }),
     false,
   );
 });

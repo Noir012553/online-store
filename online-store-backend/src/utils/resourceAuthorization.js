@@ -1,6 +1,7 @@
 const isAdmin = (user) => ['admin', 'super-admin'].includes(user?.role);
 
 const isCustomerOwner = (customer, user) => Boolean(
+  user?.isEmailVerified &&
   customer?.email &&
   user?.email &&
   customer.email.toLowerCase() === user.email.toLowerCase()
