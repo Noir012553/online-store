@@ -195,7 +195,8 @@
     "product_publication_help": "Tắt để ẩn sản phẩm khỏi catalog công khai và trang chi tiết.",
     "product_unpublished_label": "Chưa đăng bán",
     "cancel": "Hủy",
-    "loading_message": "Đang tải..."
+    "loading_message": "Đang tải...",
+    "edit_runtime_config": "Chỉnh sửa cấu hình hệ thống"
   },
   "en": {
     "brand_initials": "LS",
@@ -393,7 +394,8 @@
     "product_publication_help": "Turn off to hide this product from the public catalog and detail page.",
     "product_unpublished_label": "Unpublished",
     "cancel": "Cancel",
-    "loading_message": "Loading..."
+    "loading_message": "Loading...",
+    "edit_runtime_config": "Edit system configuration"
   },
   "pt": {
     "social_title": "Redes sociais",
