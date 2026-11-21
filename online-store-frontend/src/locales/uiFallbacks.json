@@ -196,7 +196,8 @@
     "product_unpublished_label": "Chưa đăng bán",
     "cancel": "Hủy",
     "loading_message": "Đang tải...",
-    "edit_runtime_config": "Chỉnh sửa cấu hình hệ thống"
+    "edit_runtime_config": "Chỉnh sửa cấu hình hệ thống",
+    "runtime_edit_unsupported": "Chưa hỗ trợ chỉnh sửa cấu hình"
   },
   "en": {
     "brand_initials": "LS",
@@ -395,7 +396,8 @@
     "product_unpublished_label": "Unpublished",
     "cancel": "Cancel",
     "loading_message": "Loading...",
-    "edit_runtime_config": "Edit system configuration"
+    "edit_runtime_config": "Edit system configuration",
+    "runtime_edit_unsupported": "Configuration editing is not supported"
   },
   "pt": {
     "social_title": "Redes sociais",
