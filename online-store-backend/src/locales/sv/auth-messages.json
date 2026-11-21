@@ -7,6 +7,7 @@
   "noToken": "Inte behörig, ingen token",
   "notAdminAuth": "Inte behörig som administratör",
   "notSuperAdminAuth": "Inte behörig som superadministratör",
+  "superAdminSelfDemotionForbidden": "En superadministratör kan inte nedgradera sitt eget konto",
   "invalid_token_type": "Ogiltig tokentyp",
   "token_revoked": "Token har återkallats. Logga in igen.",
   "user_not_found": "Användare inte funnen eller konto har tagits bort",

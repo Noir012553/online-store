@@ -7,6 +7,7 @@
   "noToken": "Không được phép, không có token",
   "notAdminAuth": "Không được phép như một quản trị viên",
   "notSuperAdminAuth": "Không được phép như một siêu quản trị viên",
+  "superAdminSelfDemotionForbidden": "Siêu quản trị viên không thể tự hạ quyền tài khoản của mình",
   "invalid_token_type": "Loại token không hợp lệ",
   "token_revoked": "Token đã bị thu hồi. Vui lòng đăng nhập lại.",
   "user_not_found": "Người dùng không tìm thấy hoặc tài khoản đã bị xóa",

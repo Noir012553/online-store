@@ -7,6 +7,7 @@
   "noToken": "Non autorisé, pas de jeton",
   "notAdminAuth": "Non autorisé en tant qu'administrateur",
   "notSuperAdminAuth": "Non autorisé en tant que super administrateur",
+  "superAdminSelfDemotionForbidden": "Un super administrateur ne peut pas rétrograder son propre compte",
   "invalid_token_type": "Type de jeton invalide",
   "token_revoked": "Le jeton a été révoqué. Veuillez vous reconnecter.",
   "user_not_found": "Utilisateur non trouvé ou compte supprimé",

@@ -10,7 +10,7 @@ const expect = chai.expect;
 const sinon = require('sinon');
 const mongoose = require('mongoose');
 const User = require('../../../models/User');
-const { authUser, registerUser, getUserProfile, updateUserProfile, getUsers, deleteUser, hardDeleteUser } = require('../../../controllers/userController');
+const { authUser, registerUser, getUserProfile, updateUserProfile, getUsers, updateUser, deleteUser, hardDeleteUser } = require('../../../controllers/userController');
 
 describe('User Controller - Dynamic Data Tests', () => {
   let sandbox;
@@ -163,6 +163,52 @@ describe('User Controller - Dynamic Data Tests', () => {
       const res = { json: sandbox.stub() };
       
       await getUsers(req, res);
+      expect(res.json.calledOnce).to.be.true;
+    });
+  });
+
+  describe('updateUser', () => {
+    it('should prevent a super admin from demoting their own account', async () => {
+      const userId = new mongoose.Types.ObjectId();
+      const user = { _id: userId, role: 'super-admin', save: sandbox.stub() };
+      sandbox.stub(User, 'findById').resolves(user);
+      const req = {
+        params: { id: userId.toString() },
+        user: { _id: userId },
+        body: { role: 'admin' },
+      };
+      const res = { status: sandbox.stub().returnsThis() };
+
+      try {
+        await updateUser(req, res);
+        throw new Error('Expected updateUser to reject');
+      } catch (error) {
+        expect(error.errorCode).to.equal('SUPER_ADMIN_SELF_DEMOTION_FORBIDDEN');
+        expect(error.statusCode).to.equal(403);
+      }
+
+      expect(user.save.called).to.be.false;
+    });
+
+    it('should allow a super admin to change another user\'s role', async () => {
+      const userId = new mongoose.Types.ObjectId();
+      const actorId = new mongoose.Types.ObjectId();
+      const user = {
+        _id: userId,
+        role: 'admin',
+        save: sandbox.stub().resolves({ _id: userId, username: 'admin', email: 'admin@example.com', role: 'user' }),
+      };
+      sandbox.stub(User, 'findById').resolves(user);
+      const req = {
+        params: { id: userId.toString() },
+        user: { _id: actorId, role: 'super-admin' },
+        body: { role: 'user' },
+      };
+      const res = { json: sandbox.stub() };
+
+      await updateUser(req, res);
+
+      expect(user.save.calledOnce).to.be.true;
       expect(res.json.calledOnce).to.be.true;
     });
   });

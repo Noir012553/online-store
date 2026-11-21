@@ -7,6 +7,7 @@
   "noToken": "Niet geautoriseerd, geen token",
   "notAdminAuth": "Niet geautoriseerd als beheerder",
   "notSuperAdminAuth": "Niet geautoriseerd als super beheerder",
+  "superAdminSelfDemotionForbidden": "Een superbeheerder kan het eigen account niet degraderen",
   "invalid_token_type": "Ongeldig tokentype",
   "token_revoked": "Token is ingetrokken. Meld u alstublieft opnieuw aan.",
   "user_not_found": "Gebruiker niet gevonden of account is verwijderd",

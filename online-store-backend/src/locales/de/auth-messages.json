@@ -7,6 +7,7 @@
   "noToken": "Nicht autorisiert, kein Token",
   "notAdminAuth": "Nicht als Administrator autorisiert",
   "notSuperAdminAuth": "Nicht als Super-Administrator autorisiert",
+  "superAdminSelfDemotionForbidden": "Ein Super-Administrator kann sein eigenes Konto nicht herabstufen",
   "invalid_token_type": "Ungültiger Token-Typ",
   "token_revoked": "Token wurde widerrufen. Bitte melden Sie sich erneut an.",
   "user_not_found": "Benutzer nicht gefunden oder Konto wurde gelöscht",

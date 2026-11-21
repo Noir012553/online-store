@@ -333,6 +333,14 @@ const updateUser = asyncHandler(async (req, res) => {
     const user = await User.findById(req.params.id);
 
     if (user) {
+        const isSelf = String(user._id) === String(req.user?._id);
+        if (isSelf && user.role === 'super-admin' && req.body.role && req.body.role !== 'super-admin') {
+            const error = createUserError(req.lang, 'SUPER_ADMIN_SELF_DEMOTION_FORBIDDEN', 'auth-messages.superAdminSelfDemotionForbidden');
+            error.statusCode = 403;
+            error.exposeMessage = true;
+            throw error;
+        }
+
         user.username = req.body.username || user.username;
         user.email = req.body.email || user.email;
         user.role = req.body.role || user.role;

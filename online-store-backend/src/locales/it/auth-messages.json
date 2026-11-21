@@ -7,6 +7,7 @@
   "noToken": "Non autorizzato, nessun token",
   "notAdminAuth": "Non autorizzato come amministratore",
   "notSuperAdminAuth": "Non autorizzato come super amministratore",
+  "superAdminSelfDemotionForbidden": "Un super amministratore non può retrocedere il proprio account",
   "invalid_token_type": "Tipo di token non valido",
   "token_revoked": "Token è stato revocato. Per favore accedi di nuovo.",
   "user_not_found": "Utente non trovato o account è stato eliminato",
