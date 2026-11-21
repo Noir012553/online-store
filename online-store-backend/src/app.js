@@ -55,6 +55,7 @@ const { startExportJobWorker } = require('./services/exportJobService');
 const { startInventoryReservationWorker } = require('./services/inventoryService');
 const { assertStorageConfigured, getStorageStatus } = require('./services/exportStorage');
 const { getR2StorageStatus } = require('./services/r2AssetService');
+const { loadProviderRuntimeConfigCache } = require('./services/providerRuntimeConfigCache');
 
 // ==================== Initialize Express App ====================
 const app = express();
@@ -325,6 +326,7 @@ const connectDB = async () => {
     }
     connectionAttempts = 0;
     assertMongoConnected();
+    await loadProviderRuntimeConfigCache();
     assertStorageConfigured();
     await paymentMethodService.ensurePaymentMethods();
     await paymentService.refreshVnpayAdapter();

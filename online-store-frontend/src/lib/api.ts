@@ -2821,7 +2821,9 @@ export interface ProviderSetupGuide {
 export interface ProviderRuntimeField {
   key: string;
   label: string;
-  type: 'text' | 'secret' | 'url';
+  type: 'text' | 'secret' | 'url' | 'boolean' | 'select';
+  options?: string[];
+  defaultValue?: string;
   configured: boolean;
   value: string | null;
   source: 'environment' | 'database' | 'runtime-default' | 'unset';
@@ -2852,6 +2854,12 @@ export const providerConfigurationAPI = {
     skipErrorToast: true,
   }),
   saveCloudflareAiRuntime: (values: Record<string, string> & { password: string }) => apiCall<{ success: boolean; data: { configurationVersion: number } }>('/settings/provider-configs/runtime/cloudflare_ai', {
+    method: 'PUT',
+    body: JSON.stringify(values),
+    skipCache: true,
+    skipErrorToast: true,
+  }),
+  saveRuntimeProvider: (providerCode: string, values: Record<string, string | boolean> & { password: string }) => apiCall<{ success: boolean; data: { configurationVersion: number } }>(`/settings/provider-configs/runtime/${encodeURIComponent(providerCode)}`, {
     method: 'PUT',
     body: JSON.stringify(values),
     skipCache: true,

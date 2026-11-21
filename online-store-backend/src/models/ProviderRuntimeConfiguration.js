@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const providerRuntimeConfigurationSchema = new mongoose.Schema({
-  providerCode: { type: String, enum: ['vnpay', 'cloudflare_ai'], required: true, unique: true, immutable: true },
+  providerCode: { type: String, enum: ['vnpay', 'cloudflare_ai', 'email', 'cod', 'ghn', 'cloudflare_r2'], required: true, unique: true, immutable: true },
   values: { type: mongoose.Schema.Types.Mixed, default: {} },
   encryptedSecrets: { type: mongoose.Schema.Types.Mixed, default: {} },
   version: { type: Number, default: 1, min: 1 },

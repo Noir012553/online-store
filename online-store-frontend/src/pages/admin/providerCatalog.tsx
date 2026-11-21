@@ -28,6 +28,7 @@ const CATEGORY_KEYS: Record<ProviderCatalogCategory, string> = {
 
 const EMPTY_FORM: { name: string; keyValues: ProviderCatalogKeyValue[] } = { name: '', keyValues: [] };
 const CONFIG_SCHEMA_CODES = new Set(['paypal', 'momo', 'sendgrid', 'vercel', 'render']);
+const EDITABLE_RUNTIME_PROVIDERS = new Set(['smtp', 'sendgrid', 'cod', 'vnpay', 'ghn', 'cloudflare_r2', 'cloudflare_ai']);
 const SENSITIVE_CATALOG_VALUE = /\b(api[\s_-]*key|access[\s_-]*key|secret|token|password|credential|authorization|bearer)\b/i;
 
 const PROVIDER_METADATA_KEYS: Record<string, string> = {
@@ -147,6 +148,8 @@ function ProviderCatalogPage() {
   const [cloudflareAiValues, setCloudflareAiValues] = useState<Record<string, string>>({});
   const [cloudflareAiDirtyKeys, setCloudflareAiDirtyKeys] = useState<string[]>([]);
   const [cloudflareAiPassword, setCloudflareAiPassword] = useState('');
+  const [runtimeConfigValues, setRuntimeConfigValues] = useState<Record<string, string>>({});
+  const [runtimeConfigDirtyKeys, setRuntimeConfigDirtyKeys] = useState<string[]>([]);
   const [selectedCode, setSelectedCode] = useState('smtp');
   const [category, setCategory] = useState('');
   const [search, setSearch] = useState('');
@@ -258,6 +261,59 @@ function ProviderCatalogPage() {
     setRuntimeEditing(true);
     setSelected(null);
     setAudit(null);
+  };
+
+  const openRuntimeEditor = (providerCode: string) => {
+    const provider = runtimeProviders.find((item) => item.providerCode === providerCode);
+    if (!provider || !EDITABLE_RUNTIME_PROVIDERS.has(providerCode) || provider.storeAvailable === false) return;
+    if (providerCode === 'vnpay') {
+      setRuntimeEditing(false);
+      setRuntimeSelectedCode(providerCode);
+      setRuntimeFields(provider.fields);
+      setRuntimeView(true);
+      setSelected(null);
+      setAudit(null);
+      setRuntimeSecret('');
+      setRuntimeReauthPassword('');
+      return;
+    }
+    if (providerCode === 'cloudflare_ai') {
+      editCloudflareAiRuntime();
+      return;
+    }
+    setRuntimeSelectedCode(providerCode);
+    setRuntimeFields(provider.fields);
+    setRuntimeConfigValues(Object.fromEntries(provider.fields.map((field) => [field.key, field.type === 'secret' ? '' : field.value ?? field.defaultValue ?? ''])));
+    setRuntimeConfigDirtyKeys([]);
+    setRuntimeReauthPassword('');
+    setRuntimeView(true);
+    setRuntimeEditing(true);
+    setSelected(null);
+    setAudit(null);
+  };
+
+  const saveGenericRuntime = async () => {
+    setRuntimeSecretBusy(true);
+    try {
+      const values: Record<string, string | boolean> = Object.fromEntries(runtimeConfigDirtyKeys.map((key) => {
+        const field = runtimeFields.find((item) => item.key === key);
+        const value = runtimeConfigValues[key] || '';
+        return [key, field?.type === 'boolean' ? value === 'true' : value];
+      }));
+      const response = await providerConfigurationAPI.saveRuntimeProvider(runtimeSelectedCode, { ...values, password: runtimeReauthPassword });
+      const updated = await providerConfigurationAPI.getRuntimeProvider(runtimeSelectedCode);
+      setRuntimeProviders((current) => current.map((provider) => provider.providerCode === runtimeSelectedCode ? updated.data : provider));
+      setRuntimeFields(updated.data.fields);
+      setRuntimeConfigDirtyKeys([]);
+      setRuntimeConfigValues(Object.fromEntries(updated.data.fields.map((field) => [field.key, field.type === 'secret' ? '' : field.value ?? field.defaultValue ?? ''])));
+      setRuntimeReauthPassword('');
+      setRuntimeEditing(false);
+      toast.success(`${tr('runtime_applied')} ${response.data.configurationVersion || 1}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : tr('runtime_save_error'));
+    } finally {
+      setRuntimeSecretBusy(false);
+    }
   };
 
   const saveCloudflareAiRuntime = async () => {
@@ -676,6 +732,12 @@ function ProviderCatalogPage() {
                 <label className="block text-sm font-medium text-slate-700">{tr('confirm_password')}<input type="password" autoComplete="off" value={runtimeReauthPassword} onChange={(event) => setRuntimeReauthPassword(event.target.value)} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal" /></label>
                 <div className="flex justify-end gap-2"><button type="button" onClick={() => { setRuntimeEditing(false); setRuntimeSecret(''); setRuntimeReauthPassword(''); }} className="rounded-lg border border-slate-300 px-3 py-2 text-sm">{tr('cancel')}</button><button type="button" disabled={runtimeSecretBusy || !runtimeReauthPassword || runtimeSelectedProvider?.storeAvailable === false} onClick={() => void saveVnpayRuntime()} className="rounded-lg bg-slate-950 px-3 py-2 text-sm font-medium text-white disabled:opacity-50">{runtimeSecretBusy ? tr('saving') : tr('save_apply')}</button></div>
               </section>}
+              {runtimeEditing && !['vnpay', 'cloudflare_ai'].includes(runtimeSelectedCode) && <section className="mt-4 space-y-4 rounded-xl border border-blue-200 bg-blue-50/40 p-4">
+                <div><h3 className="font-semibold text-slate-900">{tr('edit_runtime_config')}</h3><p className="mt-1 text-xs leading-5 text-slate-600">{tr('runtime_config_help')}</p></div>
+                {runtimeFields.map((field) => <label key={field.key} className="block text-sm font-medium text-slate-700">{localizedRuntimeField(field)}<code className="mt-1 block break-all text-xs font-normal text-slate-500">{field.key}</code>{field.type === 'boolean' ? <input type="checkbox" checked={runtimeConfigValues[field.key] === 'true'} onChange={(event) => { setRuntimeConfigValues((current) => ({ ...current, [field.key]: String(event.target.checked) })); setRuntimeConfigDirtyKeys((current) => current.includes(field.key) ? current : [...current, field.key]); }} className="mt-2 h-4 w-4 rounded border-slate-300" /> : field.type === 'select' ? <select value={runtimeConfigValues[field.key] || field.defaultValue || ''} onChange={(event) => { setRuntimeConfigValues((current) => ({ ...current, [field.key]: event.target.value })); setRuntimeConfigDirtyKeys((current) => current.includes(field.key) ? current : [...current, field.key]); }} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal">{(field.options || []).map((option) => <option key={option} value={option}>{option}</option>)}</select> : <input type={field.type === 'secret' ? 'password' : field.type === 'url' ? 'url' : 'text'} autoComplete="new-password" value={runtimeConfigValues[field.key] || ''} placeholder={field.type === 'secret' && field.configured ? tr('configured_replace_placeholder') : field.defaultValue || ''} onChange={(event) => { const value = event.target.value; setRuntimeConfigValues((current) => ({ ...current, [field.key]: value })); setRuntimeConfigDirtyKeys((current) => field.type === 'secret' && !value ? current.filter((key) => key !== field.key) : current.includes(field.key) ? current : [...current, field.key]); }} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal" />}</label>)}
+                <label className="block text-sm font-medium text-slate-700">{tr('confirm_password')}<input type="password" autoComplete="off" value={runtimeReauthPassword} onChange={(event) => setRuntimeReauthPassword(event.target.value)} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5" /></label>
+                <div className="flex justify-end gap-2"><button type="button" onClick={() => { setRuntimeEditing(false); setRuntimeReauthPassword(''); setRuntimeConfigDirtyKeys([]); }} className="rounded-lg border border-slate-300 px-3 py-2 text-sm">{tr('cancel')}</button><button type="button" disabled={runtimeSecretBusy || !runtimeReauthPassword || !runtimeConfigDirtyKeys.length || runtimeSelectedProvider?.storeAvailable === false} onClick={() => void saveGenericRuntime()} className="rounded-lg bg-slate-950 px-3 py-2 text-sm font-medium text-white disabled:opacity-50">{runtimeSecretBusy ? tr('saving') : tr('save_apply')}</button></div>
+              </section>}
               {runtimeEditing && runtimeSelectedCode === 'cloudflare_ai' && <section className="mt-4 space-y-4 rounded-xl border border-blue-200 bg-blue-50/40 p-4">
                 <div><h3 className="font-semibold text-slate-900">{tr('edit_cloudflare_runtime')}</h3><p className="mt-1 text-xs leading-5 text-slate-600">{tr('cloudflare_runtime_help')}</p></div>
                 {runtimeSelectedProvider?.storeAvailable === false && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-800">{tr('credential_store_unavailable')}</p>}
@@ -698,7 +760,7 @@ function ProviderCatalogPage() {
                 <dl className="mt-3 space-y-2">{(selected.keyValues || []).map((pair, index) => <div key={`${pair.key}-${index}`} className="grid gap-1 rounded-lg bg-slate-50 p-3 sm:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]"><dt className="break-all text-xs font-semibold text-slate-600">{pair.key}</dt><dd className="break-all whitespace-pre-wrap text-sm text-slate-800">{pair.value || '—'}</dd></div>)}</dl>
               </div>}
               <div className="rounded-xl border border-blue-200 bg-blue-50/40 p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2"><h4 className="text-sm font-medium text-slate-800">{tr('current_runtime')}{selected.providerCode === 'cloudflare_ai' ? '' : tr('read_only_suffix')}</h4>{selected.providerCode === 'vnpay' && <button type="button" disabled={runtimeStatus !== 'loaded'} onClick={() => { setRuntimeEditing(false); setRuntimeView(true); setRuntimeSelectedCode('vnpay'); setRuntimeFields(runtimeProviders.find((provider) => provider.providerCode === 'vnpay')?.fields || []); }} className="rounded-lg border border-blue-300 px-3 py-1.5 text-xs font-medium text-blue-800 hover:bg-blue-50 disabled:opacity-50">{tr('edit_vnpay_config')}</button>}{selected.providerCode === 'cloudflare_ai' && <button type="button" disabled={runtimeStatus !== 'loaded' || selectedRuntimeProvider?.storeAvailable === false} onClick={editCloudflareAiRuntime} className="rounded-lg border border-blue-300 px-3 py-1.5 text-xs font-medium text-blue-800 hover:bg-blue-50 disabled:opacity-50">{tr('edit_cloudflare_config')}</button>}<span className="text-xs text-slate-500">{runtimeStatus === 'loading' ? tr('loading') : runtimeStatus === 'unavailable' ? tr('cannot_read') : selectedRuntimeProvider?.status === 'configured' ? tr('runtime_status_configured') : selectedRuntimeProvider?.status === 'incomplete' ? tr('runtime_partial') : selectedRuntimeProvider?.status === 'not-configured' ? tr('not_configured') : tr('no_mapping')}</span></div>
+                <div className="flex flex-wrap items-center justify-between gap-2"><h4 className="text-sm font-medium text-slate-800">{tr('current_runtime')}{selected.providerCode === 'cloudflare_ai' ? '' : tr('read_only_suffix')}</h4><button type="button" disabled={runtimeStatus !== 'loaded' || !EDITABLE_RUNTIME_PROVIDERS.has(selected.providerCode) || (selected.providerCode !== 'cod' && selectedRuntimeProvider?.storeAvailable === false)} title={!EDITABLE_RUNTIME_PROVIDERS.has(selected.providerCode) ? tr('runtime_edit_unsupported') : undefined} onClick={() => openRuntimeEditor(selected.providerCode)} className="rounded-lg border border-blue-300 px-3 py-1.5 text-xs font-medium text-blue-800 hover:bg-blue-50 disabled:opacity-50">{EDITABLE_RUNTIME_PROVIDERS.has(selected.providerCode) ? tr('edit_runtime_config') : tr('runtime_edit_unsupported')}</button><span className="text-xs text-slate-500">{runtimeStatus === 'loading' ? tr('loading') : runtimeStatus === 'unavailable' ? tr('cannot_read') : selectedRuntimeProvider?.status === 'configured' ? tr('runtime_status_configured') : selectedRuntimeProvider?.status === 'incomplete' ? tr('runtime_partial') : selectedRuntimeProvider?.status === 'not-configured' ? tr('not_configured') : tr('no_mapping')}</span></div>
                 {runtimeStatus === 'loading' ? <p className="mt-3 text-sm text-slate-500">{tr('runtime_reading_backend')}</p> : runtimeStatus === 'unavailable' ? <p className="mt-3 text-sm text-slate-600">{tr('runtime_backend_unavailable')}</p> : selectedRuntimeProvider?.managed ? <>{selectedRuntimeProvider.fields.some((field) => field.configured) ? <dl className="mt-3 space-y-2">{selectedRuntimeProvider.fields.filter((field) => field.configured).map((field) => <div key={field.key} className="grid gap-1 rounded-lg bg-white p-3 sm:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]"><dt className="break-all text-xs font-semibold text-slate-600">{localizedRuntimeField(field)}</dt><dd className="break-all whitespace-pre-wrap text-sm text-slate-800">{field.type === 'secret' ? tr('masked_configured') : field.value || '—'}</dd><p className="sm:col-span-2 text-xs text-slate-500">{field.source === 'environment' ? tr('source_label_environment') : field.source === 'database' ? tr('source_label_database') : tr('source_label_runtime')}</p></div>)}</dl> : <p className="mt-2 text-sm text-slate-500">{tr('no_runtime_keys')}</p>}</> : <p className="mt-3 text-sm text-slate-600">{tr('no_runtime_mapping')}</p>}
               </div>
             </section>

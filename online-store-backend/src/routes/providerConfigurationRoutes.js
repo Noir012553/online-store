@@ -10,6 +10,7 @@ router.get('/runtime/:providerCode', providerConfigurationController.getRuntimeP
 router.post('/runtime/:providerCode/reveal/:key', providerConfigurationController.revealRuntimeSecret);
 router.put('/runtime/vnpay', providerConfigurationController.updateVnpayRuntime);
 router.put('/runtime/cloudflare_ai', providerConfigurationController.updateCloudflareAiRuntime);
+router.put('/runtime/:providerCode', providerConfigurationController.updateRuntimeProvider);
 router.get('/schema/:providerCode', providerConfigurationController.getSchema);
 router.get('/:id', providerConfigurationController.get);
 router.put('/:id', providerConfigurationController.save);
