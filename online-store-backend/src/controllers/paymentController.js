@@ -18,6 +18,13 @@ const { getClientIp } = require('../utils/getClientIp');
 const { getMessage } = require('../i18n/messages');
 const { formatPayments } = require('../utils/currencyResponseFormatter');
 const paymentMethodService = require('../services/paymentMethodService');
+const { isAdmin, isOrderOwner } = require('../utils/resourceAuthorization');
+
+const findOrderForRequest = async (req, orderId) => {
+  const order = await Order.findById(orderId).populate('customer');
+  if (!order || (!isAdmin(req.user) && !isOrderOwner(order, req.user))) return null;
+  return order;
+};
 
 const formatPaymentResponse = async (payment, lang) => (await formatPayments([payment], lang))[0];
 
@@ -85,8 +92,8 @@ const initiatePayment = asyncHandler(async (req, res) => {
   }
 
 
-  // Kiểm tra order tồn tại
-  const order = await Order.findById(orderId);
+  // Kiểm tra order tồn tại và quyền truy cập
+  const order = await findOrderForRequest(req, orderId);
   if (!order) {
     res.status(404);
     throw createPaymentError({
@@ -171,6 +178,11 @@ const getAvailablePaymentMethods = asyncHandler(async (_req, res) => {
  */
 const confirmPayment = asyncHandler(async (req, res) => {
   const { orderId } = req.params;
+  const order = await findOrderForRequest(req, orderId);
+  if (!order) {
+    res.status(404);
+    throw createPaymentError({ code: 'PAYMENT_ORDER_NOT_FOUND' }, req.lang);
+  }
 
   const result = await paymentService.confirmPayment(orderId);
 
@@ -286,6 +298,11 @@ const handleWebhook = asyncHandler(async (req, res) => {
  */
 const getPaymentHistory = asyncHandler(async (req, res) => {
   const { orderId } = req.params;
+  const order = await findOrderForRequest(req, orderId);
+  if (!order) {
+    res.status(404);
+    throw createPaymentError({ code: 'PAYMENT_ORDER_NOT_FOUND' }, req.lang);
+  }
 
   const result = await paymentService.getPaymentHistory(orderId);
 
@@ -344,7 +361,7 @@ const getPaymentDetails = asyncHandler(async (req, res) => {
   const { paymentId } = req.params;
 
   const payment = await Payment.findById(paymentId).lean();
-  if (!payment) {
+  if (!payment || (!isAdmin(req.user) && !(await findOrderForRequest(req, payment.orderId)))) {
     res.status(404);
     throw createPaymentError({ code: 'PAYMENT_NOT_FOUND' }, req.lang);
   }

@@ -10,6 +10,26 @@ const Customer = require('../models/Customer');
 const ghnService = require('../services/ghnService');
 const { getMessage } = require('../i18n/messages');
 const { getDefaultLanguage } = require('../config/languageInventory');
+const { isAdmin } = require('../utils/resourceAuthorization');
+
+const findCustomerForRequest = (req, customerId) => {
+  const query = { _id: customerId, isDeleted: false };
+  if (!isAdmin(req.user)) query.email = req.user.email.toLowerCase();
+  return Customer.findOne(query);
+};
+
+const findAddressForRequest = async (req, addressId) => {
+  const query = { _id: addressId, isDeleted: false };
+  if (!isAdmin(req.user)) {
+    const customer = await Customer.findOne({
+      email: req.user.email.toLowerCase(),
+      isDeleted: false,
+    }).select('_id');
+    if (!customer) return null;
+    query.customer = customer._id;
+  }
+  return Address.findOne(query).populate('customer');
+};
 
 // Helper: Get language from request
 const getAddressLanguage = (req) => {
@@ -43,8 +63,7 @@ const getAddresses = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: getMessage(addressLang, 'address.customerRequired') });
   }
 
-  // Verify customer exists
-  const customer = await Customer.findOne({ _id: customerId, isDeleted: false });
+  const customer = await findCustomerForRequest(req, customerId);
   if (!customer) {
     return res.status(404).json({ message: getMessage(addressLang, 'address.customerNotFound') });
   }
@@ -67,10 +86,7 @@ const getAddresses = asyncHandler(async (req, res) => {
  */
 const getAddressById = asyncHandler(async (req, res) => {
   const addressLang = getAddressLanguage(req);
-  const address = await Address.findOne({
-    _id: req.params.id,
-    isDeleted: false,
-  }).populate('customer');
+  const address = await findAddressForRequest(req, req.params.id);
 
   if (!address) {
     return res.status(404).json({ message: getMessage(addressLang, 'address.notFound') });
@@ -94,8 +110,7 @@ const createAddress = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: getMessage(addressLang, 'address.missingFields') });
   }
 
-  // Verify customer exists
-  const customer = await Customer.findOne({ _id: customerId, isDeleted: false });
+  const customer = await findCustomerForRequest(req, customerId);
   if (!customer) {
     return res.status(404).json({ message: getMessage(addressLang, 'address.customerNotFound') });
   }
@@ -114,7 +129,7 @@ const createAddress = asyncHandler(async (req, res) => {
 
   // Create address
   const address = new Address({
-    customer: customerId,
+    customer: customer._id,
     fullName,
     phone,
     provinceId: ghnValidation.province.ProvinceID,
@@ -146,10 +161,7 @@ const createAddress = asyncHandler(async (req, res) => {
 const updateAddress = asyncHandler(async (req, res) => {
   const { fullName, phone, provinceId, districtId, wardId, street, addressType, isDefault } = req.body;
 
-  const address = await Address.findOne({
-    _id: req.params.id,
-    isDeleted: false,
-  });
+  const address = await findAddressForRequest(req, req.params.id);
 
   if (!address) {
     const lang = getAddressLanguage(req);
@@ -200,10 +212,7 @@ const updateAddress = asyncHandler(async (req, res) => {
  */
 const setAsDefault = asyncHandler(async (req, res) => {
   const lang = getAddressLanguage(req);
-  const address = await Address.findOne({
-    _id: req.params.id,
-    isDeleted: false,
-  });
+  const address = await findAddressForRequest(req, req.params.id);
 
   if (!address) {
     return res.status(404).json({ message: getMessage(lang, 'admin-controllers-messages.address_not_found') });
@@ -225,10 +234,7 @@ const setAsDefault = asyncHandler(async (req, res) => {
  */
 const deleteAddress = asyncHandler(async (req, res) => {
   const lang = getAddressLanguage(req);
-  const address = await Address.findOne({
-    _id: req.params.id,
-    isDeleted: false,
-  });
+  const address = await findAddressForRequest(req, req.params.id);
 
   if (!address) {
     return res.status(404).json({ message: getMessage(lang, 'admin-controllers-messages.address_not_found') });

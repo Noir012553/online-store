@@ -15,6 +15,13 @@ const { getMessage } = require('../i18n/messages');
 const { convertOrderAmount, getActiveExchangeRates } = require('../utils/orderRevenue');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const { getCurrencyMetadata, formatAmountFields, formatOrders } = require('../utils/currencyResponseFormatter');
+const { isAdmin, isOrderOwner } = require('../utils/resourceAuthorization');
+
+const findOrderForRequest = async (req, orderId) => {
+  const order = await withTimeout(Order.findById(orderId).populate('customer'), 8000);
+  if (!order || (!isAdmin(req.user) && !isOrderOwner(order, req.user))) return null;
+  return order;
+};
 
 const createShipmentError = (lang, errorCode, messageKey, params = {}) => {
   const error = new Error(getMessage(lang, messageKey, params));
@@ -66,7 +73,7 @@ const createShipment = asyncHandler(async (req, res) => {
   }
 
   // Get order
-  const order = await withTimeout(Order.findById(orderId).populate('customer'), 8000);
+  const order = await findOrderForRequest(req, orderId);
   if (!order) {
     res.status(404);
     throw createShipmentError(req.lang, 'ORDER_NOT_FOUND', 'orders.order_not_found', { orderId });
@@ -326,7 +333,7 @@ const createShipment = asyncHandler(async (req, res) => {
 const getShipmentInfo = asyncHandler(async (req, res) => {
   const { orderId } = req.params;
 
-  const order = await withTimeout(Order.findById(orderId), 8000);
+  const order = await findOrderForRequest(req, orderId);
   if (!order) {
     res.status(404);
     throw new Error(getMessage(req.lang, 'orders.order_not_found'));
@@ -361,7 +368,7 @@ const getShipmentInfo = asyncHandler(async (req, res) => {
 const getPrintLabel = asyncHandler(async (req, res) => {
   const { orderId } = req.params;
 
-  const order = await withTimeout(Order.findById(orderId), 8000);
+  const order = await findOrderForRequest(req, orderId);
   if (!order) {
     res.status(404);
     throw new Error(getMessage(req.lang, 'orders.order_not_found'));
@@ -424,7 +431,7 @@ const getPrintLabel = asyncHandler(async (req, res) => {
 const cancelShipment = asyncHandler(async (req, res) => {
   const { orderId } = req.params;
 
-  const order = await withTimeout(Order.findById(orderId), 8000);
+  const order = await findOrderForRequest(req, orderId);
   if (!order) {
     res.status(404);
     throw new Error(getMessage(req.lang, 'orders.order_not_found'));
