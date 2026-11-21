@@ -11,6 +11,7 @@ const {
 } = require('@aws-sdk/client-s3');
 const { MAX_IMAGE_ASSET_BYTES } = require('../utils/fileUtils');
 const { fetchSafeRemoteImage } = require('../utils/safeRemoteUrl');
+const { getProviderRuntimeValues } = require('./providerRuntimeConfigCache');
 
 const MAX_R2_ACCOUNTS = 9;
 const DEFAULT_MAX_ASSET_BYTES = MAX_IMAGE_ASSET_BYTES;
@@ -54,8 +55,10 @@ const createR2Error = (code, message, details = {}) => {
   return error;
 };
 
-const getNonNegativeInteger = (name, fallback) => {
-  const raw = process.env[name];
+const getR2Environment = () => ({ ...process.env, ...getProviderRuntimeValues('cloudflare_r2') });
+
+const getNonNegativeInteger = (name, fallback, environment = getR2Environment()) => {
+  const raw = environment[name];
   if (raw === undefined || raw === '') return fallback;
   const value = Number(raw);
   if (!Number.isInteger(value) || value < 0) {
@@ -76,12 +79,15 @@ const getMaxBytesForMime = mimeType => (
     : getPositiveLimit('R2_MAX_IMAGE_BYTES', DEFAULT_MAX_ASSET_BYTES)
 );
 
-const getR2UploadPolicy = () => ({
-  enabled: process.env.R2_UPLOAD_ENABLED === 'true',
-  maxAssets: getNonNegativeInteger('R2_MAX_UPLOAD_COUNT', 0),
-  maxBytes: getNonNegativeInteger('R2_MAX_UPLOAD_BYTES', 0),
-  maxRetries: getNonNegativeInteger('R2_MAX_RETRIES', DEFAULT_MAX_R2_RETRIES),
-});
+const getR2UploadPolicy = () => {
+  const environment = getR2Environment();
+  return {
+  enabled: environment.R2_UPLOAD_ENABLED === 'true',
+  maxAssets: getNonNegativeInteger('R2_MAX_UPLOAD_COUNT', 0, environment),
+  maxBytes: getNonNegativeInteger('R2_MAX_UPLOAD_BYTES', 0, environment),
+  maxRetries: getNonNegativeInteger('R2_MAX_RETRIES', DEFAULT_MAX_R2_RETRIES, environment),
+  };
+};
 
 const assertR2UploadEnabled = () => {
   const policy = getR2UploadPolicy();
@@ -142,7 +148,7 @@ const sendR2Command = async (account, createCommand, maxRetries = DEFAULT_MAX_R2
   }
 };
 
-const getR2Accounts = (environment = process.env) => {
+const getR2Accounts = (environment = getR2Environment()) => {
   const accounts = [];
   const configuredIndexes = [];
   for (let index = 1; index <= MAX_R2_ACCOUNTS; index += 1) {
@@ -260,6 +266,8 @@ const getClient = account => {
   }
   return clients.get(clientKey);
 };
+
+const resetR2Clients = () => clients.clear();
 
 const getExtension = (mimeType, sourceName = '') => (
   MIME_EXTENSIONS[mimeType] || path.extname(sourceName).slice(1).toLowerCase() || 'bin'
@@ -626,4 +634,5 @@ module.exports = {
   deleteR2Assets,
   deleteR2ProjectAssets,
   getR2StorageStatus,
+  resetR2Clients,
 };

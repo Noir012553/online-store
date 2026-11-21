@@ -15,6 +15,14 @@ const { getMessage } = require('../i18n/messages');
 const { convertOrderAmount, getActiveExchangeRates } = require('../utils/orderRevenue');
 const { CLI_SYMBOLS } = require('../utils/cliSymbols');
 const { getCurrencyMetadata, formatAmountFields, formatOrders } = require('../utils/currencyResponseFormatter');
+const { isAdmin, isOrderOwner } = require('../utils/resourceAuthorization');
+const { getProviderRuntimeValue } = require('../services/providerRuntimeConfigCache');
+
+const findOrderForRequest = async (req, orderId) => {
+  const order = await withTimeout(Order.findById(orderId).populate('customer'), 8000);
+  if (!order || (!isAdmin(req.user) && !isOrderOwner(order, req.user))) return null;
+  return order;
+};
 
 const createShipmentError = (lang, errorCode, messageKey, params = {}) => {
   const error = new Error(getMessage(lang, messageKey, params));
@@ -66,7 +74,7 @@ const createShipment = asyncHandler(async (req, res) => {
   }
 
   // Get order
-  const order = await withTimeout(Order.findById(orderId).populate('customer'), 8000);
+  const order = await findOrderForRequest(req, orderId);
   if (!order) {
     res.status(404);
     throw createShipmentError(req.lang, 'ORDER_NOT_FOUND', 'orders.order_not_found', { orderId });
@@ -154,7 +162,8 @@ const createShipment = asyncHandler(async (req, res) => {
 
   // Get available services from GHN for the specific route
   // This ensures we only use service_id that GHN actually supports for this route
-  const FROM_WAREHOUSE_DISTRICT_ID = Number(process.env.GHN_WAREHOUSE_DISTRICT_ID) || 1458;
+  const FROM_WAREHOUSE_DISTRICT_ID = Number(getProviderRuntimeValue('ghn', 'GHN_WAREHOUSE_DISTRICT_ID') || process.env.GHN_WAREHOUSE_DISTRICT_ID) || 1458;
+  const FROM_WAREHOUSE_WARD_CODE = getProviderRuntimeValue('ghn', 'GHN_WAREHOUSE_WARD_CODE') || process.env.GHN_WAREHOUSE_WARD_CODE || '21905';
 
   let availableServices;
   try {
@@ -212,7 +221,7 @@ const createShipment = asyncHandler(async (req, res) => {
 
   const shipmentPayload = {
     from_district_id: FROM_WAREHOUSE_DISTRICT_ID,
-    from_ward_code: process.env.GHN_WAREHOUSE_WARD_CODE || '21905',
+    from_ward_code: FROM_WAREHOUSE_WARD_CODE,
     to_name: recipientName,
     to_phone: recipientPhone,
     to_address: recipientAddress,
@@ -326,7 +335,7 @@ const createShipment = asyncHandler(async (req, res) => {
 const getShipmentInfo = asyncHandler(async (req, res) => {
   const { orderId } = req.params;
 
-  const order = await withTimeout(Order.findById(orderId), 8000);
+  const order = await findOrderForRequest(req, orderId);
   if (!order) {
     res.status(404);
     throw new Error(getMessage(req.lang, 'orders.order_not_found'));
@@ -361,7 +370,7 @@ const getShipmentInfo = asyncHandler(async (req, res) => {
 const getPrintLabel = asyncHandler(async (req, res) => {
   const { orderId } = req.params;
 
-  const order = await withTimeout(Order.findById(orderId), 8000);
+  const order = await findOrderForRequest(req, orderId);
   if (!order) {
     res.status(404);
     throw new Error(getMessage(req.lang, 'orders.order_not_found'));
@@ -424,7 +433,7 @@ const getPrintLabel = asyncHandler(async (req, res) => {
 const cancelShipment = asyncHandler(async (req, res) => {
   const { orderId } = req.params;
 
-  const order = await withTimeout(Order.findById(orderId), 8000);
+  const order = await findOrderForRequest(req, orderId);
   if (!order) {
     res.status(404);
     throw new Error(getMessage(req.lang, 'orders.order_not_found'));

@@ -208,7 +208,24 @@ const updateUserProfile = asyncHandler(async (req, res) => {
 
     if (user) {
         user.username = req.body.username || user.username;
-        user.email = req.body.email || user.email;
+        const requestedEmail = typeof req.body.email === 'string'
+            ? req.body.email.trim().toLowerCase()
+            : user.email;
+        const emailChanged = requestedEmail !== user.email;
+        let verificationToken;
+        if (emailChanged) {
+            const existingUser = await User.findOne({ email: requestedEmail, _id: { $ne: user._id } });
+            if (existingUser) {
+                res.status(409);
+                throw createUserError(req.lang, 'USER_ALREADY_EXISTS', 'user-messages.user_already_exists');
+            }
+            user.email = requestedEmail;
+            user.isEmailVerified = false;
+            const { token, hashedToken, expires } = generatePasswordResetToken();
+            verificationToken = token;
+            user.emailVerificationToken = hashedToken;
+            user.emailVerificationExpire = expires;
+        }
         user.name = req.body.name || user.name;
         user.phone = req.body.phone || user.phone;
         user.address = req.body.address || user.address;
@@ -224,6 +241,15 @@ const updateUserProfile = asyncHandler(async (req, res) => {
         }
 
         const updatedUser = await user.save();
+
+        if (emailChanged) {
+            try {
+                const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
+                await sendVerificationEmail(updatedUser.email, verificationUrl, req.lang);
+            } catch (emailError) {
+                console.warn('Email verification could not be sent:', emailError.message);
+            }
+        }
 
         if (passwordChanged && currentAccessToken) {
             try {
@@ -243,6 +269,7 @@ const updateUserProfile = asyncHandler(async (req, res) => {
             address: updatedUser.address,
             profileImage: updatedUser.profileImage,
             role: updatedUser.role,
+            isEmailVerified: updatedUser.isEmailVerified,
             token: generateToken(updatedUser._id),
         });
     } else {

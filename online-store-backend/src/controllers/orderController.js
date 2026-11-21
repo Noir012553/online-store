@@ -21,6 +21,7 @@ const { sendOrderPaymentSuccessEmail } = require('../services/emailService');
 const { normalizePhone, phoneLookupQuery } = require('../utils/phone');
 const { markOrderPaid, releaseReservedOrderInventory, reserveOrderInventory } = require('../services/inventoryService');
 const paymentMethodService = require('../services/paymentMethodService');
+const { getProviderRuntimeValue } = require('../services/providerRuntimeConfigCache');
 
 const configuredOrderTimeout = Number(process.env.ORDER_QUERY_TIMEOUT_MS);
 const ORDER_QUERY_TIMEOUT_MS = Number.isFinite(configuredOrderTimeout) && configuredOrderTimeout > 0
@@ -33,8 +34,6 @@ const formatOrderResponse = async (orders, req) => {
   const reportingCurrency = await getReportingCurrency(req.query.currencyCode);
   return formatReportingOrders(orders, reportingCurrency, req.locale);
 };
-
-const WAREHOUSE_DISTRICT_ID = 1458;
 
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -216,7 +215,7 @@ const recalculateOrderItems = async (order, cartItems, shippingAddress, lang, re
       baseShippingFee = await calculateSelectedShipping({
         providerCode: order.shippingProvider,
         serviceType: order.shippingService,
-        from: { districtId: WAREHOUSE_DISTRICT_ID },
+        from: { districtId: Number(getProviderRuntimeValue('ghn', 'GHN_WAREHOUSE_DISTRICT_ID')) || 1458 },
         to: { districtId: shippingAddress.districtId, wardCode: shippingAddress.wardCode },
         weight: Math.max(totalWeight, 100),
         value: baseItemsPrice,
@@ -767,7 +766,7 @@ const addOrderItems = asyncHandler(async (req, res) => {
       baseShippingFee = await calculateSelectedShipping({
         providerCode: shippingProvider,
         serviceType: shippingService,
-        from: { districtId: WAREHOUSE_DISTRICT_ID },
+        from: { districtId: Number(getProviderRuntimeValue('ghn', 'GHN_WAREHOUSE_DISTRICT_ID')) || 1458 },
         to: { districtId: shippingAddress.districtId, wardCode: shippingAddress.wardCode },
         weight: Math.max(totalWeight, 100),
         value: calculatedItemsPrice,
@@ -976,7 +975,7 @@ const getOrderById = asyncHandler(async (req, res) => {
   if (order) {
     const isOwner = req.user && (
       String(order.user?._id || order.user || '') === String(req.user._id) ||
-      (order.customer && order.customer.email && order.customer.email.toLowerCase() === req.user.email.toLowerCase())
+      (req.user.isEmailVerified && order.customer?.email && order.customer.email.toLowerCase() === req.user.email.toLowerCase())
     );
 
     if (!isOwner && !isAdmin) {
@@ -1018,7 +1017,7 @@ const getMyOrders = asyncHandler(async (req, res) => {
 
   // Fallback: Nếu user không có orders, match theo customer email (cho mock/old data)
   // Sử dụng aggregation pipeline để join với Customer collection
-  if (orders.length === 0 && req.user.email) {
+  if (orders.length === 0 && req.user.isEmailVerified && req.user.email) {
 
     const customerEmail = req.user.email.toLowerCase().trim();
 

@@ -8,8 +8,10 @@ const ProviderRuntimeAudit = require('../models/ProviderRuntimeAudit');
 const ProviderRuntimeConfiguration = require('../models/ProviderRuntimeConfiguration');
 const { encryptSecret, decryptSecret, loadVnpayRuntimeConfig } = require('../services/vnpayRuntimeConfigService');
 const { loadCloudflareAiRuntimeConfiguration } = require('../services/cloudflareAiRuntimeConfigService');
+const { getProviderRuntimeValues, setProviderRuntimeValues } = require('../services/providerRuntimeConfigCache');
 const cloudflareAiService = require('../services/cloudflareAiService');
 const paymentService = require('../services/paymentService');
+const { resetR2Clients } = require('../services/r2AssetService');
 const PaymentMethod = require('../models/PaymentMethod');
 const ShippingProvider = require('../models/ShippingProvider');
 const User = require('../models/User');
@@ -62,20 +64,22 @@ const PROVIDER_SCHEMAS = {
 
 const RUNTIME_SCHEMAS = {
   smtp: [
-    { key: 'EMAIL_SERVICE', label: 'Email service', type: 'text' },
+    { key: 'EMAIL_SERVICE', label: 'Email service', type: 'select', options: ['smtp'], defaultValue: 'smtp' },
     { key: 'EMAIL_HOST', label: 'SMTP host', type: 'text', defaultValue: 'smtp.gmail.com' },
     { key: 'EMAIL_PORT', label: 'SMTP port', type: 'text', defaultValue: '587' },
-    { key: 'EMAIL_SECURE', label: 'SMTP secure', type: 'text', defaultValue: 'false' },
+    { key: 'EMAIL_SECURE', label: 'SMTP secure', type: 'boolean', defaultValue: 'false' },
     { key: 'EMAIL_USER', label: 'SMTP username', type: 'text' },
     { key: 'EMAIL_PASSWORD', label: 'SMTP password', type: 'secret' },
     { key: 'EMAIL_FROM', label: 'From address', type: 'text', fallbackKey: 'EMAIL_USER' },
   ],
   sendgrid: [
-    { key: 'EMAIL_SERVICE', label: 'Email service', type: 'text' },
+    { key: 'EMAIL_SERVICE', label: 'Email service', type: 'select', options: ['sendgrid'], defaultValue: 'sendgrid' },
     { key: 'SENDGRID_API_KEY', label: 'SendGrid API key', type: 'secret' },
     { key: 'EMAIL_FROM', label: 'Verified sender', type: 'text' },
   ],
-  cod: [],
+  cod: [
+    { key: 'COD_CHECKOUT_ENABLED', label: 'COD checkout enabled', type: 'boolean' },
+  ],
   vnpay: [
     { key: 'VNPAY_TMN_CODE', label: 'Mã terminal / merchant', type: 'text' },
     { key: 'VNPAY_HASH_SECRET', label: 'Hash Secret', type: 'secret' },
@@ -98,18 +102,23 @@ const RUNTIME_SCHEMAS = {
 };
 
 const RUNTIME_PROVIDER_CODES = ['smtp', 'sendgrid', 'cod', 'vnpay', 'paypal', 'momo', 'vercel', 'render', 'ghn', 'cloudflare_tunnel', 'cloudflare_r2', 'cloudflare_ai'];
+const EDITABLE_RUNTIME_PROVIDERS = ['smtp', 'sendgrid', 'cod', 'ghn', 'cloudflare_r2'];
+const getRuntimeStorageCode = (providerCode) => providerCode === 'smtp' || providerCode === 'sendgrid' ? 'email' : providerCode;
 
 const getRuntimeSchema = (providerCode, configuredKeys = []) => {
   if (providerCode === 'cloudflare_r2') {
     const policies = [
-      { key: 'R2_UPLOAD_ENABLED', label: 'Uploads enabled', type: 'text' },
+      { key: 'R2_UPLOAD_ENABLED', label: 'Uploads enabled', type: 'boolean' },
       { key: 'R2_MAX_UPLOAD_COUNT', label: 'Daily upload limit', type: 'text' },
       { key: 'R2_MAX_UPLOAD_BYTES', label: 'Daily upload byte limit', type: 'text' },
       { key: 'R2_MAX_IMAGE_BYTES', label: 'Image size limit', type: 'text' },
       { key: 'R2_MAX_VIDEO_BYTES', label: 'Video size limit', type: 'text' },
       { key: 'R2_MAX_RETRIES', label: 'Retry limit', type: 'text', defaultValue: '2' },
     ];
-    const accounts = Array.from({ length: 9 }, (_, index) => {
+    const configuredAccountIndexes = configuredKeys.map((key) => key.match(/^R2_ACCOUNT_ID(?:_(\d+))?$/)?.[1] || (key === 'R2_ACCOUNT_ID' ? '1' : null)).filter(Boolean).map(Number);
+    const highestConfiguredAccount = Math.max(0, ...configuredAccountIndexes);
+    const maxAccountIndex = Math.min(9, highestConfiguredAccount + 1 || 1);
+    const accounts = Array.from({ length: maxAccountIndex }, (_, index) => {
       const suffix = index === 0 ? '' : `_${index + 1}`;
       const fields = [
         { key: `R2_ACCOUNT_ID${suffix}`, label: `Account ID ${index + 1}`, type: 'text' },
@@ -118,7 +127,7 @@ const getRuntimeSchema = (providerCode, configuredKeys = []) => {
         { key: `R2_BUCKET_NAME${suffix}`, label: `Bucket ${index + 1}`, type: 'text' },
         { key: `R2_PUBLIC_BASE_URL${suffix}`, label: `Public URL ${index + 1}`, type: 'url' },
       ];
-      return fields.some((field) => process.env[field.key]) ? fields : [];
+      return index + 1 === maxAccountIndex || fields.some((field) => process.env[field.key] || configuredKeys.includes(field.key)) ? fields : [];
     }).flat();
     return [...policies, ...accounts];
   }
@@ -203,7 +212,12 @@ const audit = async (provider, req, action, changedFields, version) => ProviderC
 
 const getRuntimeProviderData = async (providerCode) => {
   const cloudflareRuntime = providerCode === 'cloudflare_ai' ? await loadCloudflareAiRuntimeConfiguration() : null;
-  const schema = getRuntimeSchema(providerCode, cloudflareRuntime?.databaseKeys || []);
+  const storedRuntimeValues = getProviderRuntimeValues(providerCode);
+  const runtimeStorageCode = getRuntimeStorageCode(providerCode);
+  const runtimeConfiguration = ['vnpay', 'cloudflare_ai'].includes(providerCode)
+    ? null
+    : await ProviderRuntimeConfiguration.findOne({ providerCode: runtimeStorageCode }).lean();
+  const schema = getRuntimeSchema(providerCode, [...Object.keys(storedRuntimeValues), ...(cloudflareRuntime?.databaseKeys || [])]);
   let shippingProvider;
   let paymentMethod;
   const vnpayRuntime = providerCode === 'vnpay' ? await loadVnpayRuntimeConfig() : null;
@@ -215,6 +229,9 @@ const getRuntimeProviderData = async (providerCode) => {
   }
 
   const fields = (schema || []).map((field) => {
+    if (providerCode === 'cod') {
+      return { key: field.key, label: field.label, type: field.type, configured: Boolean(paymentMethod), value: String(Boolean(paymentMethod?.isEnabled)), source: 'database' };
+    }
     const runtimeValue = vnpayRuntime?.values[field.key];
     if (runtimeValue) {
       return {
@@ -228,8 +245,11 @@ const getRuntimeProviderData = async (providerCode) => {
     }
     const envKey = field.envKey || field.key;
     const hasCloudflareOverride = cloudflareRuntime && Object.hasOwn(cloudflareRuntime.values, field.key);
-    let rawValue = hasCloudflareOverride ? String(cloudflareRuntime.values[field.key]) : process.env[envKey];
-    let source = hasCloudflareOverride ? 'database' : rawValue ? 'environment' : 'unset';
+    const hasRuntimeOverride = Object.hasOwn(storedRuntimeValues, field.key);
+    let rawValue = hasRuntimeOverride
+      ? String(storedRuntimeValues[field.key])
+      : hasCloudflareOverride ? String(cloudflareRuntime.values[field.key]) : process.env[envKey];
+    let source = hasRuntimeOverride || hasCloudflareOverride ? 'database' : rawValue ? 'environment' : 'unset';
     if (!rawValue && field.fallbackKey && process.env[field.fallbackKey]) {
       rawValue = process.env[field.fallbackKey];
       source = 'environment';
@@ -251,7 +271,7 @@ const getRuntimeProviderData = async (providerCode) => {
 
   if (shippingProvider) fields.push({ key: 'GHN_PROVIDER_ACTIVE', label: 'GHN provider active', type: 'text', configured: true, value: String(shippingProvider.isActive), source: 'database' });
   if (providerCode === 'vnpay') fields.push({ key: 'VNPAY_CHECKOUT_ENABLED', label: 'Checkout enabled', type: 'text', configured: true, value: String(vnpayRuntime.checkoutEnabled), source: 'database' });
-  else if (paymentMethod) fields.push({ key: `${providerCode.toUpperCase()}_CHECKOUT_ENABLED`, label: 'Checkout enabled', type: 'text', configured: true, value: String(paymentMethod.isEnabled), source: 'database' });
+  else if (paymentMethod && providerCode !== 'cod') fields.push({ key: `${providerCode.toUpperCase()}_CHECKOUT_ENABLED`, label: 'Checkout enabled', type: 'text', configured: true, value: String(paymentMethod.isEnabled), source: 'database' });
 
   const managed = schema !== null;
   const configuredKeys = new Set(fields.filter((field) => field.configured).map((field) => field.key));
@@ -263,9 +283,11 @@ const getRuntimeProviderData = async (providerCode) => {
   }[providerCode];
   let ready = Boolean(paymentMethod);
   if (providerCode === 'sendgrid') {
-    ready = process.env.EMAIL_SERVICE === 'sendgrid' && ['SENDGRID_API_KEY', 'EMAIL_FROM'].every((key) => configuredKeys.has(key));
+    ready = (storedRuntimeValues.EMAIL_SERVICE || process.env.EMAIL_SERVICE) === 'sendgrid'
+      && ['SENDGRID_API_KEY', 'EMAIL_FROM'].every((key) => configuredKeys.has(key));
   } else if (providerCode === 'smtp') {
-    ready = process.env.EMAIL_SERVICE !== 'sendgrid' && ['EMAIL_USER', 'EMAIL_PASSWORD'].every((key) => configuredKeys.has(key));
+    ready = (storedRuntimeValues.EMAIL_SERVICE || process.env.EMAIL_SERVICE) !== 'sendgrid'
+      && ['EMAIL_USER', 'EMAIL_PASSWORD'].every((key) => configuredKeys.has(key));
   } else if (providerCode === 'cloudflare_r2') {
     ready = Array.from({ length: 9 }, (_, index) => {
       const suffix = index === 0 ? '' : `_${index + 1}`;
@@ -290,6 +312,10 @@ const getRuntimeProviderData = async (providerCode) => {
     fields,
     ...(vnpayRuntime ? { configurationVersion: vnpayRuntime.version, storeAvailable: vnpayRuntime.storeAvailable } : {}),
     ...(cloudflareRuntime ? { configurationVersion: cloudflareRuntime.version, storeAvailable: cloudflareRuntime.storeAvailable } : {}),
+    ...(!vnpayRuntime && !cloudflareRuntime && schema?.length ? {
+      configurationVersion: runtimeConfiguration?.version || 0,
+      storeAvailable: providerCode === 'cod' || /^[a-f0-9]{64}$/i.test(process.env.PROVIDER_CONFIG_ENCRYPTION_KEY || ''),
+    } : {}),
   };
 };
 
@@ -321,7 +347,7 @@ exports.revealRuntimeSecret = asyncHandler(async (req, res) => {
   if (!field) return res.status(404).json({ success: false, code: 'PROVIDER_SECRET_NOT_FOUND' });
 
   const vnpayRuntime = providerCode === 'vnpay' ? await loadVnpayRuntimeConfig() : null;
-  let value = vnpayRuntime?.values[key]?.value || process.env[field.envKey || field.key] || '';
+  let value = vnpayRuntime?.values[key]?.value || getProviderRuntimeValue(getRuntimeStorageCode(providerCode), key) || process.env[field.envKey || field.key] || '';
   if (!value && field.fallbackKey) value = process.env[field.fallbackKey] || '';
   if (!value && field.databaseField && providerCode === 'ghn') {
     const provider = await ShippingProvider.findOne({ code: 'ghn', isDeleted: false }).select(`+${field.databaseField}`).lean();
@@ -338,6 +364,128 @@ exports.revealRuntimeSecret = asyncHandler(async (req, res) => {
   });
   noStore(res);
   res.json({ success: true, data: { key, value } });
+});
+
+const validateRuntimeValues = (providerCode, values) => {
+  for (const [key, value] of Object.entries(values)) {
+    if (typeof value !== 'string' || value.length > 2048) return `INVALID_${key}`;
+    if (/URL$/.test(key) && value) {
+      let parsed;
+      try { parsed = new URL(value); } catch { return `INVALID_${key}`; }
+      if (parsed.protocol !== 'https:') return `INVALID_${key}`;
+    }
+  }
+
+  if (providerCode === 'smtp' || providerCode === 'sendgrid') {
+    const port = values.EMAIL_PORT;
+    if (port && (!/^\d+$/.test(port) || Number(port) < 1 || Number(port) > 65535)) return 'INVALID_EMAIL_PORT';
+    if (values.EMAIL_SECURE && !['true', 'false'].includes(values.EMAIL_SECURE)) return 'INVALID_EMAIL_SECURE';
+  }
+  if (providerCode === 'ghn') {
+    const shopId = values.GHN_SHOP_ID;
+    if (shopId && !/^\d{1,12}$/.test(shopId)) return 'INVALID_GHN_SHOP_ID';
+    const districtId = values.GHN_WAREHOUSE_DISTRICT_ID;
+    if (districtId && (!/^\d+$/.test(districtId) || Number(districtId) <= 0)) return 'INVALID_GHN_WAREHOUSE_DISTRICT_ID';
+    const apiUrl = values.GHN_API_URL;
+    if (apiUrl) {
+      let parsed;
+      try { parsed = new URL(apiUrl); } catch { return 'INVALID_GHN_API_URL'; }
+      if (parsed.protocol !== 'https:' || !['dev-online-gateway.ghn.vn', 'online-gateway.ghn.vn'].includes(parsed.hostname)) return 'INVALID_GHN_API_URL';
+    }
+  }
+  if (providerCode === 'cloudflare_r2') {
+    const integerFields = ['R2_MAX_UPLOAD_COUNT', 'R2_MAX_UPLOAD_BYTES', 'R2_MAX_IMAGE_BYTES', 'R2_MAX_VIDEO_BYTES', 'R2_MAX_RETRIES'];
+    for (const key of integerFields) {
+      if (values[key] !== undefined && values[key] !== '' && (!/^\d+$/.test(values[key]) || !Number.isSafeInteger(Number(values[key])))) return `INVALID_${key}`;
+    }
+    if (values.R2_UPLOAD_ENABLED !== undefined && !['true', 'false'].includes(values.R2_UPLOAD_ENABLED)) return 'INVALID_R2_UPLOAD_ENABLED';
+    for (let index = 1; index <= 9; index += 1) {
+      const suffix = index === 1 ? '' : `_${index}`;
+      const keys = [`R2_ACCOUNT_ID${suffix}`, `R2_ACCESS_KEY_ID${suffix}`, `R2_SECRET_ACCESS_KEY${suffix}`, `R2_BUCKET_NAME${suffix}`, `R2_PUBLIC_BASE_URL${suffix}`];
+      const configured = keys.map((key) => values[key] || '');
+      if (configured.some(Boolean) && configured.some((value) => !value)) return `INCOMPLETE_R2_ACCOUNT_${index}`;
+    }
+  }
+  if (providerCode === 'cod' && !['true', 'false'].includes(values.COD_CHECKOUT_ENABLED)) return 'INVALID_COD_CHECKOUT_ENABLED';
+  return null;
+};
+
+exports.updateRuntimeProvider = asyncHandler(async (req, res) => {
+  const { providerCode } = req.params;
+  if (!EDITABLE_RUNTIME_PROVIDERS.includes(providerCode)) return res.status(404).json({ success: false, code: 'PROVIDER_RUNTIME_UNSUPPORTED' });
+  const runtimeFields = getRuntimeSchema(providerCode, Object.keys(getProviderRuntimeValues(getRuntimeStorageCode(providerCode))));
+  const allowedFields = new Set((runtimeFields || []).map((field) => field.key));
+  if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)
+    || Object.keys(req.body).some((key) => key !== 'password' && !allowedFields.has(key))
+    || typeof req.body.password !== 'string') {
+    return res.status(400).json({ success: false, code: 'INVALID_RUNTIME_PROVIDER_FIELDS' });
+  }
+  const user = await User.findById(req.user._id);
+  if (!user || !(await user.matchPassword(req.body.password))) return res.status(401).json({ success: false, code: 'REAUTHENTICATION_FAILED' });
+
+  const submittedValues = Object.fromEntries(Object.entries(req.body).filter(([key]) => key !== 'password'));
+  if (providerCode === 'cod') {
+    if (typeof submittedValues.COD_CHECKOUT_ENABLED !== 'boolean') return res.status(400).json({ success: false, code: 'INVALID_COD_CHECKOUT_ENABLED' });
+    const method = await PaymentMethod.findOneAndUpdate(
+      { code: 'cod', isDeleted: false },
+      { $set: { isEnabled: submittedValues.COD_CHECKOUT_ENABLED } },
+      { new: true },
+    ).lean();
+    if (!method) return res.status(404).json({ success: false, code: 'PAYMENT_METHOD_NOT_FOUND' });
+    await ProviderRuntimeAudit.create({ providerCode, action: 'update', changedFields: ['COD_CHECKOUT_ENABLED'], userId: req.user._id, userName: userName(req.user) });
+    noStore(res);
+    return res.json({ success: true, data: { configurationVersion: 0 } });
+  }
+
+  if (!/^[a-f0-9]{64}$/i.test(process.env.PROVIDER_CONFIG_ENCRYPTION_KEY || '')) {
+    return res.status(503).json({ success: false, code: 'PROVIDER_CONFIG_STORE_UNAVAILABLE' });
+  }
+  const storageCode = getRuntimeStorageCode(providerCode);
+  const existing = await ProviderRuntimeConfiguration.findOne({ providerCode: storageCode }).lean();
+  const values = { ...(existing?.values || {}) };
+  const encryptedSecrets = { ...(existing?.encryptedSecrets || {}) };
+  const changedFields = [];
+  for (const field of runtimeFields || []) {
+    if (!Object.hasOwn(submittedValues, field.key)) continue;
+    const value = submittedValues[field.key];
+    if (field.type === 'boolean') {
+      if (typeof value !== 'boolean') return res.status(400).json({ success: false, code: `INVALID_${field.key}` });
+    } else if (typeof value !== 'string' || value.length > 2048) {
+      return res.status(400).json({ success: false, code: `INVALID_${field.key}` });
+    }
+    const normalized = String(value).trim();
+    if (field.type === 'select' && !field.options?.includes(normalized)) return res.status(400).json({ success: false, code: `INVALID_${field.key}` });
+    if (field.type === 'secret') {
+      if (normalized) {
+        encryptedSecrets[field.key] = encryptSecret(normalized);
+        changedFields.push(field.key);
+      }
+      continue;
+    }
+    if (normalized) values[field.key] = normalized;
+    else delete values[field.key];
+    changedFields.push(field.key);
+  }
+  const effectiveValues = {
+    ...Object.fromEntries(runtimeFields.map((field) => [field.key, process.env[field.envKey || field.key] || field.defaultValue || ''])),
+    ...values,
+  };
+  for (const [key, encrypted] of Object.entries(encryptedSecrets)) effectiveValues[key] = decryptSecret(encrypted);
+  const validationError = validateRuntimeValues(providerCode, effectiveValues);
+  if (validationError) return res.status(400).json({ success: false, code: validationError });
+  if (!changedFields.length) return res.status(400).json({ success: false, code: 'NO_RUNTIME_CHANGES' });
+
+  const version = (existing?.version || 0) + 1;
+  await ProviderRuntimeConfiguration.findOneAndUpdate(
+    { providerCode: storageCode },
+    { $set: { providerCode: storageCode, values, encryptedSecrets, version, updatedBy: req.user._id } },
+    { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true },
+  );
+  setProviderRuntimeValues(storageCode, values, encryptedSecrets);
+  if (providerCode === 'cloudflare_r2') resetR2Clients();
+  await ProviderRuntimeAudit.create({ providerCode, action: 'update', changedFields, userId: req.user._id, userName: userName(req.user) });
+  noStore(res);
+  res.json({ success: true, data: { configurationVersion: version } });
 });
 
 exports.updateVnpayRuntime = asyncHandler(async (req, res) => {

@@ -11,8 +11,9 @@ const { getDefaultLanguage } = require('../config/languageInventory');
 const { getCurrencyMetadata, formatAmountFields } = require('../utils/currencyResponseFormatter');
 const Product = require('../models/Product');
 const { getProductWeightInGrams } = require('../utils/productShippingWeight');
+const { getProviderRuntimeValue } = require('../services/providerRuntimeConfigCache');
 
-const WAREHOUSE_DISTRICT_ID = Number(process.env.GHN_WAREHOUSE_DISTRICT_ID) || 1458;
+const getWarehouseDistrictId = () => Number(getProviderRuntimeValue('ghn', 'GHN_WAREHOUSE_DISTRICT_ID') || process.env.GHN_WAREHOUSE_DISTRICT_ID) || 1458;
 
 /**
  * Lấy danh sách nhà vận chuyển đang hoạt động
@@ -115,7 +116,7 @@ const calculateShipping = asyncHandler(async (req, res) => {
 
   try {
     const result = await shippingService.calculateShippingFromAllCarriers({
-      from: { districtId: WAREHOUSE_DISTRICT_ID },
+      from: { districtId: getWarehouseDistrictId() },
       to: { districtId, wardCode },
       weight: normalizedWeight,
       value,

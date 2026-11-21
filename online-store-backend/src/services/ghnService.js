@@ -1,5 +1,6 @@
 const axios = require('axios');
 const ShippingProvider = require('../models/ShippingProvider');
+const { getProviderRuntimeValue } = require('./providerRuntimeConfigCache');
 const { formatDateVietnamISO } = require('../utils/dateUtils');
 const { getMessage } = require('../i18n/messages');
 const { getDefaultLanguage } = require('../config/languageInventory');
@@ -32,7 +33,7 @@ async function getGhnClient(lang) {
     throw new Error(getMessage(lang || getDefaultLanguage().code, 'shipping.ghnProviderNotConfigured'));
   }
 
-  const token = process.env.GHN_API_TOKEN || provider.apiKey;
+  const token = getProviderRuntimeValue('ghn', 'GHN_API_TOKEN') || process.env.GHN_API_TOKEN || provider.apiKey;
   if (!token) throw new Error(getMessage(lang || getDefaultLanguage().code, 'shipping.ghnProviderNotConfigured'));
 
   const headers = {
@@ -40,13 +41,13 @@ async function getGhnClient(lang) {
     'Content-Type': 'application/json',
   };
 
-  const shopId = process.env.GHN_SHOP_ID || provider.token;
+  const shopId = getProviderRuntimeValue('ghn', 'GHN_SHOP_ID') || process.env.GHN_SHOP_ID || provider.token;
   if (shopId) {
     headers.ShopId = shopId;
   }
 
   const client = axios.create({
-    baseURL: provider.apiUrl || GHN_BASE_URL,
+    baseURL: getProviderRuntimeValue('ghn', 'GHN_API_URL') || provider.apiUrl || GHN_BASE_URL,
     timeout: GHN_TIMEOUT,
     headers,
   });

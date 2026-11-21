@@ -7,6 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const juice = require('juice');
 const nodemailer = require('nodemailer');
+const { getProviderRuntimeValues } = require('./providerRuntimeConfigCache');
 const { getMessage } = require('../i18n/messages');
 const { getDefaultLanguage, getIntlLocale } = require('../config/languageInventory');
 const { createNewsletterUnsubscribeToken } = require('../utils/newsletterUnsubscribeToken');
@@ -44,69 +45,51 @@ const getAuthEmailMessages = (lang, type) => {
  * Email transporter configuration
  * Hỗ trợ nhiều providers: Gmail, SendGrid, AWS SES, etc.
  */
-const createTransporter = () => {
-  if (process.env.EMAIL_SERVICE === 'mailtrap-sandbox') {
+const getEmailFrom = () => {
+  const service = getProviderRuntimeValues('email');
+  return service.EMAIL_FROM || process.env.EMAIL_FROM || service.EMAIL_USER || process.env.EMAIL_USER;
+};
+
+const createTransporter = async () => {
+  const service = getProviderRuntimeValues('email');
+  const emailService = service.EMAIL_SERVICE || process.env.EMAIL_SERVICE;
+  const emailUser = service.EMAIL_USER || process.env.EMAIL_USER;
+  const emailPassword = service.EMAIL_PASSWORD || process.env.EMAIL_PASSWORD;
+
+  if (emailService === 'mailtrap-sandbox') {
     const appEnvironment = process.env.APP_ENV || process.env.NODE_ENV;
     if (!['development', 'test', 'staging', 'preview'].includes(appEnvironment)) {
       throw createEmailDeliveryError('EMAIL_SANDBOX_ENV_NOT_ALLOWED');
     }
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+    if (!emailUser || !emailPassword) {
       throw createEmailDeliveryError('EMAIL_SANDBOX_CREDENTIALS_MISSING');
     }
     return nodemailer.createTransport({
       host: 'sandbox.smtp.mailtrap.io',
       port: 2525,
       secure: false,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD,
-      },
+      auth: { user: emailUser, pass: emailPassword },
     });
   }
 
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
-    return null;
-  }
-
-  // ============= OPTION 1: Gmail (Recommended for testing) =============
-  // Bước 1: Enable 2-Step Verification trên Gmail account
-  // Bước 2: Tạo App Password: https://myaccount.google.com/apppasswords
-  // Bước 3: Set .env variables:
-  // EMAIL_HOST=smtp.gmail.com
-  // EMAIL_PORT=587
-  // EMAIL_USER=your-email@gmail.com
-  // EMAIL_PASSWORD=your-app-password
-
-  // ============= OPTION 2: SendGrid =============
-  // 1. Đăng ký tài khoản: https://sendgrid.com
-  // 2. Tạo API key
-  // 3. Set .env:
-  // SENDGRID_API_KEY=your-api-key
-  // EMAIL_FROM=noreply@example.com
-
-  // For now, using SMTP configuration (Gmail/custom SMTP)
-  if (process.env.EMAIL_SERVICE === 'sendgrid') {
-    // SendGrid as SMTP
+  if (emailService === 'sendgrid') {
+    const apiKey = service.SENDGRID_API_KEY || process.env.SENDGRID_API_KEY;
+    if (!apiKey) return null;
     return nodemailer.createTransport({
-        host: 'smtp.sendgrid.net',
-        port: 587,
-        secure: false, // true for 465, false for other ports
-        auth: {
-            user: 'apikey', // This is the literal string 'apikey'
-            pass: process.env.SENDGRID_API_KEY
-        }
+      host: 'smtp.sendgrid.net',
+      port: 587,
+      secure: false,
+      auth: { user: 'apikey', pass: apiKey },
     });
   }
 
-  // Default: SMTP (Gmail, custom SMTP, etc.)
+  if (!emailUser || !emailPassword) return null;
+
   return nodemailer.createTransport({
-    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-    port: process.env.EMAIL_PORT || 587,
-    secure: process.env.EMAIL_SECURE === 'true' || false,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASSWORD,
-    },
+    host: service.EMAIL_HOST || process.env.EMAIL_HOST || 'smtp.gmail.com',
+    port: service.EMAIL_PORT || process.env.EMAIL_PORT || 587,
+    secure: (service.EMAIL_SECURE || process.env.EMAIL_SECURE) === 'true',
+    auth: { user: emailUser, pass: emailPassword },
   });
 };
 
@@ -119,7 +102,7 @@ const createTransporter = () => {
  */
 const sendVerificationEmail = async (email, verificationUrl, lang) => {
   try {
-    const transporter = createTransporter();
+    const transporter = await createTransporter();
 
     // If email is not configured, skip sending but log the link
     if (!transporter) {
@@ -129,7 +112,7 @@ const sendVerificationEmail = async (email, verificationUrl, lang) => {
     const emailLang = lang || getDefaultLanguage().code.toUpperCase();
     const msg = getAuthEmailMessages(emailLang, 'verification');
     const mailOptions = {
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+      from: getEmailFrom(),
       to: email,
       subject: msg.subject,
       html: inlineEmailStyles(`
@@ -183,7 +166,7 @@ const sendVerificationEmail = async (email, verificationUrl, lang) => {
  */
 const sendResetPasswordEmail = async (email, resetUrl, lang) => {
   try {
-    const transporter = createTransporter();
+    const transporter = await createTransporter();
 
     // If email is not configured, skip sending but log the link
     if (!transporter) {
@@ -193,7 +176,7 @@ const sendResetPasswordEmail = async (email, resetUrl, lang) => {
     const emailLang = lang || getDefaultLanguage().code.toUpperCase();
     const msg = getAuthEmailMessages(emailLang, 'reset_password');
     const mailOptions = {
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+      from: getEmailFrom(),
       to: email,
       subject: msg.subject,
       html: inlineEmailStyles(`
@@ -247,7 +230,7 @@ const sendResetPasswordEmail = async (email, resetUrl, lang) => {
  */
 const sendOTPEmail = async (email, otp, lang) => {
   try {
-    const transporter = createTransporter();
+    const transporter = await createTransporter();
 
     // If email is not configured, skip sending but log the OTP
     if (!transporter) {
@@ -265,7 +248,7 @@ const sendOTPEmail = async (email, otp, lang) => {
       text: getMessage(emailLang, 'auth-messages.email_otp_text', { otp }),
     };
     const mailOptions = {
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+      from: getEmailFrom(),
       to: email,
       subject: msg.subject,
       html: inlineEmailStyles(`
@@ -312,7 +295,7 @@ const sendOTPEmail = async (email, otp, lang) => {
  */
 const sendNewsletterConfirmationEmail = async (email, lang) => {
   try {
-    const transporter = createTransporter();
+    const transporter = await createTransporter();
 
     if (!transporter) {
       throw createEmailDeliveryError('EMAIL_DISABLED');
@@ -331,7 +314,7 @@ const sendNewsletterConfirmationEmail = async (email, lang) => {
     unsubscribePageUrl.searchParams.set('token', token);
     unsubscribePageUrl.searchParams.set('lang', emailLang);
     const mailOptions = {
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+      from: getEmailFrom(),
       to: email,
       subject: msg.subject,
       headers: {
@@ -367,13 +350,13 @@ const sendNewsletterConfirmationEmail = async (email, lang) => {
 const sendContactEmails = async ({ name, email, phone, subject, message }, lang) => {
   const emailLang = (lang || getDefaultLanguage().code).toLowerCase();
   const recipient = process.env.CONTACT_SUPPORT_EMAIL || getMessage(emailLang, 'contact.contact_email');
-  const transporter = createTransporter();
+  const transporter = await createTransporter();
   if (!recipient || !transporter) {
     throw createEmailDeliveryError('EMAIL_CONTACT_NOT_CONFIGURED');
   }
 
   try {
-    const from = process.env.EMAIL_FROM || process.env.EMAIL_USER;
+    const from = getEmailFrom();
 
     await transporter.sendMail({
       from,
@@ -430,7 +413,7 @@ const sendOrderPaymentSuccessEmail = async (order, lang) => {
       return { code: 'EMAIL_RECIPIENT_MISSING' };
     }
 
-    const transporter = createTransporter();
+    const transporter = await createTransporter();
     if (!transporter) {
       return { code: 'EMAIL_DISABLED' };
     }
@@ -467,7 +450,7 @@ const sendOrderPaymentSuccessEmail = async (order, lang) => {
     }).join('');
 
     const result = await transporter.sendMail({
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+      from: getEmailFrom(),
       to: recipient,
       subject,
       html: inlineEmailStyles(`

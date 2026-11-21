@@ -120,9 +120,10 @@ describe('User Controller - Dynamic Data Tests', () => {
       const userId = new mongoose.Types.ObjectId();
       const user = { 
         _id: userId, 
-        email: 'old@example.com', 
-        username: 'oldname', 
-        profileImage: null, 
+        email: 'old@example.com',
+        username: 'oldname',
+        profileImage: null,
+        isEmailVerified: true,
         save: sandbox.stub().resolves({
           _id: userId,
           email: 'new@example.com',
@@ -131,6 +132,7 @@ describe('User Controller - Dynamic Data Tests', () => {
         })
       };
       sandbox.stub(User, 'findById').resolves(user);
+      sandbox.stub(User, 'findOne').resolves(null);
 
       const req = {
         user: { _id: userId },
@@ -145,6 +147,8 @@ describe('User Controller - Dynamic Data Tests', () => {
       
       await updateUserProfile(req, res);
       expect(user.save.calledOnce).to.be.true;
+      expect(user.isEmailVerified).to.be.false;
+      expect(user.emailVerificationToken).to.be.a('string');
     });
   });
 
