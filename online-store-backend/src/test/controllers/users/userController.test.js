@@ -10,7 +10,8 @@ const expect = chai.expect;
 const sinon = require('sinon');
 const mongoose = require('mongoose');
 const User = require('../../../models/User');
-const { authUser, registerUser, getUserProfile, updateUserProfile, getUsers, deleteUser, hardDeleteUser } = require('../../../controllers/userController');
+const adminUserGovernanceService = require('../../../services/adminUserGovernanceService');
+const { authUser, registerUser, getUserProfile, updateUserProfile, getUsers, updateUser, deleteUser, hardDeleteUser } = require('../../../controllers/userController');
 
 describe('User Controller - Dynamic Data Tests', () => {
   let sandbox;
@@ -37,13 +38,18 @@ describe('User Controller - Dynamic Data Tests', () => {
         matchPassword: sandbox.stub().resolves(true),
         save: sandbox.stub().resolves() 
       };
-      sandbox.stub(User, 'findOne').resolves(user);
+      sandbox.stub(User, 'findOne').returns({ select: sandbox.stub().resolves(user) });
+      sandbox.stub(User, 'updateOne').resolves({ modifiedCount: 1 });
 
       const req = { body: { email: 'test@example.com', password: 'test123' } };
       const res = { cookie: sandbox.stub(), json: sandbox.stub(), status: sandbox.stub().returnsThis() };
       
       await authUser(req, res);
       expect(res.json.calledOnce).to.be.true;
+      const [filter, update] = User.updateOne.firstCall.args;
+      expect(filter._id).to.equal(userId);
+      expect(update.$set.authVersion).to.be.a('string').and.not.equal('0');
+      expect(update.$set.refreshTokenId).to.be.a('string');
     });
 
     it('should reject invalid credentials', async () => {
@@ -74,6 +80,7 @@ describe('User Controller - Dynamic Data Tests', () => {
       
       sandbox.stub(User, 'findOne').resolves(null);
       sandbox.stub(User, 'create').resolves(newUser);
+      sandbox.stub(User, 'updateOne').resolves({ modifiedCount: 1 });
 
       const req = { body: { username: 'newuser', email: 'new@example.com', password: 'test123' } };
       const res = { cookie: sandbox.stub(), status: sandbox.stub().returnsThis(), json: sandbox.stub() };
@@ -131,7 +138,7 @@ describe('User Controller - Dynamic Data Tests', () => {
           role: 'user'
         })
       };
-      sandbox.stub(User, 'findById').resolves(user);
+      sandbox.stub(User, 'findById').returns({ select: sandbox.stub().resolves(user) });
       sandbox.stub(User, 'findOne').resolves(null);
 
       const req = {
@@ -167,33 +174,74 @@ describe('User Controller - Dynamic Data Tests', () => {
     });
   });
 
+  describe('updateUser', () => {
+    it('should prevent a super admin from demoting their own account', async () => {
+      const userId = new mongoose.Types.ObjectId();
+      const error = Object.assign(new Error('A super admin cannot demote their own account'), {
+        errorCode: 'SUPER_ADMIN_SELF_DEMOTION_FORBIDDEN',
+        statusCode: 403,
+      });
+      sandbox.stub(adminUserGovernanceService, 'updateManagedUser').rejects(error);
+      const req = {
+        params: { id: userId.toString() },
+        user: { _id: userId },
+        body: { role: 'admin' },
+      };
+      const res = { status: sandbox.stub().returnsThis() };
+
+      try {
+        await updateUser(req, res);
+        throw new Error('Expected updateUser to reject');
+      } catch (caught) {
+        expect(caught.errorCode).to.equal('SUPER_ADMIN_SELF_DEMOTION_FORBIDDEN');
+        expect(caught.statusCode).to.equal(403);
+      }
+
+      expect(adminUserGovernanceService.updateManagedUser.calledOnce).to.be.true;
+    });
+
+    it('should allow a super admin to change another user\'s role', async () => {
+      const userId = new mongoose.Types.ObjectId();
+      const actorId = new mongoose.Types.ObjectId();
+      const user = { _id: userId, username: 'admin', email: 'admin@example.com', role: 'user' };
+      sandbox.stub(adminUserGovernanceService, 'updateManagedUser').resolves(user);
+      const req = {
+        params: { id: userId.toString() },
+        user: { _id: actorId, role: 'super-admin' },
+        body: { role: 'user' },
+      };
+      const res = { json: sandbox.stub() };
+
+      await updateUser(req, res);
+
+      expect(adminUserGovernanceService.updateManagedUser.calledOnce).to.be.true;
+      expect(res.json.calledOnce).to.be.true;
+    });
+  });
+
   describe('deleteUser', () => {
     it('should soft delete user', async () => {
-      const user = { _id: new mongoose.Types.ObjectId(), isDeleted: false, save: sandbox.stub().resolves() };
-      sandbox.stub(User, 'findById').resolves(user);
+      const user = { _id: new mongoose.Types.ObjectId(), isDeleted: false };
+      sandbox.stub(adminUserGovernanceService, 'softDeleteManagedUser').resolves({ asset: null });
 
-      const req = { params: { id: user._id.toString() } };
+      const req = { params: { id: user._id.toString() }, user: { _id: new mongoose.Types.ObjectId() } };
       const res = { json: sandbox.stub() };
       
       await deleteUser(req, res);
-      expect(user.isDeleted).to.be.true;
+      expect(adminUserGovernanceService.softDeleteManagedUser.calledOnce).to.be.true;
     });
   });
 
   describe('hardDeleteUser', () => {
     it('should hard delete user', async () => {
       const userId = new mongoose.Types.ObjectId();
-      const user = { 
-        _id: userId, 
-        deleteOne: sandbox.stub().resolves() 
-      };
-      sandbox.stub(User, 'findById').resolves(user);
+      sandbox.stub(adminUserGovernanceService, 'hardDeleteManagedUser').resolves({ asset: null });
 
-      const req = { params: { id: userId.toString() }, query: {} };
+      const req = { params: { id: userId.toString() }, query: {}, user: { _id: new mongoose.Types.ObjectId() } };
       const res = { json: sandbox.stub() };
       
       await hardDeleteUser(req, res);
-      expect(user.deleteOne.calledOnce).to.be.true;
+      expect(adminUserGovernanceService.hardDeleteManagedUser.calledOnce).to.be.true;
     });
   });
 });

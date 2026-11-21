@@ -112,7 +112,45 @@ export default function Login() {
     }
 
     setRegisterErrors(errors);
+    Object.values(errors).forEach((message, index) => {
+      toast.error(message, { id: `auth-register-validation-${index}` });
+    });
     return Object.keys(errors).length === 0;
+  };
+
+  const getRegistrationErrorMessages = (error: unknown): string[] => {
+    const apiError = error && typeof error === 'object' ? error as {
+      code?: string;
+      status?: number;
+      params?: Record<string, unknown>;
+      fields?: string[];
+      message?: string;
+    } : {};
+
+    if (apiError.code === 'USER_ALREADY_EXISTS') return [t('registration_email_exists', 'login')];
+    if (apiError.code === 'DUPLICATE_RESOURCE') {
+      const key = apiError.params?.field === 'email'
+        ? 'registration_email_exists'
+        : apiError.params?.field === 'username'
+          ? 'registration_username_exists'
+          : 'registration_conflict';
+      return [t(key, 'login')];
+    }
+    if (apiError.code === 'RATE_LIMIT_REGISTER' || apiError.status === 429) return [t('registration_rate_limited', 'login')];
+    if (apiError.code === 'VALIDATION_FAILED' || apiError.status === 400) {
+      const fieldMessages = new Map<string, string>([
+        ['name', t('name_required', 'login')],
+        ['email', t('invalid_email_format', 'login')],
+        ['password', t('password_min_length', 'login')],
+      ]);
+      const messages = [...new Set((apiError.fields || []).map(field => fieldMessages.get(field)).filter(Boolean))] as string[];
+      return messages.length ? messages : [t('registration_invalid_data', 'login')];
+    }
+    if (apiError.status === 409) return [t('registration_conflict', 'login')];
+    if (apiError.status === 0 || apiError.message === 'network_error_title') return [t('registration_network_error', 'login')];
+    if (apiError.message === 'request_timeout') return [t('registration_timeout', 'login')];
+    if (typeof apiError.status === 'number' && apiError.status >= 500) return [t('registration_server_error', 'login')];
+    return [t('registration_failed', 'login')];
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -134,8 +172,12 @@ export default function Login() {
         setRegisterData({ name: "", email: "", password: "", confirmPassword: "" });
         void router.replace(from);
       } else {
-        toast.error(t('registration_failed', 'login'));
+        toast.error(t('registration_failed', 'login'), { id: 'auth-register-error' });
       }
+    } catch (error) {
+      getRegistrationErrorMessages(error).forEach((message, index) => {
+        toast.error(message, { id: `auth-register-error-${index}` });
+      });
     } finally {
       registerInFlightRef.current = false;
     }
@@ -269,7 +311,7 @@ export default function Login() {
                 }`}
               >
                 <TabsContent value="register">
-                  <form onSubmit={handleRegister} className="space-y-4">
+                  <form noValidate onSubmit={handleRegister} className="space-y-4">
                     <div className="space-y-1.5">
                       <Label htmlFor="register-name">{t('fullname_label', 'login')}</Label>
                       <Input

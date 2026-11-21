@@ -14,9 +14,9 @@ const {
 } = require('../utils/generateToken');
 const { generatePasswordResetToken } = require('../utils/resetTokenGenerator');
 const { sendVerificationEmail, sendResetPasswordEmail } = require('../services/emailService');
-const { revokeToken } = require('../utils/tokenBlacklist');
 const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
+const adminUserGovernanceService = require('../services/adminUserGovernanceService');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
@@ -45,6 +45,10 @@ const createUserError = (lang, code, messageKey) => {
   return error;
 };
 
+const getAuthVersionFilter = authVersion => authVersion === '0'
+  ? { $or: [{ authVersion: '0' }, { authVersion: { $exists: false } }] }
+  : { authVersion };
+
 const getRefreshTokenCookieOptions = (sameSite = 'lax') => ({
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
@@ -63,12 +67,20 @@ const getRefreshTokenCookieOptions = (sameSite = 'lax') => ({
 const authUser = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
     const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
-    const user = await User.findOne({ email: normalizedEmail, isDeleted: false });
+    const user = await User.findOne({ email: normalizedEmail, isDeleted: false }).select('+authVersion');
 
     if (user && (await user.matchPassword(password))) {
-        const { accessToken, refreshToken, refreshTokenId } = generateTokenPair(user._id, user.role);
-        user.refreshTokenId = refreshTokenId;
-        await user.save();
+        const currentAuthVersion = user.authVersion || '0';
+        const authVersion = crypto.randomUUID();
+        const { accessToken, refreshToken, refreshTokenId } = generateTokenPair(user._id, user.role, authVersion);
+        const sessionResult = await User.updateOne(
+            { _id: user._id, isDeleted: false, ...getAuthVersionFilter(currentAuthVersion) },
+            { $set: { authVersion, refreshTokenId } },
+        );
+        if (sessionResult.modifiedCount !== 1) {
+            res.status(401);
+            throw new Error(getMessage(req.lang, 'auth-messages.invalidEmailPassword'));
+        }
 
         // Set refresh token in httpOnly secure cookie (not accessible from JavaScript)
         res.cookie('refreshToken', refreshToken, {
@@ -132,9 +144,16 @@ const registerUser = asyncHandler(async (req, res) => {
     });
 
     if (user) {
-        const { accessToken, refreshToken, refreshTokenId } = generateTokenPair(user._id, user.role);
-        user.refreshTokenId = refreshTokenId;
-        await user.save();
+        const authVersion = user.authVersion || '0';
+        const { accessToken, refreshToken, refreshTokenId } = generateTokenPair(user._id, user.role, authVersion);
+        const sessionResult = await User.updateOne(
+            { _id: user._id, isDeleted: false, ...getAuthVersionFilter(authVersion) },
+            { $set: { refreshTokenId } },
+        );
+        if (sessionResult.modifiedCount !== 1) {
+            res.status(409);
+            throw createUserError(req.lang, 'SESSION_CHANGED_RETRY', 'auth-messages.tokenRevoked');
+        }
 
         // Set refresh token in httpOnly secure cookie (not accessible from JavaScript)
         res.cookie('refreshToken', refreshToken, {
@@ -204,7 +223,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
  * @access Private
  */
 const updateUserProfile = asyncHandler(async (req, res) => {
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req.user._id).select('+authVersion +refreshTokenId');
 
     if (user) {
         user.username = req.body.username || user.username;
@@ -229,18 +248,46 @@ const updateUserProfile = asyncHandler(async (req, res) => {
         user.name = req.body.name || user.name;
         user.phone = req.body.phone || user.phone;
         user.address = req.body.address || user.address;
-        if (req.body.password) {
-            user.password = req.body.password;
-        }
-
         const passwordChanged = !!req.body.password;
-        const currentAccessToken = req.headers?.authorization?.split(' ')[1];
+        let passwordSession;
+        let updatedUser;
 
         if (passwordChanged) {
-            user.refreshTokenId = null;
-        }
+            const authVersion = crypto.randomUUID();
+            passwordSession = generateTokenPair(user._id, user.role, authVersion);
+            const updates = {
+                username: user.username,
+                email: user.email,
+                name: user.name,
+                phone: user.phone,
+                address: user.address,
+                isEmailVerified: user.isEmailVerified,
+                password: await bcrypt.hash(req.body.password, 12),
+                authVersion,
+                refreshTokenId: passwordSession.refreshTokenId,
+            };
+            if (emailChanged) {
+                updates.emailVerificationToken = user.emailVerificationToken;
+                updates.emailVerificationExpire = user.emailVerificationExpire;
+            }
 
-        const updatedUser = await user.save();
+            updatedUser = await User.findOneAndUpdate(
+                { _id: user._id, isDeleted: false, ...getAuthVersionFilter(user.authVersion || '0') },
+                { $set: updates },
+                { new: true, runValidators: true },
+            );
+            if (!updatedUser) {
+                res.status(409);
+                throw createUserError(req.lang, 'SESSION_CHANGED_RETRY', 'auth-messages.tokenRevoked');
+            }
+
+            res.cookie('refreshToken', passwordSession.refreshToken, {
+                ...getRefreshTokenCookieOptions(['admin', 'super-admin'].includes(user.role) ? 'strict' : 'lax'),
+                maxAge: REFRESH_TOKEN_COOKIE_MAX_AGE_MS,
+            });
+        } else {
+            updatedUser = await user.save();
+        }
 
         if (emailChanged) {
             try {
@@ -251,15 +298,7 @@ const updateUserProfile = asyncHandler(async (req, res) => {
             }
         }
 
-        if (passwordChanged && currentAccessToken) {
-            try {
-                const decodedAccess = jwt.verify(currentAccessToken, ACCESS_TOKEN_SECRET);
-                await revokeToken(currentAccessToken, decodedAccess.id, 'password-change');
-            } catch (error) {
-                // Ignore token revocation errors here; password has already been changed.
-            }
-        }
-
+        const accessToken = passwordSession?.accessToken || generateToken(updatedUser._id, updatedUser.authVersion || '0');
         res.json({
             _id: updatedUser._id,
             username: updatedUser.username,
@@ -270,7 +309,8 @@ const updateUserProfile = asyncHandler(async (req, res) => {
             profileImage: updatedUser.profileImage,
             role: updatedUser.role,
             isEmailVerified: updatedUser.isEmailVerified,
-            token: generateToken(updatedUser._id),
+            token: accessToken,
+            accessToken,
         });
     } else {
         res.status(404);
@@ -330,25 +370,24 @@ const getUserById = asyncHandler(async (req, res) => {
  * @access Private/Admin
  */
 const updateUser = asyncHandler(async (req, res) => {
-    const user = await User.findById(req.params.id);
+    const updatedUser = await adminUserGovernanceService.updateManagedUser(
+        req.user._id,
+        req.params.id,
+        req.body,
+        req.lang,
+    );
 
-    if (user) {
-        user.username = req.body.username || user.username;
-        user.email = req.body.email || user.email;
-        user.role = req.body.role || user.role;
-
-        const updatedUser = await user.save();
-
-        res.json({
-            _id: updatedUser._id,
-            username: updatedUser.username,
-            email: updatedUser.email,
-            role: updatedUser.role,
-        });
-    } else {
+    if (!updatedUser) {
         res.status(404);
         throw new Error(getMessage(req.lang, 'user-messages.notFound'));
     }
+
+    res.json({
+        _id: updatedUser._id,
+        username: updatedUser.username,
+        email: updatedUser.email,
+        role: updatedUser.role,
+    });
 });
 
 /**
@@ -358,19 +397,19 @@ const updateUser = asyncHandler(async (req, res) => {
  * @access Private/Admin
  */
 const deleteUser = asyncHandler(async (req, res) => {
-    const user = await User.findById(req.params.id);
+    const result = await adminUserGovernanceService.softDeleteManagedUser(
+        req.user._id,
+        req.params.id,
+        req.lang,
+    );
 
-    if (user) {
-        if (user.profileImageAsset) {
-            await cleanupUserAvatar(user.profileImageAsset);
-        }
-        user.isDeleted = true;
-        await user.save();
-        res.json({ message: getMessage(req.lang, 'admin-controllers-messages.user_removed') });
-    } else {
+    if (result === null) {
         res.status(404);
         throw new Error(getMessage(req.lang, 'user-messages.notFound'));
     }
+
+    await cleanupUserAvatar(result.asset);
+    res.json({ message: getMessage(req.lang, 'admin-controllers-messages.user_removed') });
 });
 
 /**
@@ -382,18 +421,18 @@ const deleteUser = asyncHandler(async (req, res) => {
 const hardDeleteUser = asyncHandler(async (req, res) => {
     const defaultLang = getDefaultLanguage();
     const lang = (req.query.lang || req.lang || defaultLang.code).toLowerCase();
-    const user = await User.findById(req.params.id);
+    const result = await adminUserGovernanceService.hardDeleteManagedUser(
+        req.user._id,
+        req.params.id,
+        lang,
+    );
 
-    if (!user) {
+    if (result === null) {
         res.status(404);
         throw new Error(getMessage(lang, 'user-messages.notFound'));
     }
 
-    if (user.profileImageAsset) {
-        await cleanupUserAvatar(user.profileImageAsset);
-    }
-
-    await user.deleteOne();
+    await cleanupUserAvatar(result.asset);
     res.json({ message: getMessage(lang, 'user-messages.hardDeleteSuccess') });
 });
 
@@ -404,22 +443,23 @@ const hardDeleteUser = asyncHandler(async (req, res) => {
  * @access Private/Admin
  */
 const restoreUser = asyncHandler(async (req, res) => {
-    const user = await User.findById(req.params.id);
+    const result = await adminUserGovernanceService.restoreManagedUser(
+        req.user._id,
+        req.params.id,
+        req.lang,
+    );
 
-    if (!user) {
+    if (!result) {
         res.status(404);
         throw new Error(getMessage(req.lang, 'user-messages.notFound'));
     }
 
-    if (!user.isDeleted) {
+    if (result.alreadyActive) {
         res.status(400);
         throw new Error(getMessage(req.lang, 'user-messages.notDeleted'));
     }
 
-    user.isDeleted = false;
-    await user.save();
-
-    res.json({ message: getMessage(req.lang, 'user-messages.restoreSuccess'), user });
+    res.json({ message: getMessage(req.lang, 'user-messages.restoreSuccess'), user: result.user });
 });
 
 /**
@@ -506,6 +546,7 @@ const resetPassword = asyncHandler(async (req, res) => {
                 passwordResetToken: null,
                 passwordResetExpire: null,
                 refreshTokenId: null,
+                authVersion: crypto.randomUUID(),
             },
         },
     );
@@ -611,42 +652,46 @@ const resendVerificationEmail = asyncHandler(async (req, res) => {
  * @access Public
  */
 const logoutUser = asyncHandler(async (req, res) => {
-    // Revoke access token (add to blacklist)
+    const sessionClaims = [];
     const accessToken = req.headers.authorization?.split(' ')[1];
-    const refreshToken = req.cookies.refreshToken;
-    let userId = req.user?._id || null;
+    const refreshToken = req.cookies?.refreshToken;
 
     if (accessToken) {
         try {
-            const decodedAccess = jwt.verify(accessToken, ACCESS_TOKEN_SECRET);
-            userId = userId || decodedAccess.id;
-            await revokeToken(accessToken, decodedAccess.id, 'logout');
-        } catch (error) {
-            // Ignore invalid/expired access token during logout
-        }
+            const decoded = jwt.verify(accessToken, ACCESS_TOKEN_SECRET, { algorithms: [JWT_ALGORITHM] });
+            if (decoded.type === 'access' && typeof decoded.id === 'string') sessionClaims.push(decoded);
+        } catch {}
     }
 
     if (refreshToken) {
         try {
-            const decodedRefresh = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET, {
-                algorithms: [JWT_ALGORITHM],
-            });
-            userId = userId || decodedRefresh.id;
-        } catch (error) {
-            // Ignore invalid refresh token during logout
-        }
+            const decoded = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET, { algorithms: [JWT_ALGORITHM] });
+            if (decoded.type === 'refresh' && typeof decoded.id === 'string' && typeof decoded.jti === 'string') {
+                sessionClaims.push(decoded);
+            }
+        } catch {}
     }
 
-    if (userId) {
-        await User.findByIdAndUpdate(userId, { refreshTokenId: null });
-    }
-
-    // Clear refresh token cookie
-    res.clearCookie('refreshToken', getRefreshTokenCookieOptions());
-
-    res.json({
-        message: getMessage(req.lang, 'user-messages.logoutSuccess'),
+    const uniqueClaims = new Map();
+    sessionClaims.forEach(claims => {
+        const authVersion = typeof claims.authVersion === 'string' ? claims.authVersion : '0';
+        const key = `${claims.id}:${authVersion}`;
+        const current = uniqueClaims.get(key);
+        if (!current || claims.type === 'access') uniqueClaims.set(key, { ...claims, authVersion });
     });
+
+    for (const claims of uniqueClaims.values()) {
+        const versionFilter = getAuthVersionFilter(claims.authVersion);
+        const filter = { _id: claims.id, ...versionFilter };
+        if (claims.type === 'refresh') filter.refreshTokenId = claims.jti;
+
+        await User.updateOne(filter, {
+            $set: { refreshTokenId: null, authVersion: crypto.randomUUID() },
+        });
+    }
+
+    res.clearCookie('refreshToken', getRefreshTokenCookieOptions());
+    res.json({ message: getMessage(req.lang, 'user-messages.logoutSuccess') });
 });
 
 /**
@@ -662,56 +707,53 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         return res.status(204).end();
     }
 
+    let decoded;
     try {
-        // Verify refresh token
-        const decoded = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET, {
-            algorithms: [JWT_ALGORITHM],
-        });
-
-        if (decoded.type !== 'refresh' || typeof decoded.jti !== 'string' || typeof decoded.id !== 'string') {
-            res.status(401);
-            throw new Error(getMessage(req.lang, 'admin-controllers-messages.invalid_refresh_token_type'));
-        }
-
-        const user = await User.findById(decoded.id).select('+refreshTokenId');
-
-        if (!user || user.isDeleted) {
-            res.status(401);
-            throw createUserError(req.lang, 'USER_NOT_FOUND', 'user-messages.user_not_found');
-        }
-
-        if (!user.refreshTokenId || decoded.jti !== user.refreshTokenId) {
-            res.status(401);
-            throw new Error(getMessage(req.lang, 'admin-controllers-messages.refresh_token_revoked'));
-        }
-
-        const { accessToken: newAccessToken, refreshToken: newRefreshToken, refreshTokenId } = generateTokenPair(user._id, user.role);
-        const rotationResult = await User.updateOne(
-            { _id: user._id, refreshTokenId: decoded.jti, isDeleted: false },
-            { $set: { refreshTokenId } },
-        );
-
-        if (rotationResult.modifiedCount !== 1) {
-            res.status(401);
-            throw new Error(getMessage(req.lang, 'admin-controllers-messages.refresh_token_revoked'));
-        }
-
-        // Update refresh token cookie (Token rotation)
-        res.cookie('refreshToken', newRefreshToken, {
-            ...getRefreshTokenCookieOptions(),
-            maxAge: REFRESH_TOKEN_COOKIE_MAX_AGE_MS,
-        });
-
-        // Return only access token (refresh token is in secure cookie)
-        res.json({
-            accessToken: newAccessToken,
-        });
-    } catch (error) {
-        // Clear invalid refresh token
+        decoded = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET, { algorithms: [JWT_ALGORITHM] });
+    } catch {
         res.clearCookie('refreshToken', getRefreshTokenCookieOptions());
         res.status(401);
         throw createUserError(req.lang, 'REFRESH_TOKEN_INVALID', 'user-messages.invalid_refresh_token');
     }
+
+    if (decoded.type !== 'refresh' || typeof decoded.jti !== 'string' || typeof decoded.id !== 'string') {
+        res.clearCookie('refreshToken', getRefreshTokenCookieOptions());
+        res.status(401);
+        throw createUserError(req.lang, 'REFRESH_TOKEN_INVALID', 'user-messages.invalid_refresh_token');
+    }
+
+    const user = await User.findById(decoded.id).select('+refreshTokenId +authVersion');
+
+    if (!user || user.isDeleted) {
+        res.clearCookie('refreshToken', getRefreshTokenCookieOptions());
+        res.status(401);
+        throw createUserError(req.lang, 'USER_NOT_FOUND', 'user-messages.user_not_found');
+    }
+
+    const tokenAuthVersion = typeof decoded.authVersion === 'string' ? decoded.authVersion : '0';
+    if (tokenAuthVersion !== (user.authVersion || '0') || !user.refreshTokenId || decoded.jti !== user.refreshTokenId) {
+        res.clearCookie('refreshToken', getRefreshTokenCookieOptions());
+        res.status(401);
+        throw createUserError(req.lang, 'REFRESH_TOKEN_INVALID', 'user-messages.invalid_refresh_token');
+    }
+
+    const authVersion = user.authVersion || '0';
+    const { accessToken: newAccessToken, refreshToken: newRefreshToken, refreshTokenId } = generateTokenPair(user._id, user.role, authVersion);
+    const rotationResult = await User.updateOne(
+        { _id: user._id, refreshTokenId: decoded.jti, isDeleted: false, ...getAuthVersionFilter(authVersion) },
+        { $set: { refreshTokenId } },
+    );
+
+    if (rotationResult.modifiedCount !== 1) {
+        res.status(409);
+        throw createUserError(req.lang, 'REFRESH_TOKEN_ROTATED', 'user-messages.invalid_refresh_token');
+    }
+
+    res.cookie('refreshToken', newRefreshToken, {
+        ...getRefreshTokenCookieOptions(),
+        maxAge: REFRESH_TOKEN_COOKIE_MAX_AGE_MS,
+    });
+    res.json({ accessToken: newAccessToken });
 });
 
 /**
@@ -887,7 +929,7 @@ const googleAuthCallback = asyncHandler(async (req, res) => {
       { email: email.toLowerCase() },
       { providerId, provider: 'google' }
     ]
-  });
+  }).select('+authVersion');
 
   if (user) {
     // Update existing user if needed
@@ -922,9 +964,17 @@ const googleAuthCallback = asyncHandler(async (req, res) => {
   }
 
   // Issue our system's tokens
-  const { refreshToken, refreshTokenId } = generateTokenPair(user._id, user.role);
-  user.refreshTokenId = refreshTokenId;
-  await user.save();
+  const currentAuthVersion = user.authVersion || '0';
+  const authVersion = crypto.randomUUID();
+  const { refreshToken, refreshTokenId } = generateTokenPair(user._id, user.role, authVersion);
+  const sessionResult = await User.updateOne(
+    { _id: user._id, isDeleted: false, ...getAuthVersionFilter(currentAuthVersion) },
+    { $set: { authVersion, refreshTokenId } },
+  );
+  if (sessionResult.modifiedCount !== 1) {
+    res.status(401);
+    throw createUserError(req.lang, 'SESSION_CHANGED_RETRY', 'auth-messages.tokenRevoked');
+  }
 
   // Set refresh token in httpOnly secure cookie
   res.cookie('refreshToken', refreshToken, {
@@ -966,13 +1016,13 @@ const createUserByAdmin = asyncHandler(async (req, res) => {
   const userRole = role && validRoles.includes(role) ? role : 'user';
 
   // Create the user
-  const user = await User.create({
+  const user = await adminUserGovernanceService.createManagedUser(req.user._id, {
     email,
     username,
     password,
     role: userRole,
-    isEmailVerified: true, // Admin-created users are auto-verified
-  });
+    isEmailVerified: true,
+  }, lang);
 
   if (user) {
     res.status(201).json({

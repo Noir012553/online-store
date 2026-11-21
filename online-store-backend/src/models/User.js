@@ -84,6 +84,11 @@ const UserSchema = new mongoose.Schema({
         index: true,
         select: false,
     },
+    authVersion: {
+        type: String,
+        default: '0',
+        select: false,
+    },
     // OAuth Provider fields
     provider: {
         type: String,

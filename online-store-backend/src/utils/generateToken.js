@@ -21,8 +21,8 @@ const {
  * @param {String} id - User ID
  * @returns {String} JWT access token có thời hạn 60 phút
  */
-const generateAccessToken = (id) => {
-  return jwt.sign({ id, type: 'access' }, ACCESS_TOKEN_SECRET, {
+const generateAccessToken = (id, authVersion = '0') => {
+  return jwt.sign({ id, type: 'access', authVersion }, ACCESS_TOKEN_SECRET, {
     algorithm: JWT_ALGORITHM,
     expiresIn: ACCESS_TOKEN_EXPIRES_IN,
   });
@@ -34,11 +34,11 @@ const generateAccessToken = (id) => {
  * @param {String|null} role - User role (embedded in refresh token for cookie policy)
  * @returns {Object} refresh token payload metadata
  */
-const generateRefreshToken = (id, role = null) => {
+const generateRefreshToken = (id, role = null, authVersion = '0') => {
   const jti = crypto.randomUUID();
 
   return {
-    refreshToken: jwt.sign({ id, type: 'refresh', jti, ...(role ? { role } : {}) }, REFRESH_TOKEN_SECRET, {
+    refreshToken: jwt.sign({ id, type: 'refresh', jti, authVersion, ...(role ? { role } : {}) }, REFRESH_TOKEN_SECRET, {
       algorithm: JWT_ALGORITHM,
       expiresIn: REFRESH_TOKEN_EXPIRES_IN,
     }),
@@ -53,18 +53,18 @@ const generateRefreshToken = (id, role = null) => {
  * @param {String|null} role - User role (embedded in refresh token for cookie policy)
  * @returns {Object} { accessToken, refreshToken, refreshTokenId }
  */
-const generateTokenPair = (id, role = null) => {
-  const { refreshToken, refreshTokenId } = generateRefreshToken(id, role);
+const generateTokenPair = (id, role = null, authVersion = '0') => {
+  const { refreshToken, refreshTokenId } = generateRefreshToken(id, role, authVersion);
 
   return {
-    accessToken: generateAccessToken(id),
+    accessToken: generateAccessToken(id, authVersion),
     refreshToken,
     refreshTokenId,
   };
 };
 
 // Keep old generateToken for backward compatibility
-const generateToken = (id) => generateAccessToken(id);
+const generateToken = (id, authVersion = '0') => generateAccessToken(id, authVersion);
 
 module.exports = {
   ACCESS_TOKEN_SECRET,
