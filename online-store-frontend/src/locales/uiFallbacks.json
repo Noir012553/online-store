@@ -196,6 +196,7 @@
     "product_unpublished_label": "Chưa đăng bán",
     "cancel": "Hủy",
     "loading_message": "Đang tải...",
+    "edit_provider_configuration": "Chỉnh sửa cấu hình nhà cung cấp",
     "edit_runtime_config": "Chỉnh sửa cấu hình hệ thống",
     "runtime_edit_unsupported": "Chưa hỗ trợ chỉnh sửa cấu hình"
   },
@@ -396,6 +397,7 @@
     "product_unpublished_label": "Unpublished",
     "cancel": "Cancel",
     "loading_message": "Loading...",
+    "edit_provider_configuration": "Edit provider configuration",
     "edit_runtime_config": "Edit system configuration",
     "runtime_edit_unsupported": "Configuration editing is not supported"
   },

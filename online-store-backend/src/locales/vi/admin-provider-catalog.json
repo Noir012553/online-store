@@ -181,6 +181,7 @@
   "reveal_secret": "Hiển thị thông tin bí mật",
   "edit_vnpay_config": "Chỉnh sửa cấu hình VNPay",
   "edit_cloudflare_config": "Chỉnh sửa cấu hình Cloudflare AI",
+  "edit_provider_configuration": "Chỉnh sửa cấu hình nhà cung cấp",
   "edit_runtime_config": "Chỉnh sửa cấu hình hệ thống",
   "runtime_config_help": "Chỉnh sửa các giá trị cần thay đổi. Cấu hình được áp dụng ngay sau khi lưu.",
   "runtime_edit_unsupported": "Chưa hỗ trợ chỉnh sửa cấu hình",
