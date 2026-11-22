@@ -60,6 +60,11 @@ const PROVIDER_SCHEMAS = {
     { key: 'RENDER_STAGING_BRANCH', label: 'Branch staging', type: 'text', required: true, helpText: 'Branch đã cấu hình trong phần Build & Deploy của service Render staging.' },
     { key: 'RENDER_STAGING_URL', label: 'URL staging', type: 'url', helpText: 'URL HTTPS của service staging; Free web services có thể ngủ sau thời gian không hoạt động.' },
   ],
+  cloudflare_tunnel: [
+    { key: 'CLOUDFLARE_TUNNEL_ID', label: 'Tunnel ID', type: 'text', required: true },
+    { key: 'CLOUDFLARE_TUNNEL_TOKEN', label: 'Tunnel token', type: 'secret', required: true },
+    { key: 'CLOUDFLARE_TUNNEL_HOSTNAME', label: 'Hostname', type: 'text', required: true },
+  ],
 };
 
 const RUNTIME_SCHEMAS = {
