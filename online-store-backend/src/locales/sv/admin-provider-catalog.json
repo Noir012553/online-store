@@ -181,6 +181,7 @@
   "reveal_secret": "Avslöja hemlighet",
   "edit_vnpay_config": "Redigera VNPay-konfiguration",
   "edit_cloudflare_config": "Redigera Cloudflare AI-konfiguration",
+  "edit_provider_configuration": "Redigera leverantörskonfiguration",
   "edit_runtime_config": "Redigera körningskonfiguration",
   "runtime_config_help": "Ändra önskade värden. Konfigurationen tillämpas direkt när du sparar.",
   "runtime_edit_unsupported": "Det går inte att redigera konfigurationen",

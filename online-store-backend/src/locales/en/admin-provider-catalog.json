@@ -181,6 +181,7 @@
   "reveal_secret": "Reveal secret",
   "edit_vnpay_config": "Edit VNPay configuration",
   "edit_cloudflare_config": "Edit Cloudflare AI configuration",
+  "edit_provider_configuration": "Edit provider configuration",
   "edit_runtime_config": "Edit runtime configuration",
   "runtime_config_help": "Edit the values you want to change. Configuration is applied immediately after saving.",
   "runtime_edit_unsupported": "Configuration editing is not supported",
