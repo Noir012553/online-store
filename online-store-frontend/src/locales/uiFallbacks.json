@@ -83,6 +83,12 @@
     "madeWith": "Phát triển với sự tận tâm.",
     "ghn_icon_alt": "Logo GHN",
     "vnpay_logo_alt": "Logo VNPay",
+    "payment_method_paypal": "PayPal",
+    "payment_method_paypal_desc": "Thanh toán an toàn qua PayPal.",
+    "payment_methods_loading": "Đang tải phương thức thanh toán...",
+    "payment_methods_error": "Không thể tải phương thức thanh toán. Vui lòng thử lại.",
+    "payment_methods_empty": "Hiện chưa có phương thức thanh toán khả dụng.",
+    "paypal_button": "Tiếp tục với PayPal",
     "app_store_alt": "Tải trên App Store",
     "google_play_alt": "Tải trên Google Play",
     "zalo_logo_alt": "Logo Zalo",
@@ -284,6 +290,12 @@
     "madeWith": "Built with care.",
     "ghn_icon_alt": "GHN logo",
     "vnpay_logo_alt": "VNPay logo",
+    "payment_method_paypal": "PayPal",
+    "payment_method_paypal_desc": "Pay securely through PayPal.",
+    "payment_methods_loading": "Loading payment methods...",
+    "payment_methods_error": "Unable to load payment methods. Please try again.",
+    "payment_methods_empty": "No payment methods are currently available.",
+    "paypal_button": "Continue with PayPal",
     "app_store_alt": "Download on the App Store",
     "google_play_alt": "Get it on Google Play",
     "zalo_logo_alt": "Zalo logo",
@@ -409,7 +421,13 @@
     "social_youtube_aria": "YouTube — em breve",
     "social_x_aria": "X — em breve",
     "login_successful": "Login realizado com sucesso",
-    "logout_successful": "Sessão encerrada com sucesso"
+    "logout_successful": "Sessão encerrada com sucesso",
+    "payment_method_paypal": "PayPal",
+    "payment_method_paypal_desc": "Pague com segurança pelo PayPal.",
+    "payment_methods_loading": "Carregando formas de pagamento...",
+    "payment_methods_error": "Não foi possível carregar as formas de pagamento. Tente novamente.",
+    "payment_methods_empty": "Nenhuma forma de pagamento está disponível no momento.",
+    "paypal_button": "Continuar com PayPal"
   },
   "fr": {
     "social_title": "Réseaux sociaux",
@@ -419,7 +437,13 @@
     "social_youtube_aria": "YouTube — bientôt disponible",
     "social_x_aria": "X — bientôt disponible",
     "login_successful": "Connexion réussie",
-    "logout_successful": "Déconnexion réussie"
+    "logout_successful": "Déconnexion réussie",
+    "payment_method_paypal": "PayPal",
+    "payment_method_paypal_desc": "Payez en toute sécurité avec PayPal.",
+    "payment_methods_loading": "Chargement des moyens de paiement...",
+    "payment_methods_error": "Impossible de charger les moyens de paiement. Veuillez réessayer.",
+    "payment_methods_empty": "Aucun moyen de paiement n'est disponible pour le moment.",
+    "paypal_button": "Continuer avec PayPal"
   },
   "de": {
     "social_title": "Soziale Medien",
@@ -429,7 +453,13 @@
     "social_youtube_aria": "YouTube — demnächst verfügbar",
     "social_x_aria": "X — demnächst verfügbar",
     "login_successful": "Anmeldung erfolgreich",
-    "logout_successful": "Abmeldung erfolgreich"
+    "logout_successful": "Abmeldung erfolgreich",
+    "payment_method_paypal": "PayPal",
+    "payment_method_paypal_desc": "Sicher mit PayPal bezahlen.",
+    "payment_methods_loading": "Zahlungsmethoden werden geladen...",
+    "payment_methods_error": "Zahlungsmethoden konnten nicht geladen werden. Bitte versuchen Sie es erneut.",
+    "payment_methods_empty": "Derzeit sind keine Zahlungsmethoden verfügbar.",
+    "paypal_button": "Mit PayPal fortfahren"
   },
   "it": {
     "social_title": "Social media",
@@ -439,7 +469,13 @@
     "social_youtube_aria": "YouTube — prossimamente",
     "social_x_aria": "X — prossimamente",
     "login_successful": "Accesso riuscito",
-    "logout_successful": "Disconnessione riuscita"
+    "logout_successful": "Disconnessione riuscita",
+    "payment_method_paypal": "PayPal",
+    "payment_method_paypal_desc": "Paga in sicurezza con PayPal.",
+    "payment_methods_loading": "Caricamento dei metodi di pagamento...",
+    "payment_methods_error": "Impossibile caricare i metodi di pagamento. Riprova.",
+    "payment_methods_empty": "Nessun metodo di pagamento è attualmente disponibile.",
+    "paypal_button": "Continua con PayPal"
   },
   "es": {
     "social_title": "Redes sociales",
@@ -449,7 +485,13 @@
     "social_youtube_aria": "YouTube — próximamente",
     "social_x_aria": "X — próximamente",
     "login_successful": "Inicio de sesión exitoso",
-    "logout_successful": "Sesión cerrada correctamente"
+    "logout_successful": "Sesión cerrada correctamente",
+    "payment_method_paypal": "PayPal",
+    "payment_method_paypal_desc": "Paga de forma segura con PayPal.",
+    "payment_methods_loading": "Cargando métodos de pago...",
+    "payment_methods_error": "No se pudieron cargar los métodos de pago. Inténtalo de nuevo.",
+    "payment_methods_empty": "No hay métodos de pago disponibles en este momento.",
+    "paypal_button": "Continuar con PayPal"
   },
   "nl": {
     "social_title": "Sociale media",
@@ -459,7 +501,13 @@
     "social_youtube_aria": "YouTube — binnenkort beschikbaar",
     "social_x_aria": "X — binnenkort beschikbaar",
     "login_successful": "Aanmelding geslaagd",
-    "logout_successful": "Uitloggen geslaagd"
+    "logout_successful": "Uitloggen geslaagd",
+    "payment_method_paypal": "PayPal",
+    "payment_method_paypal_desc": "Betaal veilig met PayPal.",
+    "payment_methods_loading": "Betaalmethoden laden...",
+    "payment_methods_error": "Betaalmethoden konden niet worden geladen. Probeer het opnieuw.",
+    "payment_methods_empty": "Er zijn momenteel geen betaalmethoden beschikbaar.",
+    "paypal_button": "Doorgaan met PayPal"
   },
   "sv": {
     "social_title": "Sociala medier",
@@ -469,6 +517,12 @@
     "social_youtube_aria": "YouTube — kommer snart",
     "social_x_aria": "X — kommer snart",
     "login_successful": "Inloggning lyckades",
-    "logout_successful": "Utloggning lyckades"
+    "logout_successful": "Utloggning lyckades",
+    "payment_method_paypal": "PayPal",
+    "payment_method_paypal_desc": "Betala säkert med PayPal.",
+    "payment_methods_loading": "Laddar betalningsmetoder...",
+    "payment_methods_error": "Det gick inte att ladda betalningsmetoderna. Försök igen.",
+    "payment_methods_empty": "Inga betalningsmetoder är tillgängliga just nu.",
+    "paypal_button": "Fortsätt med PayPal"
   }
 }

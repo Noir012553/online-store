@@ -132,7 +132,9 @@ const initiatePayment = asyncHandler(async (req, res) => {
     {
       clientIp,
       lang: req.lang,
-      description: `Thanh toan don hang ${orderId}`,
+      description: String(gateway).toLowerCase() === 'paypal'
+        ? getMessage(req.lang, 'checkout.paypal_order_description', { orderId })
+        : `Thanh toan don hang ${orderId}`,
     }
   );
 

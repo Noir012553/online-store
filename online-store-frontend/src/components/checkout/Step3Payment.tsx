@@ -388,9 +388,9 @@ export function Step3Payment() {
         </div>
 
         <div className="space-y-4">
-          {paymentMethodsLoading && <p role="status" className="text-sm text-gray-500">Đang tải phương thức thanh toán…</p>}
-          {paymentMethodsError && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">Không thể tải phương thức thanh toán. Vui lòng thử lại.</p>}
-          {!paymentMethodsLoading && !paymentMethodsError && paymentMethods.length === 0 && <p role="status" className="text-sm text-gray-500">Hiện chưa có phương thức thanh toán khả dụng.</p>}
+          {paymentMethodsLoading && <p role="status" className="text-sm text-gray-500">{t('payment_methods_loading', 'checkout')}</p>}
+          {paymentMethodsError && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">{t('payment_methods_error', 'checkout')}</p>}
+          {!paymentMethodsLoading && !paymentMethodsError && paymentMethods.length === 0 && <p role="status" className="text-sm text-gray-500">{t('payment_methods_empty', 'checkout')}</p>}
           {supportsCod && <>
           {/* COD Option */}
           <button
@@ -432,10 +432,10 @@ export function Step3Payment() {
                 <div className="flex-1">
                   <div className="flex items-center gap-3">
                     <span aria-hidden="true" className="font-bold italic text-blue-700">PayPal</span>
-                    <h3 className="font-bold text-gray-900">{paymentMethods.find(method => method.code === 'paypal')?.name || 'PayPal'}</h3>
+                    <h3 className="font-bold text-gray-900">{t('payment_method_paypal', 'checkout')}</h3>
                   </div>
                   <p className="text-sm text-gray-600 mt-1">
-                    {paymentMethods.find(method => method.code === 'paypal')?.description || 'Pay securely with PayPal.'}
+                    {t('payment_method_paypal_desc', 'checkout')}
                   </p>
                 </div>
               </div>
@@ -498,7 +498,7 @@ export function Step3Payment() {
             disabled={isLoading || paymentMethodsLoading || paymentMethodsError || paymentMethods.length === 0 || !selectedMethod || !checkoutSummary}
             className="min-h-11 w-full whitespace-normal bg-red-600 px-4 py-3 text-center font-semibold leading-tight text-white hover:bg-red-700 disabled:opacity-50 sm:flex-1 sm:px-8"
           >
-            {isLoading ? t('processing', 'checkout') : selectedMethod === 'vnpay' ? t('vnpay_button', 'checkout') : selectedMethod === 'paypal' ? 'PayPal' : t('confirm_order_button', 'checkout')}
+            {isLoading ? t('processing', 'checkout') : selectedMethod === 'vnpay' ? t('vnpay_button', 'checkout') : selectedMethod === 'paypal' ? t('paypal_button', 'checkout') : t('confirm_order_button', 'checkout')}
           </Button>
         </div>
       </div>
