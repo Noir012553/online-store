@@ -2820,6 +2820,7 @@ export interface ProviderConfigField {
   required?: boolean;
   options?: string[];
   defaultValue?: string;
+  placeholder?: string;
   helpText?: string;
 }
 

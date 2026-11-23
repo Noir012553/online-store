@@ -20,6 +20,10 @@ const PROVIDER_SCHEMAS = {
   paypal: [
     { key: 'PAYPAL_API_KEY', label: 'API Key', type: 'text', required: true, helpText: 'Nhập giá trị ở mục API Key trong phần API credentials của PayPal Sandbox.' },
     { key: 'PAYPAL_SECRET', label: 'Secret', type: 'secret', required: true, helpText: 'Nhập Secret đi cùng API Key trong phần API credentials của PayPal Sandbox.' },
+    { key: 'PAYPAL_WEBHOOK_ID', label: 'Webhook ID Sandbox', type: 'text', placeholder: 'Tạo webhook Sandbox trong PayPal để lấy ID', helpText: 'ID do PayPal tạo sau khi đăng ký webhook. Chưa cần điền nếu chưa cấu hình webhook.' },
+    { key: 'PAYPAL_RETURN_URL', label: 'URL quay lại', type: 'url', placeholder: 'https://your-store.example/payments/paypal/return', helpText: 'URL mẫu; thay bằng route HTTPS thật của cửa hàng sau khi route này được triển khai.' },
+    { key: 'PAYPAL_CANCEL_URL', label: 'URL hủy', type: 'url', placeholder: 'https://your-store.example/payments/paypal/cancel', helpText: 'URL mẫu; thay bằng route HTTPS thật của cửa hàng sau khi route này được triển khai.' },
+    { key: 'PAYPAL_WEBHOOK_URL', label: 'URL webhook', type: 'url', placeholder: 'https://api.your-store.example/payments/paypal/webhook', helpText: 'URL mẫu; thay bằng endpoint HTTPS công khai của backend sau khi webhook được triển khai.' },
   ],
   momo: [
     { key: 'MOMO_PARTNER_CODE', label: 'Partner Code Sandbox', type: 'text', required: true, helpText: 'Lấy trong bộ thông tin tích hợp thử nghiệm được MoMo cấp.' },
@@ -155,7 +159,7 @@ const getRuntimeSchema = (providerCode, configuredKeys = []) => {
 };
 
 const PROVIDER_SETUP_GUIDES = {
-  paypal: { label: 'PayPal REST Authentication & Sandbox', url: 'https://developer.paypal.com/api/rest/authentication/', note: 'Sao chép API Key và Secret trong mục API credentials khi đang chọn Sandbox.' },
+  paypal: { label: 'PayPal REST Authentication & Sandbox', url: 'https://developer.paypal.com/api/rest/authentication/', note: 'Sao chép API Key và Secret trong mục API credentials khi đang chọn Sandbox. Chỉ thay URL mẫu sau khi các route tương ứng đã được triển khai.' },
   momo: { label: 'MoMo Sandbox Test Instructions', url: 'https://developers.momo.vn/v3/vi/docs/payment/onboarding/test-instructions/', note: 'Hướng dẫn test sandbox MoMo. Link Payment API Init cũ hiện trả 403; liên hệ hỗ trợ doanh nghiệp MoMo để được cấp credential thử nghiệm nếu tài khoản chưa có.' },
   sendgrid: { label: 'SendGrid SMTP', url: 'https://docs.sendgrid.com/for-developers/sending-email/getting-started-smtp', note: 'Chỉ dùng API key và sender đã xác minh cho môi trường staging.' },
   vercel: { label: 'Vercel REST API', url: 'https://vercel.com/docs/rest-api#creating-an-access-token', note: 'Preview branch có thể dùng cho staging; không mặc định dùng Vercel Hobby cho cửa hàng thương mại, hãy xác minh điều khoản hiện hành. Cấu hình tại đây chưa tự deploy.' },
