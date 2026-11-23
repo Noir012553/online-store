@@ -18,13 +18,8 @@ const User = require('../models/User');
 
 const PROVIDER_SCHEMAS = {
   paypal: [
-    { key: 'PAYPAL_API_KEY', label: 'API Key', type: 'text', required: true, helpText: 'Sao chép API Key trong thông tin xác thực ứng dụng PayPal Sandbox.' },
-    { key: 'PAYPAL_SECRET', label: 'Secret', type: 'secret', required: true, helpText: 'Lấy Secret tương ứng trong thông tin xác thực ứng dụng PayPal Sandbox; không dùng thông tin Live.' },
-    { key: 'PAYPAL_API_BASE_URL', label: 'API base URL', type: 'select', required: true, options: ['https://api-m.sandbox.paypal.com'], defaultValue: 'https://api-m.sandbox.paypal.com', helpText: 'Endpoint sandbox cố định; không chuyển sang Live.' },
-    { key: 'PAYPAL_WEBHOOK_ID', label: 'Webhook ID Sandbox', type: 'text', helpText: 'Webhook ID của webhook sandbox đã tạo cho URL callback bên dưới; chỉ cần khi adapter xác minh webhook.' },
-    { key: 'PAYPAL_RETURN_URL', label: 'Return URL', type: 'url', required: true, helpText: 'HTTPS URL của storefront nhận khách quay lại sau thanh toán; phải thuộc môi trường staging.' },
-    { key: 'PAYPAL_CANCEL_URL', label: 'Cancel URL', type: 'url', required: true, helpText: 'HTTPS URL staging mà khách được chuyển về khi hủy thanh toán.' },
-    { key: 'PAYPAL_WEBHOOK_URL', label: 'Webhook URL', type: 'url', helpText: 'HTTPS endpoint backend staging nhận sự kiện PayPal; endpoint phải xử lý và xác minh webhook.' },
+    { key: 'PAYPAL_API_KEY', label: 'API Key', type: 'text', required: true, helpText: 'Nhập giá trị ở mục API Key trong phần API credentials của PayPal Sandbox.' },
+    { key: 'PAYPAL_SECRET', label: 'Secret', type: 'secret', required: true, helpText: 'Nhập Secret đi cùng API Key trong phần API credentials của PayPal Sandbox.' },
   ],
   momo: [
     { key: 'MOMO_PARTNER_CODE', label: 'Partner Code Sandbox', type: 'text', required: true, helpText: 'Lấy trong bộ thông tin tích hợp thử nghiệm được MoMo cấp.' },
@@ -160,7 +155,7 @@ const getRuntimeSchema = (providerCode, configuredKeys = []) => {
 };
 
 const PROVIDER_SETUP_GUIDES = {
-  paypal: { label: 'PayPal REST Authentication & Sandbox', url: 'https://developer.paypal.com/api/rest/authentication/', note: 'Tạo app trong Sandbox và dùng cặp Client ID/Secret của app đó. Webhook ID lấy từ webhook sandbox đã đăng ký.' },
+  paypal: { label: 'PayPal REST Authentication & Sandbox', url: 'https://developer.paypal.com/api/rest/authentication/', note: 'Sao chép API Key và Secret trong mục API credentials khi đang chọn Sandbox.' },
   momo: { label: 'MoMo Sandbox Test Instructions', url: 'https://developers.momo.vn/v3/vi/docs/payment/onboarding/test-instructions/', note: 'Hướng dẫn test sandbox MoMo. Link Payment API Init cũ hiện trả 403; liên hệ hỗ trợ doanh nghiệp MoMo để được cấp credential thử nghiệm nếu tài khoản chưa có.' },
   sendgrid: { label: 'SendGrid SMTP', url: 'https://docs.sendgrid.com/for-developers/sending-email/getting-started-smtp', note: 'Chỉ dùng API key và sender đã xác minh cho môi trường staging.' },
   vercel: { label: 'Vercel REST API', url: 'https://vercel.com/docs/rest-api#creating-an-access-token', note: 'Preview branch có thể dùng cho staging; không mặc định dùng Vercel Hobby cho cửa hàng thương mại, hãy xác minh điều khoản hiện hành. Cấu hình tại đây chưa tự deploy.' },
