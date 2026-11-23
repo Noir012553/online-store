@@ -27,12 +27,12 @@ const CATEGORY_KEYS: Record<ProviderCatalogCategory, string> = {
 };
 
 const EMPTY_FORM: { name: string; keyValues: ProviderCatalogKeyValue[] } = { name: '', keyValues: [] };
-const CONFIG_SCHEMA_CODES = new Set(['paypal', 'momo', 'sendgrid', 'vercel', 'render', 'cloudflare_tunnel']);
+const CONFIG_SCHEMA_CODES = new Set(['paypal', 'sendgrid', 'vercel', 'render', 'cloudflare_tunnel']);
 const EDITABLE_RUNTIME_PROVIDERS = new Set(['smtp', 'sendgrid', 'cod', 'vnpay', 'paypal', 'ghn', 'cloudflare_r2', 'cloudflare_ai']);
 const SENSITIVE_CATALOG_VALUE = /\b(api[\s_-]*key|access[\s_-]*key|secret|token|password|credential|authorization|bearer)\b/i;
 
 const PROVIDER_METADATA_KEYS: Record<string, string> = {
-  smtp: 'smtp', sendgrid: 'sendgrid', cod: 'cod', vnpay: 'vnpay', paypal: 'paypal', momo: 'momo',
+  smtp: 'smtp', sendgrid: 'sendgrid', cod: 'cod', vnpay: 'vnpay', paypal: 'paypal',
   vercel: 'vercel', render: 'render', ghn: 'ghn', cloudflare_tunnel: 'cloudflare_tunnel',
   cloudflare_r2: 'cloudflare_r2', cloudflare_ai: 'cloudflare_ai',
 };

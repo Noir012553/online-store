@@ -10,7 +10,6 @@ const PROVIDERS = {
   cod: { category: 'payment', name: 'Thanh toán khi nhận hàng (COD)', adapter: 'payment-method', note: 'Phương thức thanh toán hiện có; catalog không bật/tắt checkout.' },
   vnpay: { category: 'payment', name: 'VNPay', adapter: 'available', note: 'Adapter sandbox/runtime hiện có; catalog không cấu hình credentials hoặc endpoint.' },
   paypal: { category: 'payment', name: 'PayPal', adapter: 'available', note: 'PayPal Checkout Sandbox, capture và xác minh webhook đã được tích hợp; chỉ bật sau khi cấu hình REST app và webhook.' },
-  momo: { category: 'payment', name: 'MoMo', adapter: 'not-implemented', note: 'Chưa có adapter thanh toán và xác minh callback/IPN.' },
   vercel: { category: 'deploy', name: 'Vercel', adapter: 'not-implemented', note: 'Chưa có adapter deploy; cấu hình được lưu riêng và không tự triển khai.' },
   render: { category: 'deploy', name: 'Render', adapter: 'not-implemented', note: 'Chưa có adapter deploy; cấu hình được lưu riêng và không tự triển khai.' },
   ghn: { category: 'shipping', name: 'GHN', adapter: 'available', note: 'Adapter vận chuyển hiện có; catalog không thay đổi credentials vận hành.' },
@@ -105,7 +104,7 @@ exports.list = asyncHandler(async (req, res) => {
   if (!pagination) return res.status(400).json({ success: false, code: 'INVALID_PAGINATION' });
   const status = req.query.status || 'active';
   if (!['active', 'deleted', 'all'].includes(status)) return res.status(400).json({ success: false, code: 'INVALID_STATUS_FILTER' });
-  const filter = {};
+  const filter = { providerCode: { $ne: 'momo' } };
   if (status !== 'all') filter.isDeleted = status === 'deleted';
   if (typeof req.query.category === 'string' && req.query.category) {
     if (!['email', 'payment', 'shipping', 'deploy', 'storage', 'ai'].includes(req.query.category)) {
@@ -135,7 +134,7 @@ exports.list = asyncHandler(async (req, res) => {
 exports.getById = asyncHandler(async (req, res) => {
   if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ success: false, code: 'INVALID_PROVIDER_ID' });
   const entry = await ProviderCatalogEntry.findById(req.params.id).lean();
-  if (!entry) return res.status(404).json({ success: false, code: 'PROVIDER_NOT_FOUND' });
+  if (!entry || entry.providerCode === 'momo') return res.status(404).json({ success: false, code: 'PROVIDER_NOT_FOUND' });
   noStore(res);
   res.json({ success: true, data: decorate(entry), registry: supportedProviders() });
 });
