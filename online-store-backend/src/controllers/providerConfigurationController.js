@@ -18,8 +18,8 @@ const User = require('../models/User');
 
 const PROVIDER_SCHEMAS = {
   paypal: [
-    { key: 'PAYPAL_CLIENT_ID', label: 'Client ID', type: 'text', required: true, helpText: 'Trong PayPal Developer Dashboard, mở app sandbox và sao chép Client ID.' },
-    { key: 'PAYPAL_CLIENT_SECRET', label: 'Client Secret', type: 'secret', required: true, helpText: 'Lấy cùng app sandbox với Client ID; không dùng credential Live.' },
+    { key: 'PAYPAL_API_KEY', label: 'API Key', type: 'text', required: true, helpText: 'Sao chép API Key trong thông tin xác thực ứng dụng PayPal Sandbox.' },
+    { key: 'PAYPAL_SECRET', label: 'Secret', type: 'secret', required: true, helpText: 'Lấy Secret tương ứng trong thông tin xác thực ứng dụng PayPal Sandbox; không dùng thông tin Live.' },
     { key: 'PAYPAL_API_BASE_URL', label: 'API base URL', type: 'select', required: true, options: ['https://api-m.sandbox.paypal.com'], defaultValue: 'https://api-m.sandbox.paypal.com', helpText: 'Endpoint sandbox cố định; không chuyển sang Live.' },
     { key: 'PAYPAL_WEBHOOK_ID', label: 'Webhook ID Sandbox', type: 'text', helpText: 'Webhook ID của webhook sandbox đã tạo cho URL callback bên dưới; chỉ cần khi adapter xác minh webhook.' },
     { key: 'PAYPAL_RETURN_URL', label: 'Return URL', type: 'url', required: true, helpText: 'HTTPS URL của storefront nhận khách quay lại sau thanh toán; phải thuộc môi trường staging.' },
