@@ -119,7 +119,7 @@ const initiatePayment = asyncHandler(async (req, res) => {
 
   // Lấy IP từ Cloudflare Tunnel
   const clientIp = getClientIp(req);
-  if (!clientIp || clientIp === '0.0.0.0') {
+  if (String(gateway).toLowerCase() !== 'paypal' && (!clientIp || clientIp === '0.0.0.0')) {
     res.status(400);
     throw createPaymentError({ code: 'PAYMENT_CLIENT_IP_UNAVAILABLE' }, req.lang);
   }
@@ -152,7 +152,7 @@ const initiatePayment = asyncHandler(async (req, res) => {
  * @route GET /api/payments/gateways
  * @access Public
  */
-const getSupportedGateways = asyncHandler(async (req, res) => {
+const getSupportedGateways = asyncHandler(async (_req, res) => {
   const methods = await paymentMethodService.listAvailablePaymentMethods();
   const gateways = methods.filter(method => method.code !== 'cod').map(method => method.code);
 
@@ -176,6 +176,26 @@ const getAvailablePaymentMethods = asyncHandler(async (_req, res) => {
  * @route GET /api/payments/confirm/:orderId
  * @access Private
  */
+const capturePayPalOrder = asyncHandler(async (req, res) => {
+  const { orderId } = req.params;
+  const paypalOrderId = req.body?.token;
+  const order = await findOrderForRequest(req, orderId);
+  if (!order) {
+    res.status(404);
+    throw createPaymentError({ code: 'PAYMENT_ORDER_NOT_FOUND' }, req.lang);
+  }
+  if (!paypalOrderId || typeof paypalOrderId !== 'string') {
+    res.status(400);
+    throw createPaymentError({ code: 'PAYMENT_REQUIRED_FIELDS', params: { fields: 'token' } }, req.lang);
+  }
+  const result = await paymentService.capturePayPalOrder(orderId, paypalOrderId, req.app.get('io'), req.lang);
+  if (!result.success) {
+    res.status(result.code === 'PAYMENT_RECORD_NOT_FOUND' ? 404 : 400);
+    throw createPaymentError(result, req.lang);
+  }
+  res.status(200).json({ success: true, data: result.data || { orderId, isPaid: true, paymentStatus: 'success' } });
+});
+
 const confirmPayment = asyncHandler(async (req, res) => {
   const { orderId } = req.params;
   const order = await findOrderForRequest(req, orderId);
@@ -212,6 +232,19 @@ const confirmPayment = asyncHandler(async (req, res) => {
  */
 const handleWebhook = asyncHandler(async (req, res) => {
   const { gateway } = req.params;
+  if (String(gateway).toLowerCase() === 'paypal') {
+    if (req.method !== 'POST') return res.status(405).json({ success: false, code: 'PAYMENT_WEBHOOK_INVALID' });
+    const event = req.body;
+    if (!event || typeof event !== 'object' || Array.isArray(event)) {
+      return res.status(400).json({ success: false, code: 'PAYMENT_WEBHOOK_INVALID' });
+    }
+    const result = await paymentService.handlePayPalWebhook(req.headers, event, req.app.get('io'), req.lang);
+    if (!result.success) {
+      const status = result.code === 'PAYMENT_WEBHOOK_INVALID' ? 400 : 500;
+      return res.status(status).json({ success: false, code: result.code || 'PAYMENT_WEBHOOK_PROCESSING_FAILED' });
+    }
+    return res.status(200).json({ success: true });
+  }
 
   // Tùy theo gateway, dữ liệu có thể ở req.body hoặc req.query
   // VNPAY: GET request (query string) hoặc POST request (body)
@@ -417,6 +450,7 @@ module.exports = {
   initiatePayment,
   getSupportedGateways,
   getAvailablePaymentMethods,
+  capturePayPalOrder,
   confirmPayment,
   handleWebhook,
   getPaymentHistory,

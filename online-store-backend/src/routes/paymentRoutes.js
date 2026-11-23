@@ -685,6 +685,7 @@ router.post('/debug/create-test-order', asyncHandler(async (req, res) => {
 // Rate limited: 10 payment initiations per hour per user
 router.post('/initiate', protect, initiatePaymentLimiter, paymentController.initiatePayment);
 router.post('/create', protect, initiatePaymentLimiter, paymentController.initiatePayment); // Alias for /initiate
+router.post('/capture/:orderId', protect, paymentController.capturePayPalOrder);
 router.get('/confirm/:orderId', protect, paymentController.confirmPayment);
 router.get('/history/:orderId', protect, paymentController.getPaymentHistory);
 router.get('/:paymentId', protect, paymentController.getPaymentDetails);

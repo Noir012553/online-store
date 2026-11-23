@@ -18,11 +18,11 @@ const User = require('../models/User');
 
 const PROVIDER_SCHEMAS = {
   paypal: [
-    { key: 'PAYPAL_API_KEY', label: 'API Key', type: 'text', required: true, helpText: 'Nhập giá trị ở mục API Key trong phần API credentials của PayPal Sandbox.' },
-    { key: 'PAYPAL_SECRET', label: 'Secret', type: 'secret', required: true, helpText: 'Nhập Secret đi cùng API Key trong phần API credentials của PayPal Sandbox.' },
+    { key: 'PAYPAL_CLIENT_ID', label: 'Client ID Sandbox', type: 'text', required: true, helpText: 'Lấy Client ID của REST API app trong Apps & Credentials, chọn Sandbox.' },
+    { key: 'PAYPAL_CLIENT_SECRET', label: 'Client Secret Sandbox', type: 'secret', required: true, helpText: 'Lấy Client Secret cùng REST API app Sandbox với Client ID.' },
     { key: 'PAYPAL_WEBHOOK_ID', label: 'Webhook ID Sandbox', type: 'text', placeholder: 'Tạo webhook Sandbox trong PayPal để lấy ID', helpText: 'ID do PayPal tạo sau khi đăng ký webhook. Chưa cần điền nếu chưa cấu hình webhook.' },
-    { key: 'PAYPAL_RETURN_URL', label: 'URL quay lại', type: 'url', options: ['https://manln.online/payments/paypal/return'], placeholder: 'https://manln.online/payments/paypal/return', helpText: 'URL mẫu; thay bằng route HTTPS thật của cửa hàng sau khi route này được triển khai.' },
-    { key: 'PAYPAL_CANCEL_URL', label: 'URL hủy', type: 'url', options: ['https://manln.online/payments/paypal/cancel'], placeholder: 'https://manln.online/payments/paypal/cancel', helpText: 'URL mẫu; thay bằng route HTTPS thật của cửa hàng sau khi route này được triển khai.' },
+    { key: 'PAYPAL_RETURN_URL', label: 'URL quay lại', type: 'url', options: ['https://manln.online/return?method=paypal'], placeholder: 'https://manln.online/return?method=paypal', helpText: 'URL mẫu; thay bằng route HTTPS thật của cửa hàng sau khi route này được triển khai.' },
+    { key: 'PAYPAL_CANCEL_URL', label: 'URL hủy', type: 'url', options: ['https://manln.online/return?method=paypal&status=cancelled'], placeholder: 'https://manln.online/return?method=paypal&status=cancelled', helpText: 'URL mẫu; thay bằng route HTTPS thật của cửa hàng sau khi route này được triển khai.' },
     { key: 'PAYPAL_WEBHOOK_URL', label: 'URL webhook', type: 'url', options: ['https://backend.manln.online/api/payments/paypal/webhook'], placeholder: 'https://backend.manln.online/api/payments/paypal/webhook', helpText: 'URL mẫu; thay bằng endpoint HTTPS công khai của backend sau khi webhook được triển khai.' },
   ],
   momo: [
