@@ -28,7 +28,7 @@ const CATEGORY_KEYS: Record<ProviderCatalogCategory, string> = {
 
 const EMPTY_FORM: { name: string; keyValues: ProviderCatalogKeyValue[] } = { name: '', keyValues: [] };
 const CONFIG_SCHEMA_CODES = new Set(['paypal', 'momo', 'sendgrid', 'vercel', 'render', 'cloudflare_tunnel']);
-const EDITABLE_RUNTIME_PROVIDERS = new Set(['smtp', 'sendgrid', 'cod', 'vnpay', 'ghn', 'cloudflare_r2', 'cloudflare_ai']);
+const EDITABLE_RUNTIME_PROVIDERS = new Set(['smtp', 'sendgrid', 'cod', 'vnpay', 'paypal', 'ghn', 'cloudflare_r2', 'cloudflare_ai']);
 const SENSITIVE_CATALOG_VALUE = /\b(api[\s_-]*key|access[\s_-]*key|secret|token|password|credential|authorization|bearer)\b/i;
 
 const PROVIDER_METADATA_KEYS: Record<string, string> = {
@@ -52,7 +52,7 @@ const RUNTIME_FIELD_METADATA_KEYS: Record<string, string> = {
   VNPAY_RETURN_URL: 'vnpay_return_url', VNPAY_CALLBACK_URL: 'vnpay_callback_url', GHN_API_TOKEN: 'ghn_api_token',
   GHN_SHOP_ID: 'ghn_shop_id', GHN_API_URL: 'ghn_api_url', GHN_WAREHOUSE_DISTRICT_ID: 'ghn_warehouse_district_id',
   GHN_WAREHOUSE_WARD_CODE: 'ghn_warehouse_ward_code', GHN_PROVIDER_ACTIVE: 'ghn_provider_active',
-  VNPAY_CHECKOUT_ENABLED: 'vnpay_checkout_enabled_runtime', COD_CHECKOUT_ENABLED: 'cod_checkout_enabled',
+  VNPAY_CHECKOUT_ENABLED: 'vnpay_checkout_enabled_runtime', COD_CHECKOUT_ENABLED: 'cod_checkout_enabled', PAYPAL_CHECKOUT_ENABLED: 'paypal_checkout_enabled',
   R2_UPLOAD_ENABLED: 'r2_upload_enabled', R2_MAX_UPLOAD_COUNT: 'r2_max_upload_count', R2_MAX_UPLOAD_BYTES: 'r2_max_upload_bytes',
   R2_MAX_IMAGE_BYTES: 'r2_max_image_bytes', R2_MAX_VIDEO_BYTES: 'r2_max_video_bytes', R2_MAX_RETRIES: 'r2_max_retries',
   CLOUDFLARE_AI_ENABLED: 'cloudflare_ai_enabled', CLOUDFLARE_AI_MAX_REQUESTS_PER_DAY: 'cloudflare_ai_max_requests_per_day',
@@ -742,7 +742,7 @@ function ProviderCatalogPage() {
                 <span>{localizedSchemaField(selectedCode, field, 'label')}{field.required ? ' *' : ''}</span>
                 <code className="mt-1 block break-all text-xs font-normal text-slate-500">{field.key}</code>
                 {field.helpText && <span className="mt-1 block text-xs font-normal leading-5 text-slate-500">{localizedSchemaField(selectedCode, field, 'help')}</span>}
-                {field.type === 'select' ? <select value={configValues[field.key] || ''} onChange={(event) => { setConfigDirty(true); setConfigValues((current) => ({ ...current, [field.key]: event.target.value })); }} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal">{field.options?.map((option) => <option value={option} key={option}>{option}</option>)}</select> : <input type={field.type === 'secret' ? 'password' : field.type === 'url' ? 'url' : 'text'} autoComplete="new-password" value={configValues[field.key] || ''} placeholder={field.type === 'secret' && configuredSecrets.includes(field.key) ? tr('saved_rotate_placeholder') : field.defaultValue || ''} onChange={(event) => { setConfigDirty(true); setConfigValues((current) => ({ ...current, [field.key]: event.target.value })); }} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal" />}
+                {field.type === 'select' ? <select value={configValues[field.key] || ''} onChange={(event) => { setConfigDirty(true); setConfigValues((current) => ({ ...current, [field.key]: event.target.value })); }} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal">{field.options?.map((option) => <option value={option} key={option}>{option}</option>)}</select> : <><input list={field.options?.length ? `${field.key}-options` : undefined} type={field.type === 'secret' ? 'password' : field.type === 'url' ? 'url' : 'text'} autoComplete="new-password" value={configValues[field.key] || ''} placeholder={field.type === 'secret' && configuredSecrets.includes(field.key) ? tr('saved_rotate_placeholder') : field.placeholder || field.defaultValue || ''} onChange={(event) => { setConfigDirty(true); setConfigValues((current) => ({ ...current, [field.key]: event.target.value })); }} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal" />{field.options?.length ? <datalist id={`${field.key}-options`}>{field.options.map((option) => <option key={option} value={option} />)}</datalist> : null}</>}
               </label>)}
             </section>}
             <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900"><strong>{tr('no_production_credentials')}</strong> {tr('catalog_config_warning')}</div>

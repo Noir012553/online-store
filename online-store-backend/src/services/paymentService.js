@@ -13,7 +13,9 @@ const Payment = require('../models/Payment');
 const Order = require('../models/Order');
 const PaymentMethod = require('../models/PaymentMethod');
 const VnpayAdapter = require('../adapters/payment/VnpayAdapter');
+const PayPalAdapter = require('../adapters/payment/PayPalAdapter');
 const { loadVnpayRuntimeConfig } = require('./vnpayRuntimeConfigService');
+const { loadPayPalRuntimeConfig } = require('./paypalRuntimeConfigService');
 const { broadcastPaymentSuccess, broadcastOrderStatusUpdate } = require('../socket/socketHandler');
 const { getMessage } = require('../i18n/messages');
 const { getDefaultLanguage } = require('../config/languageInventory');
@@ -31,6 +33,7 @@ class PaymentService {
   constructor() {
     this.adapters = {};
     this.vnpayCheckoutEnabled = false;
+    this.paypalCheckoutEnabled = false;
     this.initializeAdapters();
   }
 
@@ -70,6 +73,156 @@ class PaymentService {
     }
   }
 
+  async refreshPayPalAdapter() {
+    const [{ config, configured }, method] = await Promise.all([
+      loadPayPalRuntimeConfig(),
+      PaymentMethod.findOne({ code: 'paypal' }).select('isEnabled').lean(),
+    ]);
+    const adapter = new PayPalAdapter(config);
+    try {
+      adapter.validateConfig();
+      this.adapters.paypal = adapter;
+      this.paypalCheckoutEnabled = Boolean(configured && method?.isEnabled);
+      return true;
+    } catch {
+      delete this.adapters.paypal;
+      this.paypalCheckoutEnabled = false;
+      return false;
+    }
+  }
+
+  async capturePayPalOrder(orderId, paypalOrderId, io = null, lang) {
+    try {
+      await this.refreshPayPalAdapter();
+      const adapter = this.adapters.paypal;
+      if (!this.paypalCheckoutEnabled || !adapter || !orderId || !paypalOrderId) {
+        return createPaymentFailure('PAYMENT_CAPTURE_FAILED');
+      }
+      const payment = await Payment.findOne({ orderId, gateway: 'paypal', gatewayOrderId: paypalOrderId })
+        .sort({ createdAt: -1 });
+      if (!payment || payment.status === 'failed' || payment.status === 'cancelled' || payment.status === 'expired') {
+        return createPaymentFailure('PAYMENT_RECORD_NOT_FOUND');
+      }
+      if (payment.status === 'success') {
+        return { success: true, data: { orderId: String(orderId), paymentStatus: 'success', isPaid: true } };
+      }
+      const order = await Order.findById(orderId);
+      if (!order || order.paymentMethod !== 'paypal') return createPaymentFailure('PAYMENT_ORDER_NOT_FOUND');
+      if (order.isPaid) return createPaymentFailure('PAYMENT_ORDER_ALREADY_PAID');
+
+      const providerOrder = await adapter.getOrder(paypalOrderId);
+      if (!providerOrder || providerOrder.id !== payment.gatewayOrderId
+        || providerOrder.intent !== 'CAPTURE'
+        || !['APPROVED', 'COMPLETED'].includes(providerOrder.status)
+        || !providerOrder.purchase_units?.some(unit => unit.reference_id === String(orderId)
+          && unit.custom_id === String(orderId))) {
+        return createPaymentFailure('PAYMENT_RECONCILIATION_FAILED');
+      }
+      const capture = providerOrder.status === 'COMPLETED'
+        ? providerOrder
+        : await adapter.captureOrder(paypalOrderId, `capture-${payment._id}`);
+      const captureDetails = this.getPayPalCaptureDetails(capture, payment, orderId);
+      if (!captureDetails.valid) return createPaymentFailure('PAYMENT_RECONCILIATION_FAILED');
+      return this.finalizePayPalPayment(payment, order, capture, captureDetails.capture, io, lang);
+    } catch {
+      return createPaymentFailure('PAYMENT_CAPTURE_FAILED');
+    }
+  }
+
+  getPayPalCaptureDetails(response, payment, orderId) {
+    const unit = response?.purchase_units?.find(item => item.reference_id === String(orderId)
+      && item.custom_id === String(orderId));
+    const capture = unit?.payments?.captures?.find(item => item.status === 'COMPLETED');
+    const amount = Number(capture?.amount?.value);
+    const currency = String(capture?.amount?.currency_code || '').toUpperCase();
+    const valid = Boolean(response?.status === 'COMPLETED' && capture?.id
+      && currency === payment.providerCurrency
+      && amount === Number(payment.providerAmount));
+    return { valid, capture, amount, currency };
+  }
+
+  async finalizePayPalPayment(payment, order, response, capture, io, lang, webhookData = null) {
+    const paidResult = await markOrderPaid(order._id, 'paypal');
+    const transition = await Payment.updateOne(
+      { _id: payment._id, status: { $in: ['pending', 'processing'] } },
+      { $set: {
+        status: 'success',
+        gatewayTransactionId: capture.id,
+        transactionRef: capture.id,
+        paidAt: new Date(),
+        rawResponse: response,
+        webhookData,
+        webhookVerified: Boolean(webhookData),
+        providerAmount: Number(capture.amount.value),
+        providerCurrency: capture.amount.currency_code,
+        metadata: { paypalStatus: response.status },
+      } }
+    );
+    if (!transition.modifiedCount) {
+      const current = await Payment.findById(payment._id).select('status').lean();
+      if (current?.status !== 'success') return createPaymentFailure('PAYMENT_RECONCILIATION_FAILED');
+      return { success: true, orderId: String(order._id), transactionStatus: 'success' };
+    }
+
+    const paidOrder = await Order.findById(order._id)
+      .populate('customer', 'name email phone')
+      .populate('user', 'name email');
+    try { await sendOrderPaymentSuccessEmail(paidOrder, lang); } catch {}
+    if (io) broadcastPaymentSuccess(io, {
+      orderId: paidOrder._id.toString(),
+      isPaid: paidOrder.isPaid,
+      inventoryStatus: paidOrder.inventoryStatus,
+      createdAt: paidOrder.createdAt.toISOString(),
+    });
+    return {
+      success: true,
+      orderId: String(order._id),
+      transactionStatus: 'success',
+      needsReview: paidResult.needsReview,
+    };
+  }
+
+  async handlePayPalWebhook(headers, event, io = null, lang) {
+    try {
+      await this.refreshPayPalAdapter();
+      const adapter = this.adapters.paypal;
+      if (!adapter || !await adapter.verifyWebhook(headers, event)) {
+        return createPaymentFailure('PAYMENT_WEBHOOK_INVALID');
+      }
+      if (event?.event_type === 'CHECKOUT.ORDER.APPROVED') {
+        const paypalOrderId = event.resource?.id;
+        const payment = await Payment.findOne({ gateway: 'paypal', gatewayOrderId: paypalOrderId });
+        if (!payment) return { success: true, code: 'PAYMENT_WEBHOOK_IGNORED' };
+        return this.capturePayPalOrder(payment.orderId, paypalOrderId, io, lang);
+      }
+      if (event?.event_type === 'PAYMENT.CAPTURE.COMPLETED') {
+        const resource = event.resource || {};
+        const paypalOrderId = resource.supplementary_data?.related_ids?.order_id;
+        const payment = paypalOrderId
+          ? await Payment.findOne({ gateway: 'paypal', gatewayOrderId: paypalOrderId })
+          : null;
+        if (!payment) return { success: true, code: 'PAYMENT_WEBHOOK_IGNORED' };
+        const order = await Order.findById(payment.orderId);
+        if (!order) return createPaymentFailure('PAYMENT_ORDER_NOT_FOUND');
+        const providerOrder = await adapter.getOrder(paypalOrderId);
+        const unit = providerOrder?.purchase_units?.find(item => item.reference_id === String(order._id)
+          && item.custom_id === String(order._id));
+        const providerCapture = unit?.payments?.captures?.find(item => item.id === resource.id && item.status === 'COMPLETED');
+        const details = this.getPayPalCaptureDetails({
+          ...providerOrder,
+          purchase_units: unit ? [{ ...unit, payments: { captures: providerCapture ? [providerCapture] : [] } }] : [],
+        }, payment, order._id);
+        if (providerOrder?.id !== payment.gatewayOrderId || providerOrder?.status !== 'COMPLETED'
+          || !providerCapture || !details.valid) return createPaymentFailure('PAYMENT_RECONCILIATION_FAILED');
+        return this.finalizePayPalPayment(payment, order, { ...providerOrder, webhookEventType: event.event_type }, resource, io, lang, event);
+      }
+      return { success: true, code: 'PAYMENT_WEBHOOK_IGNORED' };
+    } catch {
+      return createPaymentFailure('PAYMENT_WEBHOOK_PROCESSING_FAILED');
+    }
+  }
+
+
   /**
    * Tạo payment session
    * 
@@ -101,20 +254,22 @@ class PaymentService {
       if (!gateway) {
         throw new Error(getMessage(lang, 'checkout.error_missing_gateway'));
       }
-      // Validate clientIp in options - REQUIRED
-      if (!options.clientIp) {
+      // VNPay requires a client IP; PayPal Checkout does not use it.
+      const normalizedGateway = gateway.toLowerCase();
+      if (normalizedGateway !== 'paypal' && !options.clientIp) {
         throw new Error(getMessage(lang, 'checkout.error_missing_client_ip'));
       }
 
       // Kiểm tra gateway được support
-      const normalizedGateway = gateway.toLowerCase();
       if (normalizedGateway === 'vnpay') await this.refreshVnpayAdapter();
+      if (normalizedGateway === 'paypal') await this.refreshPayPalAdapter();
       const adapter = this.adapters[normalizedGateway];
       if (!adapter) {
         throw new Error(getMessage(lang, 'checkout.error_unsupported_gateway'));
       }
       const method = await PaymentMethod.findOne({ code: normalizedGateway }).lean();
-      const enabled = normalizedGateway === 'vnpay' ? this.vnpayCheckoutEnabled : method?.isEnabled;
+      const enabled = normalizedGateway === 'vnpay' ? this.vnpayCheckoutEnabled
+        : normalizedGateway === 'paypal' ? this.paypalCheckoutEnabled : method?.isEnabled;
       if (!enabled || !method || method.isDeleted) {
         const error = new Error('Selected payment method is unavailable.');
         error.code = 'PAYMENT_METHOD_UNAVAILABLE';
@@ -151,15 +306,20 @@ class PaymentService {
         throw new Error(getMessage(lang, 'checkout.error_invalid_amount'));
       }
 
-      const providerCurrency = 'VND';
+      const providerCurrency = normalizedGateway === 'paypal'
+        ? (['USD', 'EUR', 'SEK'].includes(String(currency).toUpperCase()) ? String(currency).toUpperCase() : 'USD')
+        : 'VND';
       const activeRates = await getActiveExchangeRates();
-      const providerAmount = Math.round(convertOrderAmount(
+      const convertedAmount = convertOrderAmount(
         amount,
         currency,
         providerCurrency,
         order.exchangeRates || [],
         activeRates
-      ));
+      );
+      const providerAmount = normalizedGateway === 'paypal'
+        ? Math.round(convertedAmount * 100) / 100
+        : Math.round(convertedAmount);
       if (!Number.isFinite(providerAmount) || providerAmount <= 0) {
         throw new Error(getMessage(lang, 'checkout.error_invalid_amount'));
       }
@@ -178,21 +338,29 @@ class PaymentService {
         providerAmount,
         providerCurrency,
         status: 'pending',
-        callbackUrl: options.callbackUrl,
+        callbackUrl: normalizedGateway === 'paypal' ? adapter.config.webhookUrl : options.callbackUrl,
       });
 
       await payment.save();
 
       // Gọi adapter để tạo link thanh toán
-      const paymentResult = await adapter.createPaymentUrl({
-        orderId,
-        amount: providerAmount,
-        currency: providerCurrency,
-        description: options.description || `Payment for order ${orderId}`,
-        customer: customerInfo,
-        metadata: options.metadata || {},
-        clientIp: options.clientIp || '127.0.0.1',
-      });
+      const paymentResult = normalizedGateway === 'paypal'
+        ? await adapter.createOrder({
+          orderId,
+          amount: providerAmount,
+          currency: providerCurrency,
+          description: options.description || `Payment for order ${orderId}`,
+          requestId: `create-${payment._id}`,
+        })
+        : await adapter.createPaymentUrl({
+          orderId,
+          amount: providerAmount,
+          currency: providerCurrency,
+          description: options.description || `Payment for order ${orderId}`,
+          customer: customerInfo,
+          metadata: options.metadata || {},
+          clientIp: options.clientIp || '127.0.0.1',
+        });
 
       if (!paymentResult.success) {
         // Cập nhật Payment thành failed
@@ -205,8 +373,10 @@ class PaymentService {
       }
 
       // Lưu request data vào Payment
-      payment.rawRequest = paymentResult.data.requestData;
-      payment.redirectUrl = paymentResult.data.redirectUrl;
+      payment.rawRequest = normalizedGateway === 'paypal' ? { orderId: paymentResult.data.order.id } : paymentResult.data.requestData;
+      payment.rawResponse = normalizedGateway === 'paypal' ? paymentResult.data.order : payment.rawResponse;
+      payment.redirectUrl = normalizedGateway === 'paypal' ? paymentResult.data.approvalUrl : paymentResult.data.redirectUrl;
+      payment.gatewayOrderId = normalizedGateway === 'paypal' ? paymentResult.data.orderId : payment.gatewayOrderId;
       payment.transactionRef = paymentResult.data.transactionRef;
       payment.providerAmount = providerAmount;
       await payment.save();
@@ -215,13 +385,13 @@ class PaymentService {
         success: true,
         data: {
           paymentId: payment._id.toString(),
-          redirectUrl: paymentResult.data.redirectUrl,
+          redirectUrl: normalizedGateway === 'paypal' ? paymentResult.data.approvalUrl : paymentResult.data.redirectUrl,
           gateway,
           amount,
           currency,
           providerAmount,
           providerCurrency,
-          transactionRef: paymentResult.data.transactionRef,
+          transactionRef: paymentResult.data.transactionRef || paymentResult.data.orderId,
           orderId,
         },
       };

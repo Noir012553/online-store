@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 
 export type CheckoutStep = 1 | 2 | 3 | 4;
-export type PaymentMethod = 'cod' | 'vnpay';
+export type PaymentMethod = 'cod' | 'vnpay' | 'paypal';
 
 export interface ShippingAddress {
   name: string;

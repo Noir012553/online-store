@@ -103,7 +103,7 @@ const TEST_SUITES = {
     category: 'LAYER 2',
     importance: 'HIGH',
     tags: ['payments', 'payment-methods', 'admin'],
-    files: ['services/paymentMethodService.test.js', 'services/vnpayRuntimeConfigService.test.js'],
+    files: ['services/paymentMethodService.test.js', 'services/vnpayRuntimeConfigService.test.js', 'services/paypalAdapter.test.js'],
   },
 
   backend: {

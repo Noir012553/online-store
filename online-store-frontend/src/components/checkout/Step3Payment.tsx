@@ -16,7 +16,7 @@ export function Step3Payment() {
   const { formData, goBack, setFormData, couponCode, checkoutSummary } = useCheckout();
   const { items } = useCart();
   const [isLoading, setIsLoading] = useState(false);
-  const [paymentMethods, setPaymentMethods] = useState<Array<{ code: 'cod' | 'vnpay'; name: string; description: string }>>([]);
+  const [paymentMethods, setPaymentMethods] = useState<Array<{ code: 'cod' | 'vnpay' | 'paypal'; name: string; description: string }>>([]);
   const [paymentMethodsLoading, setPaymentMethodsLoading] = useState(true);
   const [paymentMethodsError, setPaymentMethodsError] = useState(false);
   const { t, loadNamespace } = useTranslation();
@@ -24,6 +24,7 @@ export function Step3Payment() {
   const { locale } = useLanguage();
   const supportsCod = paymentMethods.some(method => method.code === 'cod');
   const supportsVnpay = paymentMethods.some(method => method.code === 'vnpay');
+  const supportsPaypal = paymentMethods.some(method => method.code === 'paypal');
 
   useEffect(() => {
     loadNamespace('orders');
@@ -34,7 +35,7 @@ export function Step3Payment() {
     let cancelled = false;
     setPaymentMethodsLoading(true);
     setPaymentMethodsError(false);
-    apiCall<{ success: boolean; data: { methods: Array<{ code: 'cod' | 'vnpay'; name: string; description: string }> } }>('/payments/methods', { skipCache: true, skipErrorToast: true })
+    apiCall<{ success: boolean; data: { methods: Array<{ code: 'cod' | 'vnpay' | 'paypal'; name: string; description: string }> } }>('/payments/methods', { skipCache: true, skipErrorToast: true })
       .then(response => { if (!cancelled) setPaymentMethods(response.data.methods); })
       .catch(() => { if (!cancelled) { setPaymentMethods([]); setPaymentMethodsError(true); } })
       .finally(() => { if (!cancelled) setPaymentMethodsLoading(false); });
@@ -44,6 +45,7 @@ export function Step3Payment() {
   // Track idempotency keys for each payment method
   const codIdempotencyKeyRef = useRef<string | null>(null);
   const vnpayIdempotencyKeyRef = useRef<string | null>(null);
+  const paypalIdempotencyKeyRef = useRef<string | null>(null);
   const vnpayTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Handle VNPay redirect timeout (fix for VNPay sandbox timer error)
@@ -62,7 +64,7 @@ export function Step3Payment() {
     }
   }, [formData.paymentMethod, paymentMethods, paymentMethodsLoading, setFormData]);
 
-  const handleSelectPaymentMethod = (method: 'cod' | 'vnpay') => {
+  const handleSelectPaymentMethod = (method: 'cod' | 'vnpay' | 'paypal') => {
     if (!paymentMethods.some(available => available.code === method)) return;
     setFormData({ paymentMethod: method });
   };
@@ -197,6 +199,66 @@ export function Step3Payment() {
       }
     } catch (error) {
       toast.error(getCheckoutErrorMessage(error, 'error_order_processing'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePayPal = async () => {
+    if (isLoading || !checkoutSummary) return;
+
+    try {
+      setIsLoading(true);
+
+      if (!paypalIdempotencyKeyRef.current) {
+        paypalIdempotencyKeyRef.current = generateIdempotencyKey();
+        storeIdempotencyKey(paypalIdempotencyKeyRef.current, 'paypal_payment');
+      }
+
+      const orderId = await createOrder(paypalIdempotencyKeyRef.current);
+      if (!orderId) {
+        toast.error(t('error_order_id', 'checkout'));
+        return;
+      }
+
+      const paymentParams = new URLSearchParams({
+        lang: locale,
+        locale: getIntlLocale(locale),
+        currencyCode,
+      });
+      const paymentResponse = await apiCall<{ success: boolean; data?: { redirectUrl?: string } }>(`/payments/initiate?${paymentParams.toString()}`, {
+        method: 'POST',
+        body: JSON.stringify({
+          orderId,
+          gateway: 'paypal',
+          customerInfo: {
+            email: formData.email,
+            name: formData.name,
+            phone: formData.phone,
+          },
+        }),
+      });
+
+      const redirectUrl = paymentResponse.success ? paymentResponse.data?.redirectUrl : undefined;
+      let paypalRedirect: URL | undefined;
+      try {
+        if (redirectUrl) paypalRedirect = new URL(redirectUrl);
+      } catch {
+        paypalRedirect = undefined;
+      }
+      if (!paypalRedirect || paypalRedirect.protocol !== 'https:' || !/(^|\.)paypal\.com$/i.test(paypalRedirect.hostname)) {
+        toast.error(t('error_create_payment_link', 'checkout'));
+        return;
+      }
+
+      await createShipment(orderId);
+
+      sessionStorage.setItem('paymentInProgress', 'true');
+      clearIdempotencyKey('paypal_payment');
+      paypalIdempotencyKeyRef.current = null;
+      window.location.href = paypalRedirect.toString();
+    } catch (error) {
+      toast.error(getCheckoutErrorMessage(error, 'error_payment_init'));
     } finally {
       setIsLoading(false);
     }
@@ -355,6 +417,31 @@ export function Step3Payment() {
           </button>
           </>}
 
+          {supportsPaypal && (
+            <button
+              type="button"
+              aria-pressed={selectedMethod === 'paypal'}
+              onClick={() => handleSelectPaymentMethod('paypal')}
+              className={`w-full text-left border-2 rounded-lg p-6 cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                selectedMethod === 'paypal'
+                  ? 'border-blue-600 bg-blue-50'
+                  : 'border-gray-200 hover:border-blue-300'
+              }`}
+            >
+              <div className="flex items-start gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <span aria-hidden="true" className="font-bold italic text-blue-700">PayPal</span>
+                    <h3 className="font-bold text-gray-900">{paymentMethods.find(method => method.code === 'paypal')?.name || 'PayPal'}</h3>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {paymentMethods.find(method => method.code === 'paypal')?.description || 'Pay securely with PayPal.'}
+                  </p>
+                </div>
+              </div>
+            </button>
+          )}
+
           {supportsVnpay && (
             <button
               type="button"
@@ -402,14 +489,16 @@ export function Step3Payment() {
 
               if (selectedMethod === 'cod') {
                 handleCOD();
-              } else if (supportsVnpay) {
+              } else if (selectedMethod === 'vnpay' && supportsVnpay) {
                 handleVNPAY();
+              } else if (selectedMethod === 'paypal' && supportsPaypal) {
+                handlePayPal();
               }
             }}
             disabled={isLoading || paymentMethodsLoading || paymentMethodsError || paymentMethods.length === 0 || !selectedMethod || !checkoutSummary}
             className="min-h-11 w-full whitespace-normal bg-red-600 px-4 py-3 text-center font-semibold leading-tight text-white hover:bg-red-700 disabled:opacity-50 sm:flex-1 sm:px-8"
           >
-            {isLoading ? t('processing', 'checkout') : selectedMethod === 'vnpay' ? t('vnpay_button', 'checkout') : t('confirm_order_button', 'checkout')}
+            {isLoading ? t('processing', 'checkout') : selectedMethod === 'vnpay' ? t('vnpay_button', 'checkout') : selectedMethod === 'paypal' ? 'PayPal' : t('confirm_order_button', 'checkout')}
           </Button>
         </div>
       </div>

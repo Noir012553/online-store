@@ -113,7 +113,7 @@ const orderSchema = mongoose.Schema(
     },
     paymentMethod: {
       type: String,
-      enum: ['cod', 'card', 'bank_transfer', 'e_wallet', 'vnpay', 'momo'],
+      enum: ['cod', 'card', 'bank_transfer', 'e_wallet', 'vnpay', 'momo', 'paypal'],
       default: 'cod',
     },
     // Delivery Status
