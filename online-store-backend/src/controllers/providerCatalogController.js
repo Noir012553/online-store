@@ -9,7 +9,7 @@ const PROVIDERS = {
   sendgrid: { category: 'email', name: 'SendGrid', adapter: 'not-verified', note: 'Chưa xác minh adapter gửi độc lập; chưa thể kích hoạt từ catalog.' },
   cod: { category: 'payment', name: 'Thanh toán khi nhận hàng (COD)', adapter: 'payment-method', note: 'Phương thức thanh toán hiện có; catalog không bật/tắt checkout.' },
   vnpay: { category: 'payment', name: 'VNPay', adapter: 'available', note: 'Adapter sandbox/runtime hiện có; catalog không cấu hình credentials hoặc endpoint.' },
-  paypal: { category: 'payment', name: 'PayPal', adapter: 'not-implemented', note: 'Chưa có adapter thanh toán và xác minh webhook.' },
+  paypal: { category: 'payment', name: 'PayPal', adapter: 'available', note: 'PayPal Checkout Sandbox, capture và xác minh webhook đã được tích hợp; chỉ bật sau khi cấu hình REST app và webhook.' },
   momo: { category: 'payment', name: 'MoMo', adapter: 'not-implemented', note: 'Chưa có adapter thanh toán và xác minh callback/IPN.' },
   vercel: { category: 'deploy', name: 'Vercel', adapter: 'not-implemented', note: 'Chưa có adapter deploy; cấu hình được lưu riêng và không tự triển khai.' },
   render: { category: 'deploy', name: 'Render', adapter: 'not-implemented', note: 'Chưa có adapter deploy; cấu hình được lưu riêng và không tự triển khai.' },

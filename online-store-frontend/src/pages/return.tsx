@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { Truck, CreditCard, AlertCircle } from 'lucide-react';
 import { useCart } from '../lib/context/CartContext';
 import { useAuth } from '../lib/context/AuthContext';
-import { orderAPI } from '../lib/api';
+import { apiCall, orderAPI } from '../lib/api';
 import { useLanguage } from '@/lib/i18n';
 import { useCurrencyContext } from '@/lib/context/CurrencyContext';
 import { getIntlLocale } from '@/lib/localeUtils';
@@ -24,6 +24,7 @@ interface PaymentResult {
   status: 'success' | 'pending' | 'failed' | 'error';
   message: string;
   transactionId?: string;
+  method?: 'cod' | 'vnpay' | 'paypal';
 }
 
 export default function PaymentResultPage() {
@@ -48,15 +49,19 @@ export default function PaymentResultPage() {
 
         // Extract parameters from URL query string
         const {
-          method, // 'cod' or 'vnpay'
+          method: queryMethod,
           orderId: queryOrderId,
           status: queryStatus,
+          token: queryToken,
           vnp_ResponseCode,
           vnp_OrderInfo,
           vnp_TxnRef,
           vnp_TransactionNo,
         } = router.query;
 
+        const method = Array.isArray(queryMethod) ? queryMethod[0] : queryMethod;
+        const queryStatusValue = Array.isArray(queryStatus) ? queryStatus[0] : queryStatus;
+        const paypalToken = Array.isArray(queryToken) ? queryToken[0] : queryToken;
         const vnpayResponseCode = Array.isArray(vnp_ResponseCode)
           ? vnp_ResponseCode[0]
           : vnp_ResponseCode;
@@ -64,8 +69,8 @@ export default function PaymentResultPage() {
         let transactionId = '';
 
         // ===== Parse Order ID from URL params =====
-        if (method === 'cod') {
-          orderId = queryOrderId as string;
+        if (method === 'cod' || method === 'paypal') {
+          orderId = (Array.isArray(queryOrderId) ? queryOrderId[0] : queryOrderId) as string;
         } else {
           // VNPAY: Parse orderId from vnp_TxnRef (format: orderId-timestamp)
           const txnRef = vnp_TxnRef as string;
@@ -86,14 +91,64 @@ export default function PaymentResultPage() {
         }
 
         // ==================== CONDITIONAL PAYMENT CONFIRMATION ====================
-        // Different flows for COD vs VNPAY:
-        // - COD: No payment record needed, order is success immediately
-        // - VNPAY: Must verify payment with backend before marking success
+        // PayPal query values are not proof of payment; only the authenticated capture
+        // endpoint can confirm a successful payment.
         let isSuccess = false;
         let isPending = false;
         let verificationError: string | null = null;
 
-        if (method === 'cod') {
+        if (method === 'paypal' && queryStatusValue === 'cancelled') {
+          setPaymentResult({
+            success: false,
+            orderId,
+            status: 'failed',
+            message: t('payment_failed_message', 'payment'),
+            method: 'paypal',
+          });
+          return;
+        }
+
+        if (method === 'paypal') {
+          if (!paypalToken) {
+            setPaymentResult({
+              success: false,
+              orderId,
+              status: 'failed',
+              message: t('payment_failed_message', 'payment'),
+              method: 'paypal',
+            });
+            return;
+          }
+
+          try {
+            const captureResponse = await apiCall<{ success: boolean }>(`/payments/capture/${encodeURIComponent(orderId)}`, {
+              method: 'POST',
+              body: JSON.stringify({ token: paypalToken }),
+              skipCache: true,
+              skipErrorToast: true,
+            });
+            if (!captureResponse?.success) {
+              setPaymentResult({
+                success: false,
+                orderId,
+                status: 'failed',
+                message: t('payment_failed_message', 'payment'),
+                method: 'paypal',
+              });
+              return;
+            }
+            isSuccess = true;
+          } catch {
+            setPaymentResult({
+              success: false,
+              orderId,
+              status: 'failed',
+              message: t('payment_failed_message', 'payment'),
+              method: 'paypal',
+            });
+            return;
+          }
+        } else if (method === 'cod') {
           // COD flow: Order created = payment is pending (cash on delivery)
           // No need to call confirmPayment API
           isSuccess = true;
@@ -173,6 +228,7 @@ export default function PaymentResultPage() {
             ? t('payment_success_message', 'payment')
             : verificationError || t('payment_failed_message', 'payment'),
           transactionId,
+          method: method === 'cod' || method === 'paypal' ? method : 'vnpay',
         });
       } catch (error) {
         setPaymentResult({
@@ -222,7 +278,7 @@ export default function PaymentResultPage() {
     );
   }
 
-  const { success, orderId, message, transactionId } = paymentResult;
+  const { success, orderId, message, transactionId, method } = paymentResult;
   const isPending = paymentResult.status === 'pending';
 
   if (isPending) {
@@ -293,10 +349,14 @@ export default function PaymentResultPage() {
             <div className="space-y-6">
               {/* Success Icon - Different for COD vs VNPAY */}
               <div className="flex justify-center">
-                {orderDetails?.paymentMethod === 'cod' || !transactionId ? (
+                {method === 'cod' ? (
                   // COD Icon - Truck
                   <div className="flex items-center justify-center w-24 h-24 rounded-none bg-yellow-100 motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in motion-safe:duration-500">
                     <Truck className="w-12 h-12 text-yellow-600" />
+                  </div>
+                ) : method === 'paypal' ? (
+                  <div className="flex items-center justify-center w-24 h-24 rounded-none bg-blue-100 text-2xl font-bold italic text-blue-700 motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in motion-safe:duration-500">
+                    PayPal
                   </div>
                 ) : (
                   <div className="flex items-center justify-center w-24 h-24 rounded-none bg-blue-100 motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in motion-safe:duration-500">
@@ -312,7 +372,7 @@ export default function PaymentResultPage() {
               {/* Success Message */}
               <div className="text-center">
                 <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                  {orderDetails?.paymentMethod === 'cod' || !transactionId
+                  {method === 'cod'
                     ? t('order_success_title', 'payment')
                     : t('payment_success_title', 'payment')}
                 </h1>
@@ -339,7 +399,7 @@ export default function PaymentResultPage() {
                   <div className="flex justify-between py-3 border-b border-gray-200">
                     <span className="text-gray-600">{t('payment_methods', 'payment')}</span>
                     <span className="font-semibold text-gray-900">
-                      {orderDetails?.paymentMethod === 'cod' || !transactionId ? t('payment_cod', 'payment') : t('payment_vnpay', 'payment')}
+                      {method === 'cod' ? t('payment_cod', 'payment') : method === 'paypal' ? 'PayPal' : t('payment_vnpay', 'payment')}
                     </span>
                   </div>
 
@@ -353,7 +413,7 @@ export default function PaymentResultPage() {
                   <div className="flex justify-between py-3">
                     <span className="text-gray-600">{t('status_label', 'payment')}</span>
                     <span className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full font-semibold text-sm">
-                      {orderDetails?.paymentMethod === 'cod' || !transactionId ? t('pending_payment', 'payment') : t('paid_status', 'payment')}
+                      {method === 'cod' ? t('pending_payment', 'payment') : t('paid_status', 'payment')}
                     </span>
                   </div>
                 </div>
@@ -422,7 +482,7 @@ export default function PaymentResultPage() {
               )}
 
               {/* Info Box - Different for COD vs VNPAY */}
-              {orderDetails?.paymentMethod === 'cod' || !transactionId ? (
+              {method === 'cod' ? (
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                   <div className="flex gap-3">
                     <svg
@@ -446,6 +506,10 @@ export default function PaymentResultPage() {
                       </ul>
                     </div>
                   </div>
+                </div>
+              ) : method === 'paypal' ? (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-700">
+                  {t('payment_success_message', 'payment')}
                 </div>
               ) : (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">

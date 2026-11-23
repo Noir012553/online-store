@@ -28,7 +28,7 @@ const CATEGORY_KEYS: Record<ProviderCatalogCategory, string> = {
 
 const EMPTY_FORM: { name: string; keyValues: ProviderCatalogKeyValue[] } = { name: '', keyValues: [] };
 const CONFIG_SCHEMA_CODES = new Set(['paypal', 'momo', 'sendgrid', 'vercel', 'render', 'cloudflare_tunnel']);
-const EDITABLE_RUNTIME_PROVIDERS = new Set(['smtp', 'sendgrid', 'cod', 'vnpay', 'ghn', 'cloudflare_r2', 'cloudflare_ai']);
+const EDITABLE_RUNTIME_PROVIDERS = new Set(['smtp', 'sendgrid', 'cod', 'vnpay', 'paypal', 'ghn', 'cloudflare_r2', 'cloudflare_ai']);
 const SENSITIVE_CATALOG_VALUE = /\b(api[\s_-]*key|access[\s_-]*key|secret|token|password|credential|authorization|bearer)\b/i;
 
 const PROVIDER_METADATA_KEYS: Record<string, string> = {
@@ -52,7 +52,7 @@ const RUNTIME_FIELD_METADATA_KEYS: Record<string, string> = {
   VNPAY_RETURN_URL: 'vnpay_return_url', VNPAY_CALLBACK_URL: 'vnpay_callback_url', GHN_API_TOKEN: 'ghn_api_token',
   GHN_SHOP_ID: 'ghn_shop_id', GHN_API_URL: 'ghn_api_url', GHN_WAREHOUSE_DISTRICT_ID: 'ghn_warehouse_district_id',
   GHN_WAREHOUSE_WARD_CODE: 'ghn_warehouse_ward_code', GHN_PROVIDER_ACTIVE: 'ghn_provider_active',
-  VNPAY_CHECKOUT_ENABLED: 'vnpay_checkout_enabled_runtime', COD_CHECKOUT_ENABLED: 'cod_checkout_enabled',
+  VNPAY_CHECKOUT_ENABLED: 'vnpay_checkout_enabled_runtime', COD_CHECKOUT_ENABLED: 'cod_checkout_enabled', PAYPAL_CHECKOUT_ENABLED: 'paypal_checkout_enabled',
   R2_UPLOAD_ENABLED: 'r2_upload_enabled', R2_MAX_UPLOAD_COUNT: 'r2_max_upload_count', R2_MAX_UPLOAD_BYTES: 'r2_max_upload_bytes',
   R2_MAX_IMAGE_BYTES: 'r2_max_image_bytes', R2_MAX_VIDEO_BYTES: 'r2_max_video_bytes', R2_MAX_RETRIES: 'r2_max_retries',
   CLOUDFLARE_AI_ENABLED: 'cloudflare_ai_enabled', CLOUDFLARE_AI_MAX_REQUESTS_PER_DAY: 'cloudflare_ai_max_requests_per_day',

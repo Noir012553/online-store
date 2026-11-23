@@ -18,7 +18,7 @@ class PayPalAdapter {
     for (const key of ['returnUrl', 'cancelUrl', 'webhookUrl']) {
       let url;
       try { url = new URL(this.config[key]); } catch { throw new Error('PAYPAL_CONFIG_UNAVAILABLE'); }
-      if (!['http:', 'https:'].includes(url.protocol)) throw new Error('PAYPAL_CONFIG_UNAVAILABLE');
+      if (url.protocol !== 'https:') throw new Error('PAYPAL_CONFIG_UNAVAILABLE');
     }
   }
 
@@ -65,6 +65,11 @@ class PayPalAdapter {
       if (!this.supportsCurrency(currency) || !Number.isFinite(Number(amount)) || Number(amount) <= 0) {
         return { success: false, error: 'PAYMENT_GATEWAY_CURRENCY_UNSUPPORTED' };
       }
+      const returnUrl = new URL(this.config.returnUrl);
+      returnUrl.searchParams.set('orderId', String(orderId));
+      const cancelUrl = new URL(this.config.cancelUrl);
+      cancelUrl.searchParams.set('orderId', String(orderId));
+      cancelUrl.searchParams.set('status', 'cancelled');
       const data = await this.request('post', '/v2/checkout/orders', {
         intent: 'CAPTURE',
         purchase_units: [{
@@ -73,10 +78,17 @@ class PayPalAdapter {
           description: String(description || `Order ${orderId}`).slice(0, 127),
           amount: { currency_code: currency, value: Number(amount).toFixed(2) },
         }],
-        application_context: {
-          return_url: this.config.returnUrl,
-          cancel_url: this.config.cancelUrl,
-          user_action: 'PAY_NOW',
+        payment_source: {
+          paypal: {
+            experience_context: {
+              payment_method_preference: 'IMMEDIATE_PAYMENT_REQUIRED',
+              landing_page: 'LOGIN',
+              shipping_preference: 'NO_SHIPPING',
+              user_action: 'PAY_NOW',
+              return_url: returnUrl.toString(),
+              cancel_url: cancelUrl.toString(),
+            },
+          },
         },
       }, requestId);
       const approvalUrl = data.links?.find(link => link.rel === 'approve')?.href;

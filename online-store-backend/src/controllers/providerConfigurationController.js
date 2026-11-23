@@ -7,6 +7,7 @@ const ProviderConfigurationAudit = require('../models/ProviderConfigurationAudit
 const ProviderRuntimeAudit = require('../models/ProviderRuntimeAudit');
 const ProviderRuntimeConfiguration = require('../models/ProviderRuntimeConfiguration');
 const { encryptSecret, decryptSecret, loadVnpayRuntimeConfig } = require('../services/vnpayRuntimeConfigService');
+const { loadPayPalRuntimeConfig } = require('../services/paypalRuntimeConfigService');
 const { loadCloudflareAiRuntimeConfiguration } = require('../services/cloudflareAiRuntimeConfigService');
 const { getProviderRuntimeValues, setProviderRuntimeValues } = require('../services/providerRuntimeConfigCache');
 const cloudflareAiService = require('../services/cloudflareAiService');
@@ -21,9 +22,9 @@ const PROVIDER_SCHEMAS = {
     { key: 'PAYPAL_CLIENT_ID', label: 'Client ID Sandbox', type: 'text', required: true, helpText: 'Lấy Client ID của REST API app trong Apps & Credentials, chọn Sandbox.' },
     { key: 'PAYPAL_CLIENT_SECRET', label: 'Client Secret Sandbox', type: 'secret', required: true, helpText: 'Lấy Client Secret cùng REST API app Sandbox với Client ID.' },
     { key: 'PAYPAL_WEBHOOK_ID', label: 'Webhook ID Sandbox', type: 'text', placeholder: 'Tạo webhook Sandbox trong PayPal để lấy ID', helpText: 'ID do PayPal tạo sau khi đăng ký webhook. Chưa cần điền nếu chưa cấu hình webhook.' },
-    { key: 'PAYPAL_RETURN_URL', label: 'URL quay lại', type: 'url', options: ['https://manln.online/return?method=paypal'], placeholder: 'https://manln.online/return?method=paypal', helpText: 'URL mẫu; thay bằng route HTTPS thật của cửa hàng sau khi route này được triển khai.' },
-    { key: 'PAYPAL_CANCEL_URL', label: 'URL hủy', type: 'url', options: ['https://manln.online/return?method=paypal&status=cancelled'], placeholder: 'https://manln.online/return?method=paypal&status=cancelled', helpText: 'URL mẫu; thay bằng route HTTPS thật của cửa hàng sau khi route này được triển khai.' },
-    { key: 'PAYPAL_WEBHOOK_URL', label: 'URL webhook', type: 'url', options: ['https://backend.manln.online/api/payments/paypal/webhook'], placeholder: 'https://backend.manln.online/api/payments/paypal/webhook', helpText: 'URL mẫu; thay bằng endpoint HTTPS công khai của backend sau khi webhook được triển khai.' },
+    { key: 'PAYPAL_RETURN_URL', label: 'URL quay lại', type: 'url', options: ['https://manln.online/return?method=paypal'], placeholder: 'https://manln.online/return?method=paypal', helpText: 'Chọn URL của cửa hàng hoặc nhập URL khác. Route đã xử lý token PayPal ở trang /return.' },
+    { key: 'PAYPAL_CANCEL_URL', label: 'URL hủy', type: 'url', options: ['https://manln.online/return?method=paypal&status=cancelled'], placeholder: 'https://manln.online/return?method=paypal&status=cancelled', helpText: 'Chọn URL của cửa hàng hoặc nhập URL khác. URL hủy không xác nhận đơn đã thanh toán.' },
+    { key: 'PAYPAL_WEBHOOK_URL', label: 'URL webhook', type: 'url', options: ['https://backend.manln.online/api/payments/webhook/paypal'], placeholder: 'https://backend.manln.online/api/payments/webhook/paypal', helpText: 'Endpoint PayPal Sandbox đang xác minh chữ ký và cập nhật đơn; đăng ký đúng URL này trong ứng dụng PayPal.' },
   ],
   momo: [
     { key: 'MOMO_PARTNER_CODE', label: 'Partner Code Sandbox', type: 'text', required: true, helpText: 'Lấy trong bộ thông tin tích hợp thử nghiệm được MoMo cấp.' },
@@ -98,7 +99,9 @@ const RUNTIME_SCHEMAS = {
     { key: 'GHN_WAREHOUSE_DISTRICT_ID', label: 'Warehouse district ID', type: 'text' },
     { key: 'GHN_WAREHOUSE_WARD_CODE', label: 'Warehouse ward code', type: 'text' },
   ],
-  paypal: null,
+  paypal: [
+    { key: 'PAYPAL_CHECKOUT_ENABLED', label: 'Enable PayPal checkout', type: 'boolean' },
+  ],
   momo: null,
   vercel: null,
   render: null,
@@ -106,7 +109,7 @@ const RUNTIME_SCHEMAS = {
 };
 
 const RUNTIME_PROVIDER_CODES = ['smtp', 'sendgrid', 'cod', 'vnpay', 'paypal', 'momo', 'vercel', 'render', 'ghn', 'cloudflare_tunnel', 'cloudflare_r2', 'cloudflare_ai'];
-const EDITABLE_RUNTIME_PROVIDERS = ['smtp', 'sendgrid', 'cod', 'ghn', 'cloudflare_r2'];
+const EDITABLE_RUNTIME_PROVIDERS = ['smtp', 'sendgrid', 'cod', 'paypal', 'ghn', 'cloudflare_r2'];
 const getRuntimeStorageCode = (providerCode) => providerCode === 'smtp' || providerCode === 'sendgrid' ? 'email' : providerCode;
 
 const getRuntimeSchema = (providerCode, configuredKeys = []) => {
@@ -159,7 +162,7 @@ const getRuntimeSchema = (providerCode, configuredKeys = []) => {
 };
 
 const PROVIDER_SETUP_GUIDES = {
-  paypal: { label: 'PayPal REST Authentication & Sandbox', url: 'https://developer.paypal.com/api/rest/authentication/', note: 'Sao chép API Key và Secret trong mục API credentials khi đang chọn Sandbox. Chỉ thay URL mẫu sau khi các route tương ứng đã được triển khai.' },
+  paypal: { label: 'PayPal REST Authentication & Sandbox', url: 'https://developer.paypal.com/api/rest/authentication/', note: 'Dùng Client ID và Client Secret của REST API app trong Apps & Credentials, ở chế độ Sandbox. Đăng ký URL webhook đã hiển thị và bật checkout sau khi lưu đủ cấu hình.' },
   momo: { label: 'MoMo Sandbox Test Instructions', url: 'https://developers.momo.vn/v3/vi/docs/payment/onboarding/test-instructions/', note: 'Hướng dẫn test sandbox MoMo. Link Payment API Init cũ hiện trả 403; liên hệ hỗ trợ doanh nghiệp MoMo để được cấp credential thử nghiệm nếu tài khoản chưa có.' },
   sendgrid: { label: 'SendGrid SMTP', url: 'https://docs.sendgrid.com/for-developers/sending-email/getting-started-smtp', note: 'Chỉ dùng API key và sender đã xác minh cho môi trường staging.' },
   vercel: { label: 'Vercel REST API', url: 'https://vercel.com/docs/rest-api#creating-an-access-token', note: 'Preview branch có thể dùng cho staging; không mặc định dùng Vercel Hobby cho cửa hàng thương mại, hãy xác minh điều khoản hiện hành. Cấu hình tại đây chưa tự deploy.' },
@@ -225,15 +228,16 @@ const getRuntimeProviderData = async (providerCode) => {
   let shippingProvider;
   let paymentMethod;
   const vnpayRuntime = providerCode === 'vnpay' ? await loadVnpayRuntimeConfig() : null;
+  const paypalRuntime = providerCode === 'paypal' ? await loadPayPalRuntimeConfig() : null;
   if (providerCode === 'ghn') {
     shippingProvider = await ShippingProvider.findOne({ code: 'ghn', isDeleted: false }).select('+apiKey +token').lean();
   }
-  if (providerCode === 'cod' || providerCode === 'vnpay') {
+  if (providerCode === 'cod' || providerCode === 'vnpay' || providerCode === 'paypal') {
     paymentMethod = await PaymentMethod.findOne({ code: providerCode, isDeleted: false }).lean();
   }
 
   const fields = (schema || []).map((field) => {
-    if (providerCode === 'cod') {
+    if (providerCode === 'cod' || providerCode === 'paypal') {
       return { key: field.key, label: field.label, type: field.type, configured: Boolean(paymentMethod), value: String(Boolean(paymentMethod?.isEnabled)), source: 'database' };
     }
     const runtimeValue = vnpayRuntime?.values[field.key];
@@ -275,7 +279,7 @@ const getRuntimeProviderData = async (providerCode) => {
 
   if (shippingProvider) fields.push({ key: 'GHN_PROVIDER_ACTIVE', label: 'GHN provider active', type: 'text', configured: true, value: String(shippingProvider.isActive), source: 'database' });
   if (providerCode === 'vnpay') fields.push({ key: 'VNPAY_CHECKOUT_ENABLED', label: 'Checkout enabled', type: 'text', configured: true, value: String(vnpayRuntime.checkoutEnabled), source: 'database' });
-  else if (paymentMethod && providerCode !== 'cod') fields.push({ key: `${providerCode.toUpperCase()}_CHECKOUT_ENABLED`, label: 'Checkout enabled', type: 'text', configured: true, value: String(paymentMethod.isEnabled), source: 'database' });
+  else if (paymentMethod && providerCode !== 'cod' && providerCode !== 'paypal') fields.push({ key: `${providerCode.toUpperCase()}_CHECKOUT_ENABLED`, label: 'Checkout enabled', type: 'text', configured: true, value: String(paymentMethod.isEnabled), source: 'database' });
 
   const managed = schema !== null;
   const configuredKeys = new Set(fields.filter((field) => field.configured).map((field) => field.key));
@@ -286,7 +290,9 @@ const getRuntimeProviderData = async (providerCode) => {
     ghn: ['GHN_API_TOKEN', 'GHN_SHOP_ID'],
   }[providerCode];
   let ready = Boolean(paymentMethod);
-  if (providerCode === 'sendgrid') {
+  if (providerCode === 'paypal') {
+    ready = Boolean(paymentMethod && paypalRuntime?.configured);
+  } else if (providerCode === 'sendgrid') {
     ready = (storedRuntimeValues.EMAIL_SERVICE || process.env.EMAIL_SERVICE) === 'sendgrid'
       && ['SENDGRID_API_KEY', 'EMAIL_FROM'].every((key) => configuredKeys.has(key));
   } else if (providerCode === 'smtp') {
@@ -411,6 +417,7 @@ const validateRuntimeValues = (providerCode, values) => {
     }
   }
   if (providerCode === 'cod' && !['true', 'false'].includes(values.COD_CHECKOUT_ENABLED)) return 'INVALID_COD_CHECKOUT_ENABLED';
+  if (providerCode === 'paypal' && !['true', 'false'].includes(values.PAYPAL_CHECKOUT_ENABLED)) return 'INVALID_PAYPAL_CHECKOUT_ENABLED';
   return null;
 };
 
@@ -428,15 +435,21 @@ exports.updateRuntimeProvider = asyncHandler(async (req, res) => {
   if (!user || !(await user.matchPassword(req.body.password))) return res.status(401).json({ success: false, code: 'REAUTHENTICATION_FAILED' });
 
   const submittedValues = Object.fromEntries(Object.entries(req.body).filter(([key]) => key !== 'password'));
-  if (providerCode === 'cod') {
-    if (typeof submittedValues.COD_CHECKOUT_ENABLED !== 'boolean') return res.status(400).json({ success: false, code: 'INVALID_COD_CHECKOUT_ENABLED' });
+  if (providerCode === 'cod' || providerCode === 'paypal') {
+    const enabledKey = providerCode === 'cod' ? 'COD_CHECKOUT_ENABLED' : 'PAYPAL_CHECKOUT_ENABLED';
+    if (typeof submittedValues[enabledKey] !== 'boolean') return res.status(400).json({ success: false, code: `INVALID_${enabledKey}` });
+    if (providerCode === 'paypal' && submittedValues.PAYPAL_CHECKOUT_ENABLED) {
+      const paypalRuntime = await loadPayPalRuntimeConfig();
+      if (!paypalRuntime.configured) return res.status(409).json({ success: false, code: 'PAYPAL_RUNTIME_CONFIG_INCOMPLETE' });
+    }
     const method = await PaymentMethod.findOneAndUpdate(
-      { code: 'cod', isDeleted: false },
-      { $set: { isEnabled: submittedValues.COD_CHECKOUT_ENABLED } },
+      { code: providerCode, isDeleted: false },
+      { $set: { isEnabled: submittedValues[enabledKey] } },
       { new: true },
     ).lean();
     if (!method) return res.status(404).json({ success: false, code: 'PAYMENT_METHOD_NOT_FOUND' });
-    await ProviderRuntimeAudit.create({ providerCode, action: 'update', changedFields: ['COD_CHECKOUT_ENABLED'], userId: req.user._id, userName: userName(req.user) });
+    await ProviderRuntimeAudit.create({ providerCode, action: 'update', changedFields: [enabledKey], userId: req.user._id, userName: userName(req.user) });
+    if (providerCode === 'paypal') await paymentService.refreshPayPalAdapter();
     noStore(res);
     return res.json({ success: true, data: { configurationVersion: 0 } });
   }
