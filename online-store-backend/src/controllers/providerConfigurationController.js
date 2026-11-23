@@ -21,9 +21,9 @@ const PROVIDER_SCHEMAS = {
     { key: 'PAYPAL_API_KEY', label: 'API Key', type: 'text', required: true, helpText: 'Nhập giá trị ở mục API Key trong phần API credentials của PayPal Sandbox.' },
     { key: 'PAYPAL_SECRET', label: 'Secret', type: 'secret', required: true, helpText: 'Nhập Secret đi cùng API Key trong phần API credentials của PayPal Sandbox.' },
     { key: 'PAYPAL_WEBHOOK_ID', label: 'Webhook ID Sandbox', type: 'text', placeholder: 'Tạo webhook Sandbox trong PayPal để lấy ID', helpText: 'ID do PayPal tạo sau khi đăng ký webhook. Chưa cần điền nếu chưa cấu hình webhook.' },
-    { key: 'PAYPAL_RETURN_URL', label: 'URL quay lại', type: 'url', placeholder: 'https://your-store.example/payments/paypal/return', helpText: 'URL mẫu; thay bằng route HTTPS thật của cửa hàng sau khi route này được triển khai.' },
-    { key: 'PAYPAL_CANCEL_URL', label: 'URL hủy', type: 'url', placeholder: 'https://your-store.example/payments/paypal/cancel', helpText: 'URL mẫu; thay bằng route HTTPS thật của cửa hàng sau khi route này được triển khai.' },
-    { key: 'PAYPAL_WEBHOOK_URL', label: 'URL webhook', type: 'url', placeholder: 'https://api.your-store.example/payments/paypal/webhook', helpText: 'URL mẫu; thay bằng endpoint HTTPS công khai của backend sau khi webhook được triển khai.' },
+    { key: 'PAYPAL_RETURN_URL', label: 'URL quay lại', type: 'url', placeholder: 'https://manln.online/payments/paypal/return', helpText: 'URL mẫu; thay bằng route HTTPS thật của cửa hàng sau khi route này được triển khai.' },
+    { key: 'PAYPAL_CANCEL_URL', label: 'URL hủy', type: 'url', placeholder: 'https://manln.online/payments/paypal/cancel', helpText: 'URL mẫu; thay bằng route HTTPS thật của cửa hàng sau khi route này được triển khai.' },
+    { key: 'PAYPAL_WEBHOOK_URL', label: 'URL webhook', type: 'url', placeholder: 'https://backend.manln.online/api/payments/paypal/webhook', helpText: 'URL mẫu; thay bằng endpoint HTTPS công khai của backend sau khi webhook được triển khai.' },
   ],
   momo: [
     { key: 'MOMO_PARTNER_CODE', label: 'Partner Code Sandbox', type: 'text', required: true, helpText: 'Lấy trong bộ thông tin tích hợp thử nghiệm được MoMo cấp.' },
