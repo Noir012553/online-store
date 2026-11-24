@@ -15,8 +15,9 @@ Mục tiêu vận hành là giữ hostname công khai ổn định và chuyển 
 - Frontend Next.js nằm trong `online-store-frontend`.
 - `online-store-frontend/next.config.ts` rewrite `/api/*` tới `NEXT_PUBLIC_API_BASE_URL`.
 - Giá trị mặc định tại `online-store-frontend/src/config.ts` là `https://backend.manln.online`.
-- Cloudflare Tunnel hiện phục vụ frontend/backend theo cấu hình đang chạy. Không thay đổi DNS, Tunnel ingress, hostname hoặc port trong quá trình chuẩn bị các nền tảng khác.
+- Cloudflare Tunnel hiện phục vụ frontend/backend theo cấu hình đang chạy. Dashboard xác nhận `manln.online` → `http://127.0.0.1:3000` và `backend.manln.online` → `http://127.0.0.1:5000`; DNS `cdn.manln.online` dùng R2. Không thay đổi DNS, Tunnel ingress, hostname hoặc port trong quá trình chuẩn bị các nền tảng khác.
 - Provider Catalog có metadata cho Vercel, Render và Cloudflare Tunnel nhưng chưa tự deploy ứng dụng hay quản lý routing.
+- Nếu Cloudflare Worker đứng trước `manln.online`, cần một hostname origin riêng trỏ trực tiếp tới frontend Tunnel; Worker không được forward về chính hostname production đang chạy Worker vì sẽ tạo vòng lặp. Chưa tạo hostname này.
 - Chưa có công tắc chuyển luồng production. Các bước ở tài liệu này là quy trình chuẩn bị/đề xuất, không phải thao tác đã được tự động hóa.
 
 ## Mô hình đích
@@ -72,7 +73,7 @@ Frontend có một số luồng sử dụng `BACKEND_URL` trực tiếp ngoài c
 
 Công tắc phải áp dụng một phiên bản cấu hình duy nhất cho cả frontend/API, có kiểm tra trước khi kích hoạt, khóa tránh hai thao tác đồng thời, ghi audit, health check sau chuyển và rollback tự động về chế độ trước nếu kiểm tra thất bại. Không cập nhật một nửa luồng hoặc cho nhiều backend cùng nhận traffic production ngoài kế hoạch.
 
-Trước khi bật cơ chế này, phải xác định và kiểm tra cách chuyển tiếp `Host`, HTTPS/TLS, header, cookie, websocket, body upload, timeout, cache và các đường dẫn callback. Không tạo Worker route production hay chỉnh DNS chỉ dựa trên ví dụ trong tài liệu; cần kiểm thử trên hostname staging trước.
+Trước khi bật cơ chế này, cần có URL staging đã xác minh cho frontend/backend của cặp nền tảng sẽ thử trước; một hostname origin riêng cho frontend Tunnel; và một hostname staging cho Worker. Phải kiểm tra cách chuyển tiếp `Host`, HTTPS/TLS, header, cookie, websocket, body upload, timeout, cache và các đường dẫn callback. Không tạo Worker route production hay chỉnh DNS chỉ dựa trên ví dụ trong tài liệu; cần kiểm thử trên hostname staging trước. Không gửi token/secret qua chat hoặc ghi vào Markdown.
 
 ## Quy trình chuyển production sau khi đã có điều phối
 
