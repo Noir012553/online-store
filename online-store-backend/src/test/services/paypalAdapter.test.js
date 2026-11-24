@@ -15,12 +15,12 @@ const config = {
 describe('PayPalAdapter', () => {
   it('authenticates with OAuth and creates a Checkout order with stable request ID', async () => {
     const http = sinon.stub().resolves({
-      data: { id: 'PAYPAL-ORDER', links: [{ rel: 'approve', href: 'https://paypal.example/approve' }] },
+      data: { id: 'PAYPAL-ORDER', links: [{ rel: 'payer-action', href: 'https://paypal.example/approve' }] },
     });
     http.post = sinon.stub().resolves({ data: { access_token: 'access-token', expires_in: 3600 } });
     const adapter = new PayPalAdapter(config, http);
     const result = await adapter.createOrder({
-      orderId: 'local-order', amount: 12.34, currency: 'EUR', requestId: 'create-payment-123',
+      orderId: 'local-order', amount: 12.34, currency: 'EUR', lang: 'pt', requestId: 'create-payment-123',
     });
 
     expect(result.success).to.equal(true);
@@ -31,7 +31,14 @@ describe('PayPalAdapter', () => {
     expect(http.firstCall.args[0].url).to.equal(`${PayPalAdapter.SANDBOX_API}/v2/checkout/orders`);
     expect(http.firstCall.args[0].headers['PayPal-Request-Id']).to.equal('create-payment-123');
     expect(http.firstCall.args[0].data.purchase_units[0].amount).to.deep.equal({ currency_code: 'EUR', value: '12.34' });
-    expect(http.firstCall.args[0].data.application_context.return_url).to.equal(config.returnUrl);
+    const { locale, return_url: returnUrl, cancel_url: cancelUrl } = http.firstCall.args[0].data.payment_source.paypal.experience_context;
+    expect(locale).to.equal('pt_BR');
+    expect(new URL(returnUrl).searchParams.get('method')).to.equal('paypal');
+    expect(new URL(returnUrl).searchParams.get('orderId')).to.equal('local-order');
+    expect(new URL(cancelUrl).searchParams.get('method')).to.equal('paypal');
+    expect(new URL(cancelUrl).searchParams.get('orderId')).to.equal('local-order');
+    expect(new URL(cancelUrl).searchParams.get('status')).to.equal('cancelled');
+    expect(result.data.approvalUrl).to.equal('https://paypal.example/approve');
   });
 
   it('captures the named order with idempotency key', async () => {

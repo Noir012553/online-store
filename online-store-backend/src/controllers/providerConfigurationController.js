@@ -21,20 +21,10 @@ const PROVIDER_SCHEMAS = {
   paypal: [
     { key: 'PAYPAL_CLIENT_ID', label: 'Client ID Sandbox', type: 'text', required: true, helpText: 'Lấy Client ID của REST API app trong Apps & Credentials, chọn Sandbox.' },
     { key: 'PAYPAL_CLIENT_SECRET', label: 'Client Secret Sandbox', type: 'secret', required: true, helpText: 'Lấy Client Secret cùng REST API app Sandbox với Client ID.' },
-    { key: 'PAYPAL_WEBHOOK_ID', label: 'Webhook ID Sandbox', type: 'text', placeholder: 'Tạo webhook Sandbox trong PayPal để lấy ID', helpText: 'ID do PayPal tạo sau khi đăng ký webhook. Chưa cần điền nếu chưa cấu hình webhook.' },
+    { key: 'PAYPAL_WEBHOOK_ID', label: 'Webhook ID Sandbox', type: 'text', required: true, placeholder: 'Nhập ID webhook Sandbox của REST API app này', helpText: 'Bắt buộc để xác minh webhook. Nếu app đã đủ 10 webhook, dùng lại ID của webhook Sandbox hiện có trong cùng REST API app.' },
     { key: 'PAYPAL_RETURN_URL', label: 'URL quay lại', type: 'url', options: ['https://manln.online/return?method=paypal'], placeholder: 'https://manln.online/return?method=paypal', helpText: 'Chọn URL của cửa hàng hoặc nhập URL khác. Route đã xử lý token PayPal ở trang /return.' },
     { key: 'PAYPAL_CANCEL_URL', label: 'URL hủy', type: 'url', options: ['https://manln.online/return?method=paypal&status=cancelled'], placeholder: 'https://manln.online/return?method=paypal&status=cancelled', helpText: 'Chọn URL của cửa hàng hoặc nhập URL khác. URL hủy không xác nhận đơn đã thanh toán.' },
     { key: 'PAYPAL_WEBHOOK_URL', label: 'URL webhook', type: 'url', options: ['https://backend.manln.online/api/payments/webhook/paypal'], placeholder: 'https://backend.manln.online/api/payments/webhook/paypal', helpText: 'Endpoint PayPal Sandbox đang xác minh chữ ký và cập nhật đơn; đăng ký đúng URL này trong ứng dụng PayPal.' },
-  ],
-  momo: [
-    { key: 'MOMO_PARTNER_CODE', label: 'Partner Code Sandbox', type: 'text', required: true, helpText: 'Lấy trong bộ thông tin tích hợp thử nghiệm được MoMo cấp.' },
-    { key: 'MOMO_ACCESS_KEY', label: 'Access Key Sandbox', type: 'secret', required: true, helpText: 'Credential sandbox đi kèm Partner Code; không dùng key production.' },
-    { key: 'MOMO_SECRET_KEY', label: 'Secret Key Sandbox', type: 'secret', required: true, helpText: 'Dùng để ký/xác minh request sandbox; không dùng key production.' },
-    { key: 'MOMO_API_BASE_URL', label: 'API base URL', type: 'select', required: true, options: ['https://test-payment.momo.vn'], defaultValue: 'https://test-payment.momo.vn', helpText: 'Host sandbox cố định theo hướng dẫn tích hợp MoMo.' },
-    { key: 'MOMO_PARTNER_NAME', label: 'Partner name', type: 'text', helpText: 'Tên đối tác nếu bộ API/merchant sandbox của bạn yêu cầu.' },
-    { key: 'MOMO_STORE_ID', label: 'Store ID', type: 'text', helpText: 'Mã cửa hàng nếu bộ API/merchant sandbox của bạn yêu cầu.' },
-    { key: 'MOMO_REDIRECT_URL', label: 'Redirect URL', type: 'url', required: true, helpText: 'HTTPS URL staging để MoMo chuyển khách quay lại; không dùng redirect làm căn cứ duy nhất cập nhật đơn.' },
-    { key: 'MOMO_IPN_URL', label: 'IPN URL', type: 'url', required: true, helpText: 'HTTPS endpoint backend staging nhận IPN; backend phải xác minh chữ ký trước khi cập nhật đơn.' },
   ],
   sendgrid: [
     { key: 'EMAIL_HOST', label: 'SMTP host', type: 'select', required: true, options: ['smtp.sendgrid.net'], defaultValue: 'smtp.sendgrid.net' },
@@ -102,13 +92,12 @@ const RUNTIME_SCHEMAS = {
   paypal: [
     { key: 'PAYPAL_CHECKOUT_ENABLED', label: 'Enable PayPal checkout', type: 'boolean' },
   ],
-  momo: null,
   vercel: null,
   render: null,
   cloudflare_tunnel: null,
 };
 
-const RUNTIME_PROVIDER_CODES = ['smtp', 'sendgrid', 'cod', 'vnpay', 'paypal', 'momo', 'vercel', 'render', 'ghn', 'cloudflare_tunnel', 'cloudflare_r2', 'cloudflare_ai'];
+const RUNTIME_PROVIDER_CODES = ['smtp', 'sendgrid', 'cod', 'vnpay', 'paypal', 'vercel', 'render', 'ghn', 'cloudflare_tunnel', 'cloudflare_r2', 'cloudflare_ai'];
 const EDITABLE_RUNTIME_PROVIDERS = ['smtp', 'sendgrid', 'cod', 'paypal', 'ghn', 'cloudflare_r2'];
 const getRuntimeStorageCode = (providerCode) => providerCode === 'smtp' || providerCode === 'sendgrid' ? 'email' : providerCode;
 
@@ -163,7 +152,6 @@ const getRuntimeSchema = (providerCode, configuredKeys = []) => {
 
 const PROVIDER_SETUP_GUIDES = {
   paypal: { label: 'PayPal REST Authentication & Sandbox', url: 'https://developer.paypal.com/api/rest/authentication/', note: 'Dùng Client ID và Client Secret của REST API app trong Apps & Credentials, ở chế độ Sandbox. Đăng ký URL webhook đã hiển thị và bật checkout sau khi lưu đủ cấu hình.' },
-  momo: { label: 'MoMo Sandbox Test Instructions', url: 'https://developers.momo.vn/v3/vi/docs/payment/onboarding/test-instructions/', note: 'Hướng dẫn test sandbox MoMo. Link Payment API Init cũ hiện trả 403; liên hệ hỗ trợ doanh nghiệp MoMo để được cấp credential thử nghiệm nếu tài khoản chưa có.' },
   sendgrid: { label: 'SendGrid SMTP', url: 'https://docs.sendgrid.com/for-developers/sending-email/getting-started-smtp', note: 'Chỉ dùng API key và sender đã xác minh cho môi trường staging.' },
   vercel: { label: 'Vercel REST API', url: 'https://vercel.com/docs/rest-api#creating-an-access-token', note: 'Preview branch có thể dùng cho staging; không mặc định dùng Vercel Hobby cho cửa hàng thương mại, hãy xác minh điều khoản hiện hành. Cấu hình tại đây chưa tự deploy.' },
   render: { label: 'Render API', url: 'https://render.com/docs/api', note: 'Render Free có thể spin down sau 15 phút không có traffic và filesystem không bền vững; Preview Environments đa dịch vụ không có trên Free. Cấu hình tại đây chưa tự deploy.' },

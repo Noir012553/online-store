@@ -2,6 +2,17 @@ const axios = require('axios');
 
 const SANDBOX_API = 'https://api-m.sandbox.paypal.com';
 const SUPPORTED_CURRENCIES = ['USD', 'EUR', 'SEK'];
+const PAYPAL_LOCALES = {
+  en: 'en_US',
+  vi: 'en_US',
+  pt: 'pt_BR',
+  fr: 'fr_FR',
+  de: 'de_DE',
+  it: 'it_IT',
+  es: 'es_ES',
+  nl: 'nl_NL',
+  sv: 'sv_SE',
+};
 
 class PayPalAdapter {
   constructor(config, http = axios) {
@@ -59,15 +70,17 @@ class PayPalAdapter {
     return response.data;
   }
 
-  async createOrder({ orderId, amount, currency, description, requestId }) {
+  async createOrder({ orderId, amount, currency, description, lang, requestId }) {
     try {
       this.validateConfig();
       if (!this.supportsCurrency(currency) || !Number.isFinite(Number(amount)) || Number(amount) <= 0) {
         return { success: false, error: 'PAYMENT_GATEWAY_CURRENCY_UNSUPPORTED' };
       }
       const returnUrl = new URL(this.config.returnUrl);
+      returnUrl.searchParams.set('method', 'paypal');
       returnUrl.searchParams.set('orderId', String(orderId));
       const cancelUrl = new URL(this.config.cancelUrl);
+      cancelUrl.searchParams.set('method', 'paypal');
       cancelUrl.searchParams.set('orderId', String(orderId));
       cancelUrl.searchParams.set('status', 'cancelled');
       const data = await this.request('post', '/v2/checkout/orders', {
@@ -85,13 +98,14 @@ class PayPalAdapter {
               landing_page: 'LOGIN',
               shipping_preference: 'NO_SHIPPING',
               user_action: 'PAY_NOW',
+              locale: PAYPAL_LOCALES[lang] || PAYPAL_LOCALES.en,
               return_url: returnUrl.toString(),
               cancel_url: cancelUrl.toString(),
             },
           },
         },
       }, requestId);
-      const approvalUrl = data.links?.find(link => link.rel === 'approve')?.href;
+      const approvalUrl = data.links?.find(link => ['payer-action', 'approve'].includes(link.rel))?.href;
       if (!data.id || !approvalUrl) return { success: false, error: 'PAYMENT_PROVIDER_ERROR' };
       return { success: true, data: { order: data, orderId: data.id, approvalUrl } };
     } catch {

@@ -1,0 +1,15 @@
+name = "online-store-deployment-router"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+workers_dev = true
+
+[vars]
+NODE_ENV = "production"
+
+[[durable_objects.bindings]]
+name = "DEPLOYMENT_STATE"
+class_name = "DeploymentState"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["DeploymentState"]

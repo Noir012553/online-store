@@ -350,6 +350,7 @@ class PaymentService {
           amount: providerAmount,
           currency: providerCurrency,
           description: options.description || `Payment for order ${orderId}`,
+          lang: options.lang,
           requestId: `create-${payment._id}`,
         })
         : await adapter.createPaymentUrl({
