@@ -568,6 +568,63 @@ export const settingsAPI = {
 
 export type ProviderCatalogCategory = 'email' | 'payment' | 'shipping' | 'deploy' | 'storage' | 'ai';
 
+export interface DeploymentStatus {
+  mode: 'tunnel' | 'vercel-render';
+  runnerOnline: boolean;
+  lastRunnerHeartbeatAt: number | null;
+  activeJob: DeploymentJob | null;
+  switchEnabled: boolean;
+}
+
+export interface DeploymentJob {
+  id: string;
+  status: 'queued' | 'processing' | 'succeeded' | 'failed';
+  action: 'stopTunnelApps' | 'startTunnelApps';
+  target: 'tunnel' | 'vercel-render';
+  recovery?: boolean;
+  createdAt?: number | null;
+  finishedAt?: number | null;
+}
+
+export interface DeploymentAuditEvent {
+  _id: string;
+  action: string;
+  actorName: string;
+  mode: 'tunnel' | 'vercel-render' | null;
+  jobId: string | null;
+  outcome: string;
+  createdAt: string;
+}
+
+export interface DeploymentControlPlaneEvent {
+  id: string;
+  type: string;
+  timestamp: number;
+  actorId?: string | null;
+  jobId?: string;
+  mode?: 'tunnel' | 'vercel-render';
+  passed?: boolean;
+}
+
+export const deploymentAPI = {
+  getStatus: () => apiCall<DeploymentStatus>('/admin/deployment/status', { skipCache: true, skipErrorToast: true }),
+  preflight: (mode: DeploymentStatus['mode']) => apiCall<{ mode: DeploymentStatus['mode']; passed: boolean }>('/admin/deployment/preflight', {
+    method: 'POST', body: JSON.stringify({ mode }), skipErrorToast: true,
+  }),
+  cutover: () => apiCall<DeploymentJob>('/admin/deployment/cutover', {
+    method: 'POST', body: JSON.stringify({ confirmed: true }), skipErrorToast: true,
+  }),
+  rollback: () => apiCall<DeploymentJob>('/admin/deployment/rollback', {
+    method: 'POST', body: JSON.stringify({ confirmed: true, renderStopped: true }), skipErrorToast: true,
+  }),
+  getJob: (id: string) => apiCall<DeploymentJob>(`/admin/deployment/jobs/${encodeURIComponent(id)}`, { skipCache: true, skipErrorToast: true }),
+  getAudit: () => apiCall<{
+    success: boolean;
+    data: DeploymentAuditEvent[];
+    controlPlaneEvents: DeploymentControlPlaneEvent[];
+  }>('/admin/deployment/audit?limit=50', { skipCache: true, skipErrorToast: true }),
+};
+
 export interface ProviderRegistryItem {
   code: string;
   category: ProviderCatalogCategory;

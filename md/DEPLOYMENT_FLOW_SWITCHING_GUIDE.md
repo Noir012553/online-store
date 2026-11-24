@@ -18,7 +18,7 @@ Mục tiêu vận hành là giữ hostname công khai ổn định và chuyển 
 - Một Cloudflare Tunnel tên `online-store` hiện có hai route ứng dụng: `manln.online` → `http://127.0.0.1:3000` (frontend) và `backend.manln.online` → `http://127.0.0.1:5000` (backend); DNS `cdn.manln.online` dùng R2. Không thay đổi DNS, Tunnel ingress, hostname hoặc port trong quá trình chuẩn bị các nền tảng khác.
 - Provider Catalog có metadata cho Vercel, Render và Cloudflare Tunnel nhưng chưa tự deploy ứng dụng hay quản lý routing.
 - Nếu Cloudflare Worker đứng trước `manln.online`, cần một hostname origin riêng trỏ trực tiếp tới frontend Tunnel; Worker không được forward về chính hostname production đang chạy Worker vì sẽ tạo vòng lặp. Chưa tạo hostname này.
-- Chưa có công tắc chuyển luồng production. Các bước ở tài liệu này là quy trình chuẩn bị/đề xuất, không phải thao tác đã được tự động hóa.
+- Source hiện có API/UI Super Admin và Worker control plane cho `tunnel` ↔ `vercel-render`, nhưng chưa cấu hình hoặc triển khai trên Cloudflare/Render, chưa cài runner Windows và mặc định `DEPLOYMENT_SWITCH_ENABLED` tắt. Vì vậy hiện chưa có công tắc production khả dụng.
 
 ## Mô hình đích
 
@@ -44,8 +44,8 @@ Trong chế độ Netlify + Railway, cấu hình `NEXT_PUBLIC_API_BASE_URL` củ
 
 ### 2. Chuẩn bị candidate Vercel + Render
 
-- Theo yêu cầu vận hành, mọi backend dùng cùng `MONGO_URI` production; không tạo database khác.
-- Trước khi cấp `MONGO_URI` production cho một Preview/candidate deployment, phải bảo vệ preview và áp dụng read-only gate phía backend. Hiện chưa xác nhận có chế độ read-only như vậy; không nối Preview vào production API/database cho tới khi cơ chế này được triển khai và kiểm thử.
+- Theo yêu cầu vận hành, không tạo database khác. Candidate chỉ được dùng MongoDB credential có quyền đọc, cùng namespace production; không cấp credential ghi.
+- Backend có gate `DEPLOYMENT_CANDIDATE_READ_ONLY=true`: từ chối HTTP method ghi, chặn webhook, không chạy worker/scheduler ghi dữ liệu và từ chối Socket.IO. Candidate phải đồng thời dùng `MONGO_READ_ONLY_URI`; nếu biến này thiếu, backend không kết nối bằng `MONGO_URI` dự phòng. Gate này chưa được triển khai trên Render hoặc kiểm thử đầy đủ trên production snapshot; không kết nối candidate cho tới khi kiểm tra quyền MongoDB thực tế và mọi API GET side effect.
 - Tạo candidate backend Render và frontend Vercel Preview từ nhánh phù hợp; frontend dùng Root Directory `online-store-frontend`. Lấy URL do từng dashboard cấp.
 - Khi đã có read-only gate, cấu hình `NEXT_PUBLIC_API_BASE_URL` của Vercel Preview thành URL candidate Render; không cho candidate thực hiện mutation trên dữ liệu production.
 - Kiểm thử riêng cách Vercel xử lý SSR, image optimization, rewrites/proxy `/api/*`, cookies và websocket; nếu tính năng nào không tương thích thì dừng trước khi gắn hostname production.
@@ -64,24 +64,23 @@ Chỉ sau khi read-only gate và giới hạn truy cập được xác minh, ki�
 
 Frontend có một số luồng sử dụng `BACKEND_URL` trực tiếp ngoài các request `/api/*` (ví dụ URL ảnh và Socket.IO). Vì vậy chỉ đổi rewrite chưa đủ để xác nhận toàn bộ ứng dụng hoạt động trên backend Render hoặc Railway; cần kiểm thử từng luồng và cấu hình build/runtime tương ứng.
 
-## Cơ chế chuyển toàn bộ cần triển khai
+## Cơ chế chuyển toàn bộ
 
-Để có một thao tác chuyển đồng bộ, cần một lớp điều phối được kiểm soát (ví dụ Cloudflare Worker hoặc cơ chế routing tương đương) đặt trước hostname production. Lớp này phải có các chế độ rõ ràng:
+Worker đặt trước hostname production và Durable Object state/queue đã được triển khai trong source; cấu hình DNS/route production và secrets vẫn chưa được provision. Source hiện chỉ hỗ trợ hai mode:
 
 - **`tunnel`**: chuyển website tới frontend hiện tại; API và các dịch vụ liên quan tiếp tục dùng backend/Tunnel hiện tại.
 - **`vercel-render`**: chuyển website tới frontend Vercel; API `/api/*` của frontend Vercel được rewrite tới backend Render.
-- **`netlify-railway`**: chuyển website tới frontend Netlify; API `/api/*` được proxy tới backend Railway theo cấu hình đã kiểm thử.
 
-Công tắc phải áp dụng một phiên bản cấu hình duy nhất cho cả frontend/API, có kiểm tra trước khi kích hoạt, khóa tránh hai thao tác đồng thời, ghi audit, health check sau chuyển và rollback tự động về chế độ trước nếu kiểm tra thất bại. Không cập nhật một nửa luồng hoặc cho nhiều backend cùng nhận traffic production ngoài kế hoạch.
+Worker chuyển cả hostname website và API theo một mode duy nhất, khóa job đồng thời, ghi sự kiện Durable Object, kiểm tra health trước/sau và chỉ đổi mode sau khi thao tác service hoàn tất. Khi stop thất bại hoặc health check candidate thất bại, Worker xếp job `startTunnelApps` để phục hồi. Nếu runner offline, cần xử lý thủ công trên Windows; không coi recovery tự động là bảo đảm khi runner/control plane mất kết nối. `netlify-railway` chưa được Worker hỗ trợ.
 
 ### Nút dừng dịch vụ Tunnel
 
-- Nút Super Admin tạo job cho thao tác cố định tương đương `npm run deployment:stop-tunnel-apps -- -ConfirmStop`; rollback dùng `npm run deployment:start-tunnel-apps -- -ConfirmStart`. Không nhận command, script path, service name hoặc port từ request.
-- Hai script PowerShell đã có trong source và mặc định từ chối nếu thiếu cờ xác nhận; API/runner/UI tích hợp chưa hoàn tất. Không chạy các lệnh này như một cutover production thủ công.
-- Khi được tích hợp, API chỉ tạo job có kiểu hành động allowlist và ghi audit. Runner WinSW độc lập lấy job, chạy script npm cố định và chỉ được phép dừng/khởi động `LaptopStoreFrontend` cùng `LaptopStoreBackend`; không điều khiển theo port và không dừng `LaptopStoreTunnel`.
-- Preflight phải xác nhận frontend Vercel, backend Render và routing đích khỏe mạnh trước nút xác nhận cuối cùng. Job phải có ID, trạng thái, chống chạy trùng và kết quả để UI theo dõi qua Vercel + Render sau khi các service cũ đã dừng.
-- Runner phải chạy ngoài frontend/backend bị dừng; job queue và job status cũng phải nằm ở control plane độc lập (không phụ thuộc backend Tunnel đang bị dừng). Quyền Windows và credential job queue được giới hạn tối thiểu. Không để backend API tự chạy shell/npm rồi tự dừng.
-- Nút chỉ sẵn sàng sau khi URL/routing Vercel + Render đã cấu hình và kiểm thử. Runner chưa được cài hoặc preflight thất bại thì không gửi lệnh stop.
+- API `online-store-backend/src/routes/deploymentRoutes.js` chỉ cho Super Admin gọi status, preflight, cutover, rollback và job status; Worker token chỉ nằm ở backend. `DEPLOYMENT_SWITCH_ENABLED` phải được cấu hình `true` mới nhận cutover/rollback; mặc định thao tác bị khóa.
+- UI `/admin/deployment` yêu cầu preflight Vercel + Render đạt, runner heartbeat còn mới và xác nhận trên trình duyệt trước cutover. UI có theo dõi job và hiển thị audit phía backend/Worker.
+- Worker nhận action allowlist `stopTunnelApps`/`startTunnelApps`; runner `online-store-backend/scripts/deployment-runner.js` chỉ gọi đúng hai PowerShell script với tham số xác nhận cố định. Không nhận command, script path, service name hoặc port từ request.
+- Hai script PowerShell chỉ điều khiển `LaptopStoreFrontend` và `LaptopStoreBackend`; không dừng `LaptopStoreTunnel`. Runner script đã có trong source nhưng chưa được cài thành WinSW service và chưa có cơ chế cấp quyền service-control tối thiểu được kiểm thử.
+- Preflight Worker mặc định dùng `/readyz` cho backend. Job queue và trạng thái nằm trong Durable Object độc lập với backend Tunnel; heartbeat stale chặn tạo job mới. Không để backend API tự chạy shell/npm rồi tự dừng.
+- Không bật switch cho tới khi URL/origin, Worker staging route, secrets, DO binding, runner service và luồng rollback được cấu hình, kiểm thử trên staging; route health đơn thuần không xác minh cookies, websocket, upload, callback hay tương thích Next.js.
 
 Trước khi bật cơ chế này, cần có URL đã xác minh cho frontend/backend Vercel + Render; một hostname origin riêng cho frontend Tunnel; và một hostname staging cho Worker. Phải kiểm tra cách chuyển tiếp `Host`, HTTPS/TLS, header, cookie, websocket, body upload, timeout, cache và các đường dẫn callback. Không tạo Worker route production hay chỉnh DNS chỉ dựa trên ví dụ trong tài liệu; cần kiểm thử trên hostname staging trước. Không gửi token/secret qua chat hoặc ghi vào Markdown.
 
@@ -90,11 +89,11 @@ Trước khi bật cơ chế này, cần có URL đã xác minh cho frontend/bac
 1. Xác nhận stack đích khỏe mạnh, dùng đúng `MONGO_URI` production và đúng phiên bản ứng dụng; candidate chỉ được ghi dữ liệu sau khi trở thành luồng production được chọn.
 2. Xem bản diff cấu hình routing: chế độ hiện tại, chế độ đích, hostname/origin bị tác động và các callback liên quan.
 3. Xác nhận không có deploy/switch khác đang chạy; lưu lại phiên bản cấu hình để rollback.
-4. Bắt đầu cửa sổ bảo trì, chuyển đồng bộ cả `manln.online` (frontend) lẫn `backend.manln.online` (backend/API) sang Vercel + Render, rồi health-check cả hai hostname.
-5. Admin xác nhận thao tác dừng. API tạo một job; runner WinSW độc lập gọi đúng script cố định để dừng `LaptopStoreFrontend` và `LaptopStoreBackend` cùng một lượt. Job giữ ID/trạng thái để UI Vercel + Render theo dõi.
-6. Xác nhận hai service cũ đã dừng và frontend/backend mới vẫn khỏe; giữ `LaptopStoreTunnel` cùng cấu hình service cũ cho rollback.
-7. Kiểm tra health, đăng nhập và các thao tác đọc trước; chỉ tạo đơn thử hoặc thao tác ghi trên production sau khi được phê duyệt rõ ràng, có phạm vi/đơn test đã định trước và có cách xử lý dữ liệu phát sinh.
-8. Nếu routing hoặc health check thất bại, dùng runner khởi động lại cả frontend/backend cũ, trả routing về phiên bản trước và xác nhận lại hệ thống cũ hoạt động.
+4. Bắt đầu maintenance window. Admin xác nhận cutover; Worker tạo job nhưng giữ mode `tunnel` cho đến khi hoàn tất.
+5. Runner WinSW độc lập gọi script cố định để dừng `LaptopStoreBackend` và `LaptopStoreFrontend`. Sau khi target Vercel + Render qua health check, Worker mới chuyển mode đồng bộ sang target. Job ID/trạng thái được UI theo dõi.
+6. Xác nhận hai service cũ đã dừng. Render candidate chỉ có Mongo quyền đọc; trước khi cho phép thao tác ghi production, cần quy trình promotion riêng đã được kiểm thử để cấp credential ghi/chạy backend production mà không làm hai backend cùng ghi. Quy trình promotion này hiện chưa được tự động hóa.
+7. Giữ `LaptopStoreTunnel` cùng cấu hình service cũ cho rollback. Kiểm tra health, đăng nhập và các thao tác đọc trước; chỉ tạo đơn thử hoặc thao tác ghi sau khi được phê duyệt rõ ràng, có phạm vi/đơn test đã định trước và có cách xử lý dữ liệu phát sinh.
+8. Nếu routing hoặc health check thất bại, trước khi rollback phải dừng Render backend từ dashboard nhà cung cấp; UI yêu cầu admin xác nhận Render đã dừng. Runner khởi động lại cả frontend/backend cũ, Worker chỉ trả mode về Tunnel sau khi health check thành công.
 
 Không coi việc API Cloudflare Tunnel còn kết nối là bằng chứng frontend Vercel/Render hoặc Netlify/Railway đã hoạt động, hoặc ngược lại.
 
@@ -103,9 +102,9 @@ Không coi việc API Cloudflare Tunnel còn kết nối là bằng chứng fron
 - DNS là sổ định tuyến theo hostname; chỉ một cấu hình routing có hiệu lực cho một hostname tại một thời điểm. Giữ Cloudflare quản lý zone không đồng nghĩa mọi hostname phải trỏ tới cùng dịch vụ.
 - Không xóa record của `backend.manln.online` khi chuyển frontend. Không thay DNS apex/`www` nếu chưa có routing layer và kế hoạch rollback được kiểm thử.
 - Trước khi đổi backend production, xác nhận URL webhook PayPal/VNPay và các callback bên thứ ba đang tới backend có thể xác minh chữ ký và ghi nhận giao dịch. Không đổi callback trước khi backend đích sẵn sàng.
-- Rollback bằng cách khôi phục phiên bản routing trước đó; không xóa dịch vụ hay record đang hoạt động để xử lý sự cố.
+- Rollback không tự dừng dịch vụ Render. Admin phải dừng Render backend ở dashboard trước; sau đó rollback được xếp thành job `startTunnelApps`, Worker chỉ chuyển mode về `tunnel` sau khi hai service cũ khởi động và health check Tunnel đạt. Không xóa dịch vụ hay record đang hoạt động để xử lý sự cố.
 - Sau rollback, xác nhận frontend/API, đăng nhập, checkout và webhook hoạt động; giữ log/audit để điều tra nguyên nhân.
 
 ## Giới hạn phạm vi
 
-Provider Catalog hiện chỉ lưu metadata/cấu hình provider; metadata Vercel, Render hoặc Cloudflare Tunnel không tự tạo deployment, đổi DNS hay bật công tắc routing. Nếu bổ sung Netlify/Railway vào catalog thì điều đó cũng không tự tích hợp deploy. Tự động hóa các bước trên cần adapter backend, quyền provider tối thiểu, quản lý secrets, job nền có trạng thái, health check, audit và quy trình rollback được triển khai riêng.
+Provider Catalog hiện chỉ lưu metadata/cấu hình provider; metadata Vercel, Render hoặc Cloudflare Tunnel không tự tạo deployment hay đổi DNS. Control switch Vercel + Render là luồng riêng; chưa tự quản lý deployment hoặc bật quyền ghi MongoDB cho Render. `netlify-railway` vẫn chưa được hỗ trợ. Không bật production switch trước khi hoàn tất cấu hình hạ tầng, promotion credential, quyền runner và staging tests.

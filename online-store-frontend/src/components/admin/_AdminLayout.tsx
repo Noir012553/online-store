@@ -243,6 +243,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           children: [
             { path: "/admin/settings", icon: Settings2, label: t('page_title', 'admin-store-settings') },
             { path: "/admin/providerCatalog", icon: Package, label: t('provider_catalog_title', 'admin-provider-catalog') },
+            { path: "/admin/deployment", icon: ArrowDownUp, label: 'Chuyển luồng deploy' },
           ],
         },
       },

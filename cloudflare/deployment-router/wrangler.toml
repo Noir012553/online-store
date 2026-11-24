@@ -5,6 +5,10 @@ workers_dev = true
 
 [vars]
 NODE_ENV = "production"
+DEPLOYMENT_INITIAL_MODE = "tunnel"
+DEPLOYMENT_RUNNER_ID = "laptop-store-windows-01"
+TUNNEL_BACKEND_HEALTH_PATH = "/readyz"
+RENDER_BACKEND_HEALTH_PATH = "/readyz"
 
 [[durable_objects.bindings]]
 name = "DEPLOYMENT_STATE"

@@ -41,6 +41,7 @@ const r2AssetRoutes = require('./routes/r2AssetRoutes');
 const storeSettingsRoutes = require('./routes/storeSettingsRoutes');
 const providerCatalogRoutes = require('./routes/providerCatalogRoutes');
 const providerConfigurationRoutes = require('./routes/providerConfigurationRoutes');
+const deploymentRoutes = require('./routes/deploymentRoutes');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 const { globalLimiter } = require('./middleware/rateLimitMiddleware');
 const languageMiddleware = require('./middleware/languageMiddleware');
@@ -60,7 +61,8 @@ const { loadProviderRuntimeConfigCache } = require('./services/providerRuntimeCo
 // ==================== Initialize Express App ====================
 const app = express();
 const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI;
+const candidateReadOnly = process.env.DEPLOYMENT_CANDIDATE_READ_ONLY === 'true';
+const MONGO_URI = candidateReadOnly ? process.env.MONGO_READ_ONLY_URI : process.env.MONGO_URI;
 let apiRequestSequence = 0;
 const debugApi = () => {};
 
@@ -328,11 +330,15 @@ const connectDB = async () => {
     assertMongoConnected();
     await loadProviderRuntimeConfigCache();
     assertStorageConfigured();
-    await paymentMethodService.ensurePaymentMethods();
-    await paymentService.refreshVnpayAdapter();
+    if (!candidateReadOnly) {
+      await paymentMethodService.ensurePaymentMethods();
+      await paymentService.refreshVnpayAdapter();
+    }
     await startServer();
-    startExportJobWorker();
-    startInventoryReservationWorker();
+    if (!candidateReadOnly) {
+      startExportJobWorker();
+      startInventoryReservationWorker();
+    }
     startupReady = true;
     if (process.env.NODE_ENV === 'development') {
       console.info('[STARTUP] backend ready');
@@ -487,18 +493,29 @@ app.get('/health/cache', (req, res) => {
  * - GET/POST /api/payments/webhook/vnpay - Alias (qua /api/payments)
  */
 // VNPAY Callback endpoint - phải ở root level, không qua /api/payments
-app.all('/vnpay-api/webhook/:gateway', asyncHandler(paymentController.handleWebhook));
+app.all('/vnpay-api/webhook/:gateway', (req, res, next) => {
+  if (candidateReadOnly) return res.status(503).json({ success: false, code: 'CANDIDATE_READ_ONLY' });
+  return asyncHandler(paymentController.handleWebhook)(req, res, next);
+});
 
 /**
  * API Routes Mounting
  * Tất cả routes sử dụng /api/... prefix
  */
+app.use('/api', (req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  if (candidateReadOnly && !['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+    return res.status(503).json({ success: false, code: 'CANDIDATE_READ_ONLY' });
+  }
+  return next();
+});
 app.use('/api/health', healthRoutes); // Health check endpoints (monitoring)
 app.use('/api/contact', contactRoutes);
 app.use('/api', requireDatabase);
 app.use('/api/settings', storeSettingsRoutes);
 app.use('/api/settings/providers', providerCatalogRoutes);
 app.use('/api/settings/provider-configs', providerConfigurationRoutes);
+app.use('/api/admin/deployment', deploymentRoutes);
 app.use('/api/users', userRoutes);           // User authentication & admin
 app.use('/api/products', productRoutes);     // Product management
 app.use('/api/orders', orderRoutes);         // Order processing
@@ -629,7 +646,11 @@ const io = new Server(server, {
 });
 
 // Initialize socket handlers
-socketHandler(io);
+if (candidateReadOnly) {
+  io.use((_socket, next) => next(new Error('Candidate deployment is read-only')));
+} else {
+  socketHandler(io);
+}
 
 // Make io accessible to other modules (paymentService, etc.)
 app.set('io', io);
@@ -643,7 +664,7 @@ const listenServer = () => {
 
 const startServer = async () => {
   const schedulerService = require('./services/exchangeRateSchedulerService');
-  if (!schedulerService.isRunning) {
+  if (!candidateReadOnly && !schedulerService.isRunning) {
     void schedulerService.startScheduler({
       interval: 24 * 60 * 60 * 1000,
       externalApi: process.env.EXCHANGE_RATE_API || null,
