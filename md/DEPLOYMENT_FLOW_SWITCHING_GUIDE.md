@@ -2,19 +2,20 @@
 
 ## Mục tiêu
 
-Tài liệu này mô tả hai mô hình triển khai của cửa hàng và cách chuẩn bị chuyển đổi an toàn:
+Tài liệu này mô tả các mô hình triển khai của cửa hàng và cách chuẩn bị chuyển đổi an toàn:
 
 1. **Luồng Cloudflare Tunnel**: frontend và backend chạy trên máy chủ hiện tại, được công khai qua Cloudflare Tunnel.
 2. **Luồng Vercel + Render**: frontend chạy trên Vercel, backend chạy trên Render.
+3. **Luồng Netlify + Railway**: frontend chạy trên Netlify, backend chạy trên Railway; đây là một cặp nền tảng thay thế cần được kiểm thử riêng.
 
-Mục tiêu vận hành là giữ hostname công khai ổn định và chuyển đồng bộ cả frontend lẫn API giữa hai luồng. Chỉ đổi biến môi trường ở frontend hoặc thêm hostname riêng lẻ không tạo ra cơ chế chuyển toàn bộ traffic.
+Mục tiêu vận hành là giữ hostname công khai ổn định và chuyển đồng bộ cả frontend lẫn API giữa các luồng. Chỉ đổi biến môi trường ở frontend hoặc thêm hostname riêng lẻ không tạo ra cơ chế chuyển toàn bộ traffic.
 
 ## Trạng thái hiện tại
 
 - Frontend Next.js nằm trong `online-store-frontend`.
 - `online-store-frontend/next.config.ts` rewrite `/api/*` tới `NEXT_PUBLIC_API_BASE_URL`.
 - Giá trị mặc định tại `online-store-frontend/src/config.ts` là `https://backend.manln.online`.
-- Cloudflare Tunnel hiện phục vụ frontend/backend theo cấu hình đang chạy. Không thay đổi DNS, Tunnel ingress, hostname hoặc port trong quá trình chuẩn bị Vercel/Render.
+- Cloudflare Tunnel hiện phục vụ frontend/backend theo cấu hình đang chạy. Không thay đổi DNS, Tunnel ingress, hostname hoặc port trong quá trình chuẩn bị các nền tảng khác.
 - Provider Catalog có metadata cho Vercel, Render và Cloudflare Tunnel nhưng chưa tự deploy ứng dụng hay quản lý routing.
 - Chưa có công tắc chuyển luồng production. Các bước ở tài liệu này là quy trình chuẩn bị/đề xuất, không phải thao tác đã được tự động hóa.
 
@@ -24,8 +25,11 @@ Mục tiêu vận hành là giữ hostname công khai ổn định và chuyển 
 | --- | --- | --- | --- |
 | Cloudflare Tunnel | Frontend hiện tại trên máy chủ | Backend hiện tại qua Tunnel | Giữ tuyến hiện hành |
 | Vercel + Render | Dự án Vercel, Root Directory `online-store-frontend` | Dịch vụ Render | Giữ hostname công khai; lớp điều phối chuyển traffic sang frontend Vercel |
+| Netlify + Railway | Site Netlify, thư mục publish/build theo cấu hình Next.js đã kiểm chứng | Dịch vụ Railway | Giữ hostname công khai; lớp điều phối chuyển traffic sang frontend Netlify |
 
 Trong chế độ Vercel + Render, Vercel cần được build với `NEXT_PUBLIC_API_BASE_URL` trỏ tới URL backend Render phù hợp. Vercel rewrite `/api/*` tới backend đó. Không dùng URL Render giả định; lấy URL thực tế từ dịch vụ Render đã tạo.
+
+Trong chế độ Netlify + Railway, cấu hình `NEXT_PUBLIC_API_BASE_URL` của frontend tới URL Railway staging/production tương ứng. Trước khi xem đây là phương án deploy được, xác nhận Netlify build adapter/runtime hỗ trợ các tính năng Next.js đang dùng và proxy/rewrite `/api/*` hoạt động đúng; không giả định hai nền tảng xử lý Next.js giống Vercel.
 
 ## Các bước chuẩn bị an toàn
 
@@ -33,44 +37,46 @@ Trong chế độ Vercel + Render, Vercel cần được build với `NEXT_PUBLI
 
 - Không xóa, sửa hoặc thay thế DNS record đang phục vụ `manln.online`, `www.manln.online` hay `backend.manln.online`.
 - Không đổi nameserver, Tunnel ingress, origin service hoặc port.
-- Có thể dùng domain mặc định `*.vercel.app` để kiểm tra frontend Vercel; domain này chưa chuyển traffic production từ Cloudflare.
-- Có thể dùng URL dịch vụ Render cấp (thường có dạng `https://<tên-dịch-vụ>.onrender.com`) để kiểm tra riêng backend; URL này không cần đổi DNS production.
+- Có thể dùng domain mặc định `*.vercel.app` để kiểm tra frontend Vercel hoặc domain `*.netlify.app` do Netlify cấp để kiểm tra frontend Netlify; các domain này chưa chuyển traffic production từ Cloudflare.
+- Có thể dùng URL staging do Render cấp (thường có dạng `https://<tên-dịch-vụ>.onrender.com`) hoặc URL public do Railway cấp để kiểm tra riêng backend; dùng chính URL hiện trong dashboard nhà cung cấp, không cần đổi DNS production.
 - Ghi nhận cấu hình hiện tại và người có quyền rollback trước khi thay đổi routing.
 
 ### 2. Chuẩn bị staging riêng
 
-- Tạo dịch vụ Render staging với cấu hình backend cần thiết, database staging riêng và secrets được nhập trực tiếp trong secret settings của nhà cung cấp.
-- Tạo deployment Vercel Preview từ nhánh staging, đặt Root Directory là `online-store-frontend`.
-- Cấu hình `NEXT_PUBLIC_API_BASE_URL` của Vercel Preview thành URL backend Render staging (URL `onrender.com` của dịch vụ staging), không dùng URL Render production trong bài kiểm thử.
+- Tạo backend staging trên Render hoặc Railway với database staging riêng; nhập secrets trực tiếp trong secret settings của nhà cung cấp.
+- Tạo frontend staging trên Vercel Preview hoặc Netlify deploy preview từ nhánh staging, dùng thư mục `online-store-frontend` và build adapter/runtime Next.js đã được kiểm chứng.
+- Cấu hình `NEXT_PUBLIC_API_BASE_URL` của frontend staging thành URL backend staging tương ứng (Render `onrender.com` hoặc URL public Railway hiển thị trong dashboard); không dùng backend production trong bài kiểm thử.
+- Kiểm thử riêng cách nền tảng frontend xử lý SSR, image optimization, rewrites/proxy `/api/*`, cookies và websocket; nếu tính năng nào không tương thích thì dừng trước khi gắn hostname production.
 - Không đưa token, secret, connection string hoặc giá trị biến môi trường nhạy cảm vào tài liệu, Git, log hay ảnh chụp.
 - Xác nhận backend staging có health endpoint, CORS/cookie phù hợp và không dùng nhầm database production.
 
-### 3. Kiểm thử cả luồng Vercel + Render
+### 3. Kiểm thử các luồng frontend/backend tách riêng
 
-Trên URL Preview, kiểm tra tối thiểu:
+Trên URL Preview/deploy preview của Vercel hoặc Netlify, kiểm tra tối thiểu:
 
 - Trang chủ, danh mục, sản phẩm, ảnh và nội dung đa ngôn ngữ.
 - Đăng nhập/đăng xuất, cookie, các trang quản trị và các API cần xác thực.
 - Giỏ hàng, tạo đơn, tồn kho, VNPay/PayPal ở Sandbox và callback/webhook staging.
 - Socket.IO, sitemap, upload và các request gọi trực tiếp backend.
-- Log Vercel/Render không có lỗi 4xx/5xx bất thường; kiểm tra cold start và tính bền vững của file nếu dịch vụ dùng gói có giới hạn.
+- Log của Vercel/Render hoặc Netlify/Railway không có lỗi 4xx/5xx bất thường; kiểm tra cold start và tính bền vững của file nếu dịch vụ dùng gói có giới hạn.
 
-Frontend có một số luồng sử dụng `BACKEND_URL` trực tiếp ngoài các request `/api/*` (ví dụ URL ảnh và Socket.IO). Vì vậy chỉ đổi rewrite chưa đủ để xác nhận toàn bộ ứng dụng hoạt động trên Render; cần kiểm thử từng luồng và cấu hình build/runtime tương ứng.
+Frontend có một số luồng sử dụng `BACKEND_URL` trực tiếp ngoài các request `/api/*` (ví dụ URL ảnh và Socket.IO). Vì vậy chỉ đổi rewrite chưa đủ để xác nhận toàn bộ ứng dụng hoạt động trên backend Render hoặc Railway; cần kiểm thử từng luồng và cấu hình build/runtime tương ứng.
 
 ## Cơ chế chuyển toàn bộ cần triển khai
 
-Để có một thao tác chuyển đồng bộ, cần một lớp điều phối được kiểm soát (ví dụ Cloudflare Worker hoặc cơ chế routing tương đương) đặt trước hostname production. Lớp này phải có hai chế độ rõ ràng:
+Để có một thao tác chuyển đồng bộ, cần một lớp điều phối được kiểm soát (ví dụ Cloudflare Worker hoặc cơ chế routing tương đương) đặt trước hostname production. Lớp này phải có các chế độ rõ ràng:
 
 - **`tunnel`**: chuyển website tới frontend hiện tại; API và các dịch vụ liên quan tiếp tục dùng backend/Tunnel hiện tại.
 - **`vercel-render`**: chuyển website tới frontend Vercel; API `/api/*` của frontend Vercel được rewrite tới backend Render.
+- **`netlify-railway`**: chuyển website tới frontend Netlify; API `/api/*` được proxy tới backend Railway theo cấu hình đã kiểm thử.
 
-Công tắc phải áp dụng một phiên bản cấu hình duy nhất cho cả frontend/API, có kiểm tra trước khi kích hoạt, khóa tránh hai thao tác đồng thời, ghi audit, health check sau chuyển và rollback tự động về chế độ trước nếu kiểm tra thất bại. Không cập nhật một nửa luồng hoặc cho hai backend cùng nhận traffic production ngoài kế hoạch.
+Công tắc phải áp dụng một phiên bản cấu hình duy nhất cho cả frontend/API, có kiểm tra trước khi kích hoạt, khóa tránh hai thao tác đồng thời, ghi audit, health check sau chuyển và rollback tự động về chế độ trước nếu kiểm tra thất bại. Không cập nhật một nửa luồng hoặc cho nhiều backend cùng nhận traffic production ngoài kế hoạch.
 
 Trước khi bật cơ chế này, phải xác định và kiểm tra cách chuyển tiếp `Host`, HTTPS/TLS, header, cookie, websocket, body upload, timeout, cache và các đường dẫn callback. Không tạo Worker route production hay chỉnh DNS chỉ dựa trên ví dụ trong tài liệu; cần kiểm thử trên hostname staging trước.
 
 ## Quy trình chuyển production sau khi đã có điều phối
 
-1. Xác nhận cả hai stack khỏe mạnh, đúng database và đúng phiên bản ứng dụng.
+1. Xác nhận stack đích khỏe mạnh, đúng database và đúng phiên bản ứng dụng.
 2. Xem bản diff cấu hình routing: chế độ hiện tại, chế độ đích, hostname/origin bị tác động và các callback liên quan.
 3. Xác nhận không có deploy/switch khác đang chạy; lưu lại phiên bản cấu hình để rollback.
 4. Chuyển toàn bộ chế độ bằng một thao tác có xác nhận của quản trị viên.
@@ -78,7 +84,7 @@ Trước khi bật cơ chế này, phải xác định và kiểm tra cách chuy
 6. Kiểm tra đăng nhập, đọc dữ liệu, tạo đơn thử và callback thanh toán Sandbox; theo dõi log và lỗi người dùng.
 7. Nếu bất kỳ health check quan trọng nào thất bại, trả routing về phiên bản trước và xác nhận lại hệ thống cũ hoạt động.
 
-Không coi việc API Cloudflare Tunnel còn kết nối là bằng chứng frontend Vercel/Render đã hoạt động, hoặc ngược lại.
+Không coi việc API Cloudflare Tunnel còn kết nối là bằng chứng frontend Vercel/Render hoặc Netlify/Railway đã hoạt động, hoặc ngược lại.
 
 ## DNS, callback và rollback
 
@@ -90,4 +96,4 @@ Không coi việc API Cloudflare Tunnel còn kết nối là bằng chứng fron
 
 ## Giới hạn phạm vi
 
-Provider Catalog hiện chỉ lưu metadata/cấu hình provider; việc thêm Vercel, Render hoặc Cloudflare Tunnel ở đó không tự tạo deployment, đổi DNS hay bật công tắc routing. Tự động hóa các bước trên cần adapter backend, quyền provider tối thiểu, quản lý secrets, job nền có trạng thái, health check, audit và quy trình rollback được triển khai riêng.
+Provider Catalog hiện chỉ lưu metadata/cấu hình provider; metadata Vercel, Render hoặc Cloudflare Tunnel không tự tạo deployment, đổi DNS hay bật công tắc routing. Nếu bổ sung Netlify/Railway vào catalog thì điều đó cũng không tự tích hợp deploy. Tự động hóa các bước trên cần adapter backend, quyền provider tối thiểu, quản lý secrets, job nền có trạng thái, health check, audit và quy trình rollback được triển khai riêng.
