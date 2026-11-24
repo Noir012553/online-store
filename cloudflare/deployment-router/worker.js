@@ -3,7 +3,10 @@ const CONTROL_PATHS = new Set([
   "/__deployment/status",
   "/__deployment/preflight",
   "/__deployment/mode",
+  "/__deployment/cutover",
 ]);
+const RUNNER_LEASE_MS = 60_000;
+const ACTIVE_JOB_STORAGE_KEY = "activeJob";
 const PUBLIC_HOSTS = new Set(["manln.online", "backend.manln.online"]);
 const HEALTH_PATHS = {
   tunnelFrontend: "/",
@@ -105,10 +108,16 @@ function getConfig(env) {
     throw new ConfigurationError("Missing or weak control token binding");
   }
 
+  if (typeof env.DEPLOYMENT_RUNNER_TOKEN !== "string" ||
+      env.DEPLOYMENT_RUNNER_TOKEN.length < 16) {
+    throw new ConfigurationError("Missing or weak runner token binding");
+  }
+
   return {
     ...getRoutingConfig(env),
     stateBinding: env.DEPLOYMENT_STATE,
     token: env.DEPLOYMENT_CONTROL_TOKEN,
+    runnerToken: env.DEPLOYMENT_RUNNER_TOKEN,
   };
 }
 
@@ -180,12 +189,12 @@ function getStateStub(binding) {
   return binding.get(id);
 }
 
-async function requestState(binding, path, method, mode) {
-  const headers = new Headers();
+async function requestState(binding, path, method, payload, extraHeaders = {}) {
+  const headers = new Headers(extraHeaders);
   let body;
-  if (mode !== undefined) {
+  if (payload !== undefined) {
     headers.set("content-type", "application/json");
-    body = JSON.stringify({ mode });
+    body = JSON.stringify(payload);
   }
   return getStateStub(binding).fetch(new Request(`https://deployment-state.internal${path}`, {
     method,
@@ -195,6 +204,10 @@ async function requestState(binding, path, method, mode) {
 }
 
 async function controlRoute(request, config, path) {
+  const jobMatch = /^\/__deployment\/jobs\/([0-9a-f-]{36})$/.exec(path);
+  if (jobMatch && request.method === "GET") {
+    return requestState(config.stateBinding, `/jobs/${jobMatch[1]}`, "GET");
+  }
   if (!CONTROL_PATHS.has(path)) return json({ error: "Not found" }, 404);
 
   if (path === "/__deployment/status" && request.method === "GET") {
@@ -204,13 +217,25 @@ async function controlRoute(request, config, path) {
   if (path === "/__deployment/preflight" && request.method === "POST") {
     const mode = await parseModeBody(request);
     if (!mode) return json({ error: "Body must contain only an exact mode" }, 400);
-    return requestState(config.stateBinding, "/preflight", "POST", mode);
+    return requestState(config.stateBinding, "/preflight", "POST", { mode });
   }
 
   if (path === "/__deployment/mode" && request.method === "POST") {
     const mode = await parseModeBody(request);
     if (!mode) return json({ error: "Body must contain only an exact mode" }, 400);
-    return requestState(config.stateBinding, "/mode", "POST", mode);
+    if (mode !== "tunnel") return json({ error: "Mode endpoint is reserved for rollback to tunnel" }, 400);
+    return requestState(config.stateBinding, "/mode", "POST", { mode });
+  }
+
+  if (path === "/__deployment/cutover" && request.method === "POST") {
+    let body;
+    try { body = await request.json(); } catch { body = null; }
+    if (!body || typeof body !== "object" || Array.isArray(body) ||
+        Object.keys(body).length !== 2 || body.mode !== "vercel-render" || body.confirmed !== true ||
+        !Object.hasOwn(body, "mode") || !Object.hasOwn(body, "confirmed")) {
+      return json({ error: "Body must be exactly {mode: 'vercel-render', confirmed: true}" }, 400);
+    }
+    return requestState(config.stateBinding, "/cutover", "POST", { mode: body.mode, confirmed: true });
   }
 
   return json({ error: "Method not allowed" }, 405);
@@ -224,6 +249,110 @@ export class DeploymentState {
 
   async fetch(request) {
     const path = new URL(request.url).pathname;
+    const jobMatch = /^\/jobs\/([0-9a-f-]{36})$/.exec(path);
+    if (jobMatch && request.method === "GET") {
+      return this.state.blockConcurrencyWhile(async () => {
+        const job = await this.state.storage.get(`job:${jobMatch[1]}`);
+        if (!job) return json({ error: "Job not found" }, 404);
+        return json({ id: job.id, status: job.status, action: job.action });
+      });
+    }
+
+    if (path === "/cutover" && request.method === "POST") {
+      let body;
+      try { body = await request.json(); } catch { body = null; }
+      if (!body || typeof body !== "object" || Array.isArray(body) ||
+          Object.keys(body).length !== 2 || body.mode !== "vercel-render" || body.confirmed !== true) {
+        return json({ error: "Invalid cutover request" }, 400);
+      }
+      return this.state.blockConcurrencyWhile(async () => {
+        const mode = await this.state.storage.get(MODE_STORAGE_KEY);
+        if (mode !== "tunnel") return json({ error: "Cutover is only allowed from tunnel mode" }, 409);
+        const activeId = await this.state.storage.get(ACTIVE_JOB_STORAGE_KEY);
+        if (activeId) {
+          const activeJob = await this.state.storage.get(`job:${activeId}`);
+          if (activeJob && (activeJob.status === "queued" || activeJob.status === "processing")) {
+            return json({ error: "A cutover job is already active" }, 409);
+          }
+          await this.state.storage.delete(ACTIVE_JOB_STORAGE_KEY);
+        }
+        const passed = await preflight("vercel-render", this.config.origins, this.config.healthPaths);
+        if (!passed) return json({ error: "Target preflight failed; no job was created" }, 502);
+        const id = crypto.randomUUID();
+        const job = { id, status: "queued", action: "stopTunnelApps", target: "vercel-render" };
+        await this.state.storage.put(`job:${id}`, job);
+        await this.state.storage.put(ACTIVE_JOB_STORAGE_KEY, id);
+        return json({ id, status: job.status, action: job.action }, 202);
+      });
+    }
+
+    if (path === "/runner/job" && request.method === "GET") {
+      const runnerId = request.headers.get("x-deployment-runner-id") || "";
+      if (!/^[A-Za-z0-9._-]{1,128}$/.test(runnerId)) return json({ error: "Invalid runner identity" }, 400);
+      return this.state.blockConcurrencyWhile(async () => {
+        const activeId = await this.state.storage.get(ACTIVE_JOB_STORAGE_KEY);
+        if (!activeId) return json({ job: null });
+        const job = await this.state.storage.get(`job:${activeId}`);
+        if (!job || (job.status !== "queued" && job.status !== "processing")) {
+          await this.state.storage.delete(ACTIVE_JOB_STORAGE_KEY);
+          return json({ job: null });
+        }
+        if (job.status === "processing" && job.leaseExpiresAt > Date.now()) {
+          if (job.runnerId !== runnerId) return json({ job: null });
+          return json({ job: { id: job.id, action: job.action, status: job.status, leaseVersion: job.leaseVersion } });
+        }
+        const leaseVersion = (job.leaseVersion || 0) + 1;
+        const updated = {
+          ...job,
+          status: "processing",
+          runnerId,
+          leaseVersion,
+          leaseExpiresAt: Date.now() + RUNNER_LEASE_MS,
+        };
+        await this.state.storage.put(`job:${activeId}`, updated);
+        return json({ job: { id: updated.id, action: updated.action, status: updated.status, leaseVersion } });
+      });
+    }
+
+    const completionMatch = /^\/runner\/job\/([0-9a-f-]{36})\/complete$/.exec(path);
+    if (completionMatch && request.method === "POST") {
+      let body;
+      try { body = await request.json(); } catch { body = null; }
+      if (!body || typeof body !== "object" || Array.isArray(body) || Object.keys(body).length !== 1 ||
+          !Object.hasOwn(body, "result") || !["stopped", "failed"].includes(body.result)) {
+        return json({ error: "Body must contain only an allowed result" }, 400);
+      }
+      const runnerId = request.headers.get("x-deployment-runner-id") || "";
+      const leaseVersion = Number(request.headers.get("x-deployment-lease-version"));
+      return this.state.blockConcurrencyWhile(async () => {
+        const activeId = await this.state.storage.get(ACTIVE_JOB_STORAGE_KEY);
+        const job = await this.state.storage.get(`job:${completionMatch[1]}`);
+        if (!job || activeId !== job.id || job.status !== "processing" ||
+            job.runnerId !== runnerId || !Number.isSafeInteger(leaseVersion) ||
+            job.leaseVersion !== leaseVersion || job.leaseExpiresAt <= Date.now()) {
+          return json({ error: "Job lease is not active" }, 409);
+        }
+        if (body.result === "failed") {
+          await this.state.storage.put(`job:${job.id}`, { ...job, status: "failed" });
+          await this.state.storage.delete(ACTIVE_JOB_STORAGE_KEY);
+          return json({ id: job.id, status: "failed", action: job.action });
+        }
+        const mode = await this.state.storage.get(MODE_STORAGE_KEY);
+        const passed = mode === "tunnel" && await preflight(job.target, this.config.origins, this.config.healthPaths);
+        if (!passed) {
+          await this.state.storage.put(`job:${job.id}`, { ...job, status: "failed" });
+          await this.state.storage.delete(ACTIVE_JOB_STORAGE_KEY);
+          return json({ id: job.id, status: "failed", action: job.action });
+        }
+        await this.state.storage.transaction(async (transaction) => {
+          await transaction.put(MODE_STORAGE_KEY, job.target);
+          await transaction.put(`job:${job.id}`, { ...job, status: "succeeded" });
+          await transaction.delete(ACTIVE_JOB_STORAGE_KEY);
+        });
+        return json({ id: job.id, status: "succeeded", action: job.action });
+      });
+    }
+
     if (path === "/status" && request.method === "GET") {
       return this.state.blockConcurrencyWhile(async () => {
         const mode = await this.state.storage.get(MODE_STORAGE_KEY);
@@ -241,6 +370,9 @@ export class DeploymentState {
         return json({ mode, passed }, passed ? 200 : 502);
       }
 
+      if (path === "/mode" && mode !== "tunnel") {
+        return json({ error: "Mode endpoint is reserved for rollback to tunnel" }, 400);
+      }
       return this.state.blockConcurrencyWhile(async () => {
         const passed = await preflight(mode, this.config.origins, this.config.healthPaths);
         if (!passed) {
@@ -295,6 +427,20 @@ export default {
 
     const url = new URL(request.url);
     const path = url.pathname;
+    const runnerJobPath = path === "/__deployment/runner/job" && request.method === "GET";
+    const runnerCompleteMatch = /^\/__deployment\/runner\/job\/([0-9a-f-]{36})\/complete$/.exec(path);
+    if (runnerJobPath || (runnerCompleteMatch && request.method === "POST")) {
+      if (!authorized(request, config.runnerToken)) return json({ error: "Unauthorized" }, 401);
+      const runnerId = request.headers.get("x-deployment-runner-id") || "";
+      const headers = { "x-deployment-runner-id": runnerId };
+      if (runnerCompleteMatch) {
+        let body;
+        try { body = await request.json(); } catch { body = null; }
+        headers["x-deployment-lease-version"] = request.headers.get("x-deployment-lease-version") || "";
+        return requestState(config.stateBinding, `/runner/job/${runnerCompleteMatch[1]}/complete`, "POST", body, headers);
+      }
+      return requestState(config.stateBinding, "/runner/job", "GET", undefined, headers);
+    }
     if (path === "/__deployment" || path.startsWith("/__deployment/")) {
       if (!authorized(request, config.token)) return json({ error: "Unauthorized" }, 401);
       try {
