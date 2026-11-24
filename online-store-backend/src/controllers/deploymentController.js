@@ -6,10 +6,11 @@ const noStore = (res) => res.set('Cache-Control', 'no-store, no-cache, must-reva
 const allowedModes = new Set(['tunnel', 'vercel-render']);
 
 const audit = async (req, action, outcome, { mode = null, jobId = null } = {}) => {
+  if (process.env.DEPLOYMENT_CANDIDATE_READ_ONLY === 'true') return;
   await DeploymentAudit.create({
     action,
     actorId: req.user._id,
-    actorName: req.user.name || req.user.username || req.user.email || String(req.user._id),
+    actorName: String(req.user.name || req.user.username || req.user.email || req.user._id).slice(0, 160),
     mode,
     jobId,
     outcome,
@@ -99,11 +100,19 @@ exports.rollback = asyncHandler(async (req, res) => {
 
 exports.getJob = asyncHandler(async (req, res) => {
   const { jobId } = req.params;
+  noStore(res);
   if (!/^[0-9a-f-]{36}$/i.test(jobId)) {
-    noStore(res);
     return res.status(400).json({ success: false, code: 'INVALID_DEPLOYMENT_JOB_ID' });
   }
-  return relay(req, res, 'job-read', `/__deployment/jobs/${jobId}`, {}, { jobId });
+  try {
+    const result = await callDeploymentRouter(`/__deployment/jobs/${jobId}`);
+    return res.status(result.status).json(result.data);
+  } catch (error) {
+    return res.status(error.message === 'DEPLOYMENT_ROUTER_NOT_CONFIGURED' ? 503 : 502).json({
+      success: false,
+      code: error.message === 'DEPLOYMENT_ROUTER_NOT_CONFIGURED' ? 'DEPLOYMENT_ROUTER_NOT_CONFIGURED' : 'DEPLOYMENT_ROUTER_UNAVAILABLE',
+    });
+  }
 });
 
 exports.getAudit = asyncHandler(async (req, res) => {

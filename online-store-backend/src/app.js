@@ -504,7 +504,10 @@ app.all('/vnpay-api/webhook/:gateway', (req, res, next) => {
  */
 app.use('/api', (req, res, next) => {
   res.set('Cache-Control', 'no-store');
-  if (candidateReadOnly && !['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+  const deploymentControlPath = /^\/admin\/deployment\/(preflight|cutover|rollback)$/.test(req.path);
+  const allowedReadOnlyRequest = ['GET', 'HEAD', 'OPTIONS'].includes(req.method)
+    || (req.method === 'POST' && deploymentControlPath);
+  if (candidateReadOnly && !allowedReadOnlyRequest) {
     return res.status(503).json({ success: false, code: 'CANDIDATE_READ_ONLY' });
   }
   return next();

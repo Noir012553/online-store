@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const deploymentAuditSchema = new mongoose.Schema({
   action: {
     type: String,
-    enum: ['status', 'preflight', 'cutover', 'rollback', 'job-read'],
+    enum: ['status', 'preflight', 'cutover', 'rollback'],
     required: true,
   },
   actorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
