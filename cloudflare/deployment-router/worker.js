@@ -5,12 +5,11 @@ const CONTROL_PATHS = new Set([
   "/__deployment/mode",
 ]);
 const PUBLIC_HOSTS = new Set(["manln.online", "backend.manln.online"]);
-const KV_MODE_KEY = "mode";
 const HEALTH_PATHS = {
   tunnelFrontend: "/",
-  tunnelBackend: "/health",
+  tunnelBackend: "/",
   vercelFrontend: "/",
-  renderBackend: "/health",
+  renderBackend: "/",
 };
 const HOP_BY_HOP_HEADERS = new Set([
   "connection",
@@ -27,6 +26,7 @@ const HOP_BY_HOP_HEADERS = new Set([
   "x-forwarded-host",
   "x-forwarded-proto",
 ]);
+const MODE_STORAGE_KEY = "mode";
 
 class ConfigurationError extends Error {}
 
@@ -77,20 +77,9 @@ function healthPath(value, fallback, name) {
   return path;
 }
 
-function getConfig(env) {
+function getRoutingConfig(env) {
   const production = env.NODE_ENV !== "development" && env.NODE_ENV !== "test";
-  if (!env.DEPLOYMENT_KV || typeof env.DEPLOYMENT_KV.get !== "function" ||
-      typeof env.DEPLOYMENT_KV.put !== "function") {
-    throw new ConfigurationError("Missing deployment KV binding");
-  }
-  if (typeof env.DEPLOYMENT_CONTROL_TOKEN !== "string" ||
-      env.DEPLOYMENT_CONTROL_TOKEN.length < 16) {
-    throw new ConfigurationError("Missing or weak control token binding");
-  }
-
   return {
-    kv: env.DEPLOYMENT_KV,
-    token: env.DEPLOYMENT_CONTROL_TOKEN,
     origins: {
       tunnelFrontend: validOrigin(env.TUNNEL_FRONTEND_ORIGIN, "TUNNEL_FRONTEND_ORIGIN", production),
       tunnelBackend: validOrigin(env.TUNNEL_BACKEND_ORIGIN, "TUNNEL_BACKEND_ORIGIN", production),
@@ -103,6 +92,23 @@ function getConfig(env) {
       vercelFrontend: healthPath(env.VERCEL_FRONTEND_HEALTH_PATH, HEALTH_PATHS.vercelFrontend, "VERCEL_FRONTEND_HEALTH_PATH"),
       renderBackend: healthPath(env.RENDER_BACKEND_HEALTH_PATH, HEALTH_PATHS.renderBackend, "RENDER_BACKEND_HEALTH_PATH"),
     },
+  };
+}
+
+function getConfig(env) {
+  if (!env.DEPLOYMENT_STATE || typeof env.DEPLOYMENT_STATE.idFromName !== "function" ||
+      typeof env.DEPLOYMENT_STATE.get !== "function") {
+    throw new ConfigurationError("Missing deployment Durable Object binding");
+  }
+  if (typeof env.DEPLOYMENT_CONTROL_TOKEN !== "string" ||
+      env.DEPLOYMENT_CONTROL_TOKEN.length < 16) {
+    throw new ConfigurationError("Missing or weak control token binding");
+  }
+
+  return {
+    ...getRoutingConfig(env),
+    stateBinding: env.DEPLOYMENT_STATE,
+    token: env.DEPLOYMENT_CONTROL_TOKEN,
   };
 }
 
@@ -124,11 +130,6 @@ function authorized(request, expected) {
   return Boolean(match && constantTimeTokenEquals(expected, match[1]));
 }
 
-async function getMode(kv) {
-  const mode = await kv.get(KV_MODE_KEY);
-  return MODES.has(mode) ? mode : null;
-}
-
 function modeOrigins(mode, origins) {
   if (mode === "tunnel") {
     return { frontend: origins.tunnelFrontend, backend: origins.tunnelBackend };
@@ -137,6 +138,16 @@ function modeOrigins(mode, origins) {
     return { frontend: origins.vercelFrontend, backend: origins.renderBackend };
   }
   return null;
+}
+
+function parseModeBody(request) {
+  return request.json().then((body) => {
+    if (!body || typeof body !== "object" || Array.isArray(body) ||
+        Object.keys(body).length !== 1 || !Object.hasOwn(body, "mode") || !MODES.has(body.mode)) {
+      return null;
+    }
+    return body.mode;
+  }).catch(() => null);
 }
 
 async function preflight(mode, origins, healthPaths) {
@@ -164,48 +175,84 @@ async function preflight(mode, origins, healthPaths) {
   return results.every(Boolean);
 }
 
-async function controlRoute(request, env, config, path) {
-  if (!authorized(request, config.token)) return json({ error: "Unauthorized" }, 401);
+function getStateStub(binding) {
+  const id = binding.idFromName("global-deployment-mode");
+  return binding.get(id);
+}
+
+async function requestState(binding, path, method, mode) {
+  const headers = new Headers();
+  let body;
+  if (mode !== undefined) {
+    headers.set("content-type", "application/json");
+    body = JSON.stringify({ mode });
+  }
+  return getStateStub(binding).fetch(new Request(`https://deployment-state.internal${path}`, {
+    method,
+    headers,
+    body,
+  }));
+}
+
+async function controlRoute(request, config, path) {
   if (!CONTROL_PATHS.has(path)) return json({ error: "Not found" }, 404);
 
   if (path === "/__deployment/status" && request.method === "GET") {
-    const mode = await getMode(config.kv);
-    if (!mode) return json({ error: "Deployment mode is not configured" }, 503);
-    return json({ mode });
+    return requestState(config.stateBinding, "/status", "GET");
   }
 
   if (path === "/__deployment/preflight" && request.method === "POST") {
-    let body;
-    try {
-      body = await request.json();
-    } catch {
-      return json({ error: "Expected JSON body with an exact mode" }, 400);
-    }
-    if (!body || typeof body !== "object" || Array.isArray(body) || !MODES.has(body.mode)) {
-      return json({ error: "Mode must be exactly tunnel or vercel-render" }, 400);
-    }
-    const passed = await preflight(body.mode, config.origins, config.healthPaths);
-    return json({ mode: body.mode, passed }, passed ? 200 : 502);
+    const mode = await parseModeBody(request);
+    if (!mode) return json({ error: "Body must contain only an exact mode" }, 400);
+    return requestState(config.stateBinding, "/preflight", "POST", mode);
   }
 
   if (path === "/__deployment/mode" && request.method === "POST") {
-    let body;
-    try {
-      body = await request.json();
-    } catch {
-      return json({ error: "Expected JSON body with an exact mode" }, 400);
-    }
-    if (!body || typeof body !== "object" || Array.isArray(body) || !MODES.has(body.mode)) {
-      return json({ error: "Mode must be exactly tunnel or vercel-render" }, 400);
-    }
-    if (!(await preflight(body.mode, config.origins, config.healthPaths))) {
-      return json({ error: "Preflight failed; deployment mode was not changed" }, 502);
-    }
-    await config.kv.put(KV_MODE_KEY, body.mode);
-    return json({ mode: body.mode, changed: true });
+    const mode = await parseModeBody(request);
+    if (!mode) return json({ error: "Body must contain only an exact mode" }, 400);
+    return requestState(config.stateBinding, "/mode", "POST", mode);
   }
 
   return json({ error: "Method not allowed" }, 405);
+}
+
+export class DeploymentState {
+  constructor(state, env) {
+    this.state = state;
+    this.config = getRoutingConfig(env);
+  }
+
+  async fetch(request) {
+    const path = new URL(request.url).pathname;
+    if (path === "/status" && request.method === "GET") {
+      return this.state.blockConcurrencyWhile(async () => {
+        const mode = await this.state.storage.get(MODE_STORAGE_KEY);
+        if (!MODES.has(mode)) return json({ error: "Deployment mode is not configured" }, 503);
+        return json({ mode });
+      });
+    }
+
+    if ((path === "/preflight" || path === "/mode") && request.method === "POST") {
+      const mode = await parseModeBody(request);
+      if (!mode) return json({ error: "Body must contain only an exact mode" }, 400);
+
+      if (path === "/preflight") {
+        const passed = await preflight(mode, this.config.origins, this.config.healthPaths);
+        return json({ mode, passed }, passed ? 200 : 502);
+      }
+
+      return this.state.blockConcurrencyWhile(async () => {
+        const passed = await preflight(mode, this.config.origins, this.config.healthPaths);
+        if (!passed) {
+          return json({ error: "Preflight failed; deployment mode was not changed" }, 502);
+        }
+        await this.state.storage.put(MODE_STORAGE_KEY, mode);
+        return json({ mode, changed: true });
+      });
+    }
+
+    return json({ error: "Not found" }, 404);
+  }
 }
 
 function stripUnsafeHeaders(headers) {
@@ -251,7 +298,7 @@ export default {
     if (path === "/__deployment" || path.startsWith("/__deployment/")) {
       if (!authorized(request, config.token)) return json({ error: "Unauthorized" }, 401);
       try {
-        return await controlRoute(request, env, config, path);
+        return await controlRoute(request, config, path);
       } catch {
         return json({ error: "Deployment control operation failed" }, 503);
       }
@@ -264,8 +311,10 @@ export default {
     else return json({ error: "Unknown host" }, 421);
 
     try {
-      const mode = await getMode(config.kv);
-      const selected = mode && modeOrigins(mode, config.origins);
+      const modeResponse = await requestState(config.stateBinding, "/status", "GET");
+      if (!modeResponse.ok) return modeResponse;
+      const { mode } = await modeResponse.json();
+      const selected = modeOrigins(mode, config.origins);
       if (!selected) return json({ error: "Deployment mode is not configured" }, 503);
       return await proxy(request, selected[route]);
     } catch {

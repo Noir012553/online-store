@@ -17,21 +17,24 @@ Một thao tác Super Admin có preflight và xác nhận, chuyển đồng bộ
 - `online-store-backend/scripts/stop-tunnel-apps.ps1`: kiểm tra Windows/admin/service IDs và WinSW executable path trước khi dừng; thử khởi động lại service đã dừng nếu thao tác bị lỗi. Yêu cầu cờ `-ConfirmStop`.
 - `online-store-backend/scripts/start-tunnel-apps.ps1`: kiểm tra tương tự và yêu cầu `-ConfirmStart`; thử dừng service đã khởi động nếu rollback một phần thất bại.
 - `online-store-backend/package.json`: thêm npm scripts `deployment:stop-tunnel-apps` và `deployment:start-tunnel-apps`; scripts không tự truyền cờ xác nhận.
+- `cloudflare/deployment-router/worker.js`: Worker fail-closed, mode state trong Durable Object, authenticated status/preflight/mode endpoints, allowlist hai mode và proxy hai hostname theo mode.
+- `cloudflare/deployment-router/worker.test.js`: test offline cho auth, preflight, body allowlist, routing và trạng thái mode đồng bộ.
 - Runbook: `md/DEPLOYMENT_FLOW_SWITCHING_GUIDE.md`.
 
 ## Chưa triển khai
 
-- API Super Admin để preflight, tạo job allowlist, xác nhận thao tác, theo dõi job và audit.
+- API Super Admin để gọi preflight/router, tạo job allowlist, xác nhận thao tác, theo dõi job và audit.
 - Control plane/job queue độc lập với backend Tunnel, để job còn theo dõi được sau khi backend cũ dừng.
 - WinSW runner service riêng chỉ được phép thực hiện các thao tác stop/start cố định.
-- Cloudflare routing adapter/Worker để chuyển đồng bộ `manln.online` và `backend.manln.online`, health-check, rollback.
 - UI Super Admin cho preflight, xác nhận cutover và theo dõi trạng thái.
+- Cấu hình Durable Object binding/migration, Worker secrets/origins và kiểm thử trên hostname staging.
 - Kiểm thử PowerShell trên Windows và kiểm thử integration trên hostname staging.
 
 ## Blocker trước khi bật cutover
 
 - Chưa có URL/service ID Render đã xác minh hoặc routing Vercel + Render sẵn sàng.
 - Chưa có hostname origin riêng cho frontend Tunnel và hostname staging cho Worker.
+- Chưa có control-plane/runner heartbeat để chứng minh runner đang sống trước khi dừng backend cũ.
 - Chưa cài/kiểm thử runner trên host Windows.
 - Chưa chạy PowerShell tests: môi trường trợ lý không có PowerShell.
 

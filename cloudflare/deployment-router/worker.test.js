@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import worker from "./worker.js";
+import worker, { DeploymentState } from "./worker.js";
 
 const TOKEN = "a-control-token-that-is-long-enough";
 const ORIGINS = {
@@ -13,13 +13,32 @@ const ORIGINS = {
 function setup(mode = "tunnel") {
   const values = new Map([["mode", mode]]);
   const writes = [];
+  const serialState = {
+    storage: {
+      async get(key) { return values.get(key) ?? null; },
+      async put(key, value) { writes.push([key, value]); values.set(key, value); },
+    },
+    queue: Promise.resolve(),
+    blockConcurrencyWhile(callback) {
+      const operation = this.queue.then(callback);
+      this.queue = operation.then(() => undefined, () => undefined);
+      return operation;
+    },
+  };
+  const stateObject = new DeploymentState(serialState, {
+    ...ORIGINS,
+    NODE_ENV: "production",
+  });
   const env = {
     ...ORIGINS,
     NODE_ENV: "production",
     DEPLOYMENT_CONTROL_TOKEN: TOKEN,
-    DEPLOYMENT_KV: {
-      async get(key) { return values.get(key) ?? null; },
-      async put(key, value) { writes.push([key, value]); values.set(key, value); },
+    DEPLOYMENT_STATE: {
+      idFromName(name) { assert.equal(name, "global-deployment-mode"); return name; },
+      get(id) {
+        assert.equal(id, "global-deployment-mode");
+        return { fetch: (request) => stateObject.fetch(request) };
+      },
     },
   };
   return { env, values, writes };
@@ -68,6 +87,17 @@ test("preflight endpoint reports failed health checks", async () => {
   });
 });
 
+test("preflight and mode endpoints reject extra JSON keys", async () => {
+  const { env, writes } = setup();
+  for (const path of ["/__deployment/preflight", "/__deployment/mode"]) {
+    const response = await worker.fetch(request(path, {
+      method: "POST", body: { mode: "tunnel", extra: "ignored" },
+    }), env);
+    assert.equal(response.status, 400);
+  }
+  assert.deepEqual(writes, []);
+});
+
 test("preflight failure prevents a mode change", async () => {
   const { env, values, writes } = setup();
   await withFetch(async () => new Response("unhealthy", { status: 503 }), async () => {
@@ -100,9 +130,31 @@ test("mode changes only to exact allowlisted values after both checks pass", asy
     assert.equal(values.get("mode"), "vercel-render");
     assert.deepEqual(writes, [["mode", "vercel-render"]]);
     assert.deepEqual(probed.sort(), [
-      "https://api.onrender.com/health",
+      "https://api.onrender.com/",
       "https://store.vercel.app/",
     ]);
+  });
+});
+
+test("simultaneous mode changes serialize their preflight and storage writes", async () => {
+  const { env, values, writes } = setup();
+  let activePreflights = 0;
+  let maximumActivePreflights = 0;
+  await withFetch(async () => {
+    activePreflights++;
+    maximumActivePreflights = Math.max(maximumActivePreflights, activePreflights);
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    activePreflights--;
+    return new Response("ok", { status: 200 });
+  }, async () => {
+    const responses = await Promise.all([
+      worker.fetch(request("/__deployment/mode", { method: "POST", body: { mode: "vercel-render" } }), env),
+      worker.fetch(request("/__deployment/mode", { method: "POST", body: { mode: "tunnel" } }), env),
+    ]);
+    assert.deepEqual(responses.map((response) => response.status), [200, 200]);
+    assert.equal(maximumActivePreflights, 2);
+    assert.equal(values.get("mode"), "tunnel");
+    assert.deepEqual(writes, [["mode", "vercel-render"], ["mode", "tunnel"]]);
   });
 });
 
