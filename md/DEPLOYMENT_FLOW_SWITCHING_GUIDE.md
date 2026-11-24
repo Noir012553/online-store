@@ -15,7 +15,7 @@ Mục tiêu vận hành là giữ hostname công khai ổn định và chuyển 
 - Frontend Next.js nằm trong `online-store-frontend`.
 - `online-store-frontend/next.config.ts` rewrite `/api/*` tới `NEXT_PUBLIC_API_BASE_URL`.
 - Giá trị mặc định tại `online-store-frontend/src/config.ts` là `https://backend.manln.online`.
-- Cloudflare Tunnel hiện phục vụ frontend/backend theo cấu hình đang chạy. Dashboard xác nhận `manln.online` → `http://127.0.0.1:3000` và `backend.manln.online` → `http://127.0.0.1:5000`; DNS `cdn.manln.online` dùng R2. Không thay đổi DNS, Tunnel ingress, hostname hoặc port trong quá trình chuẩn bị các nền tảng khác.
+- Một Cloudflare Tunnel tên `online-store` hiện có hai route ứng dụng: `manln.online` → `http://127.0.0.1:3000` (frontend) và `backend.manln.online` → `http://127.0.0.1:5000` (backend); DNS `cdn.manln.online` dùng R2. Không thay đổi DNS, Tunnel ingress, hostname hoặc port trong quá trình chuẩn bị các nền tảng khác.
 - Provider Catalog có metadata cho Vercel, Render và Cloudflare Tunnel nhưng chưa tự deploy ứng dụng hay quản lý routing.
 - Nếu Cloudflare Worker đứng trước `manln.online`, cần một hostname origin riêng trỏ trực tiếp tới frontend Tunnel; Worker không được forward về chính hostname production đang chạy Worker vì sẽ tạo vòng lặp. Chưa tạo hostname này.
 - Chưa có công tắc chuyển luồng production. Các bước ở tài liệu này là quy trình chuẩn bị/đề xuất, không phải thao tác đã được tự động hóa.
@@ -81,10 +81,11 @@ Trước khi bật cơ chế này, cần có URL staging đã xác minh cho fron
 1. Xác nhận stack đích khỏe mạnh, dùng đúng `MONGO_URI` production và đúng phiên bản ứng dụng; candidate chỉ được ghi dữ liệu sau khi trở thành luồng production được chọn.
 2. Xem bản diff cấu hình routing: chế độ hiện tại, chế độ đích, hostname/origin bị tác động và các callback liên quan.
 3. Xác nhận không có deploy/switch khác đang chạy; lưu lại phiên bản cấu hình để rollback.
-4. Chuyển toàn bộ chế độ bằng một thao tác có xác nhận của quản trị viên.
-5. Chờ health check xác nhận frontend và backend/API thuộc cùng chế độ đều đáp ứng.
-6. Kiểm tra health, đăng nhập và các thao tác đọc trước; chỉ tạo đơn thử hoặc thao tác ghi trên production sau khi được phê duyệt rõ ràng, có phạm vi/đơn test đã định trước và có cách xử lý dữ liệu phát sinh.
-7. Nếu bất kỳ health check quan trọng nào thất bại, trả routing về phiên bản trước và xác nhận lại hệ thống cũ hoạt động.
+4. Bắt đầu cửa sổ bảo trì và chuyển đồng bộ cả `manln.online` (frontend) lẫn `backend.manln.online` (backend/API) sang Vercel + Render bằng một thao tác có xác nhận của quản trị viên.
+5. Sau khi routing mới trỏ tới đúng đích, dừng cả frontend cũ ở cổng 3000 và backend cũ ở cổng 5000 để tránh hai luồng cùng phục vụ production; giữ cấu hình và cách khởi động lại để rollback. Chỉ dừng tiến trình `cloudflared` khi xác nhận nó không còn cần cho route origin hoặc rollback.
+6. Chờ health check xác nhận frontend và backend/API thuộc cùng chế độ đều đáp ứng.
+7. Kiểm tra health, đăng nhập và các thao tác đọc trước; chỉ tạo đơn thử hoặc thao tác ghi trên production sau khi được phê duyệt rõ ràng, có phạm vi/đơn test đã định trước và có cách xử lý dữ liệu phát sinh.
+8. Nếu bất kỳ health check quan trọng nào thất bại, khởi động lại cả frontend/backend cũ, trả routing về phiên bản trước và xác nhận lại hệ thống cũ hoạt động.
 
 Không coi việc API Cloudflare Tunnel còn kết nối là bằng chứng frontend Vercel/Render hoặc Netlify/Railway đã hoạt động, hoặc ngược lại.
 
