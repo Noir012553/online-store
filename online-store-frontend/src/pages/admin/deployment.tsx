@@ -13,10 +13,10 @@ const formatTime = (value?: number | string | null) => value ? new Date(value).t
 const getDeploymentErrorMessage = (error: unknown, fallback: string) => {
   const code = error && typeof error === 'object' && 'code' in error ? error.code : null;
   if (code === 'DEPLOYMENT_ROUTER_NOT_CONFIGURED') {
-    return 'Control plane deploy chưa được cấu hình đầy đủ. Cần cấu hình URL Worker và control token ở backend; cutover/rollback vẫn bị khóa.';
+    return 'Cloudflare Tunnel hiện tại vẫn có; phần chưa cấu hình là Worker deployment router (DEPLOYMENT_ROUTER_URL và DEPLOYMENT_CONTROL_TOKEN ở backend). Vì vậy trang chưa đọc được trạng thái điều phối và cutover/rollback vẫn bị khóa.';
   }
   if (code === 'DEPLOYMENT_ROUTER_UNAVAILABLE') {
-    return 'Không kết nối được control plane deploy. Kiểm tra Worker và cấu hình backend; cutover/rollback vẫn bị khóa.';
+    return 'Cloudflare Tunnel hiện tại vẫn có; chưa kết nối được Worker deployment router. Kiểm tra Worker và cấu hình backend; cutover/rollback vẫn bị khóa.';
   }
   return error instanceof Error ? error.message : fallback;
 };
