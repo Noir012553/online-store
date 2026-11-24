@@ -44,6 +44,7 @@ const providerConfigurationRoutes = require('./routes/providerConfigurationRoute
 const deploymentRoutes = require('./routes/deploymentRoutes');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 const { globalLimiter } = require('./middleware/rateLimitMiddleware');
+const { createDeploymentCandidateReadOnlyMiddleware } = require('./middleware/deploymentCandidateReadOnly');
 const languageMiddleware = require('./middleware/languageMiddleware');
 const paymentController = require('./controllers/paymentController');
 const asyncHandler = require('express-async-handler');
@@ -502,16 +503,7 @@ app.all('/vnpay-api/webhook/:gateway', (req, res, next) => {
  * API Routes Mounting
  * Tất cả routes sử dụng /api/... prefix
  */
-app.use('/api', (req, res, next) => {
-  res.set('Cache-Control', 'no-store');
-  const deploymentControlPath = /^\/admin\/deployment\/(preflight|cutover|rollback)$/.test(req.path);
-  const allowedReadOnlyRequest = ['GET', 'HEAD', 'OPTIONS'].includes(req.method)
-    || (req.method === 'POST' && deploymentControlPath);
-  if (candidateReadOnly && !allowedReadOnlyRequest) {
-    return res.status(503).json({ success: false, code: 'CANDIDATE_READ_ONLY' });
-  }
-  return next();
-});
+app.use('/api', createDeploymentCandidateReadOnlyMiddleware(candidateReadOnly));
 app.use('/api/health', healthRoutes); // Health check endpoints (monitoring)
 app.use('/api/contact', contactRoutes);
 app.use('/api', requireDatabase);

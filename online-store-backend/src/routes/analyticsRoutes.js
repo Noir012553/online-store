@@ -119,11 +119,11 @@ router.get('/paid-orders', protect, admin, getPaidOrders);
 router.get('/unused-coupons', protect, admin, getUnusedCoupons);
 
 /**
- * GET /api/analytics/clear-cache
+ * POST /api/analytics/clear-cache
  * Clear all analytics cache (for development/testing)
  * Clears cache for: dashboardStats, revenueTimeline, orderStatus, topProducts, dashboardData
  */
-router.get('/clear-cache', protect, admin, (req, res) => {
+router.post('/clear-cache', protect, admin, (req, res) => {
   clearCache('dashboardStats');
   clearCache('revenueTimeline');
   clearCache('orderStatus');

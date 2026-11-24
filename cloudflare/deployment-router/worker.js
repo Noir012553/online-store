@@ -525,7 +525,12 @@ async function proxy(request, origin) {
   const incomingUrl = new URL(request.url);
   const targetUrl = `${origin}${incomingUrl.pathname}${incomingUrl.search}`;
   const headers = new Headers(request.headers);
+  const isWebSocketUpgrade = headers.get("upgrade")?.toLowerCase() === "websocket";
   stripUnsafeHeaders(headers);
+  if (isWebSocketUpgrade) {
+    headers.set("upgrade", "websocket");
+    headers.set("connection", "Upgrade");
+  }
   const hasBody = request.method !== "GET" && request.method !== "HEAD";
   const upstreamRequest = new Request(targetUrl, {
     method: request.method,
