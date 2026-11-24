@@ -42,24 +42,25 @@ Trong chế độ Netlify + Railway, cấu hình `NEXT_PUBLIC_API_BASE_URL` củ
 - Có thể dùng URL staging do Render cấp (thường có dạng `https://<tên-dịch-vụ>.onrender.com`) hoặc URL public do Railway cấp để kiểm tra riêng backend; dùng chính URL hiện trong dashboard nhà cung cấp, không cần đổi DNS production.
 - Ghi nhận cấu hình hiện tại và người có quyền rollback trước khi thay đổi routing.
 
-### 2. Chuẩn bị staging riêng
+### 2. Chuẩn bị candidate Vercel + Render
 
-- Tạo backend staging trên Render hoặc Railway với database staging riêng; nhập secrets trực tiếp trong secret settings của nhà cung cấp.
-- Tạo frontend staging trên Vercel Preview hoặc Netlify deploy preview từ nhánh staging, dùng thư mục `online-store-frontend` và build adapter/runtime Next.js đã được kiểm chứng.
-- Cấu hình `NEXT_PUBLIC_API_BASE_URL` của frontend staging thành URL backend staging tương ứng (Render `onrender.com` hoặc URL public Railway hiển thị trong dashboard); không dùng backend production trong bài kiểm thử.
-- Kiểm thử riêng cách nền tảng frontend xử lý SSR, image optimization, rewrites/proxy `/api/*`, cookies và websocket; nếu tính năng nào không tương thích thì dừng trước khi gắn hostname production.
+- Theo yêu cầu vận hành, mọi backend dùng cùng `MONGO_URI` production; không tạo database khác.
+- Trước khi cấp `MONGO_URI` production cho một Preview/candidate deployment, phải bảo vệ preview và áp dụng read-only gate phía backend. Hiện chưa xác nhận có chế độ read-only như vậy; không nối Preview vào production API/database cho tới khi cơ chế này được triển khai và kiểm thử.
+- Tạo candidate backend Render và frontend Vercel Preview từ nhánh phù hợp; frontend dùng Root Directory `online-store-frontend`. Lấy URL do từng dashboard cấp.
+- Khi đã có read-only gate, cấu hình `NEXT_PUBLIC_API_BASE_URL` của Vercel Preview thành URL candidate Render; không cho candidate thực hiện mutation trên dữ liệu production.
+- Kiểm thử riêng cách Vercel xử lý SSR, image optimization, rewrites/proxy `/api/*`, cookies và websocket; nếu tính năng nào không tương thích thì dừng trước khi gắn hostname production.
 - Không đưa token, secret, connection string hoặc giá trị biến môi trường nhạy cảm vào tài liệu, Git, log hay ảnh chụp.
-- Xác nhận backend staging có health endpoint, CORS/cookie phù hợp và không dùng nhầm database production.
 
-### 3. Kiểm thử các luồng frontend/backend tách riêng
+### 3. Kiểm thử candidate có quyền production tối thiểu
 
-Trên URL Preview/deploy preview của Vercel hoặc Netlify, kiểm tra tối thiểu:
+Chỉ sau khi read-only gate và giới hạn truy cập được xác minh, kiểm tra trên URL Preview/candidate:
 
-- Trang chủ, danh mục, sản phẩm, ảnh và nội dung đa ngôn ngữ.
-- Đăng nhập/đăng xuất, cookie, các trang quản trị và các API cần xác thực.
-- Giỏ hàng, tạo đơn, tồn kho, VNPay/PayPal ở Sandbox và callback/webhook staging.
-- Socket.IO, sitemap, upload và các request gọi trực tiếp backend.
-- Log của Vercel/Render hoặc Netlify/Railway không có lỗi 4xx/5xx bất thường; kiểm tra cold start và tính bền vững của file nếu dịch vụ dùng gói có giới hạn.
+- Các trang đọc dữ liệu, ảnh, nội dung đa ngôn ngữ, health endpoint và API GET cần thiết.
+- Xác thực/cookie chỉ trong phạm vi đã phê duyệt; không tạo người dùng hoặc thay đổi trạng thái dữ liệu thật.
+- Không chạy checkout, tạo đơn, thay tồn kho, upload ghi dữ liệu, seed, migration, gửi email hoặc thanh toán trên Preview.
+- Kiểm tra Socket.IO, sitemap và URL trực tiếp backend ở chế độ không ghi.
+- Theo dõi log của Vercel/Render; nếu có request mutation tới database production, dừng candidate và thu hồi quyền truy cập cho tới khi nguyên nhân được khắc phục.
+- Chỉ chạy kiểm thử ghi có kiểm soát sau khi luồng production đã được chuyển và có xác nhận rõ ràng về tác động.
 
 Frontend có một số luồng sử dụng `BACKEND_URL` trực tiếp ngoài các request `/api/*` (ví dụ URL ảnh và Socket.IO). Vì vậy chỉ đổi rewrite chưa đủ để xác nhận toàn bộ ứng dụng hoạt động trên backend Render hoặc Railway; cần kiểm thử từng luồng và cấu hình build/runtime tương ứng.
 
@@ -77,12 +78,12 @@ Trước khi bật cơ chế này, cần có URL staging đã xác minh cho fron
 
 ## Quy trình chuyển production sau khi đã có điều phối
 
-1. Xác nhận stack đích khỏe mạnh, đúng database và đúng phiên bản ứng dụng.
+1. Xác nhận stack đích khỏe mạnh, dùng đúng `MONGO_URI` production và đúng phiên bản ứng dụng; candidate chỉ được ghi dữ liệu sau khi trở thành luồng production được chọn.
 2. Xem bản diff cấu hình routing: chế độ hiện tại, chế độ đích, hostname/origin bị tác động và các callback liên quan.
 3. Xác nhận không có deploy/switch khác đang chạy; lưu lại phiên bản cấu hình để rollback.
 4. Chuyển toàn bộ chế độ bằng một thao tác có xác nhận của quản trị viên.
 5. Chờ health check xác nhận frontend và backend/API thuộc cùng chế độ đều đáp ứng.
-6. Kiểm tra đăng nhập, đọc dữ liệu, tạo đơn thử và callback thanh toán Sandbox; theo dõi log và lỗi người dùng.
+6. Kiểm tra health, đăng nhập và các thao tác đọc trước; chỉ tạo đơn thử hoặc thao tác ghi trên production sau khi được phê duyệt rõ ràng, có phạm vi/đơn test đã định trước và có cách xử lý dữ liệu phát sinh.
 7. Nếu bất kỳ health check quan trọng nào thất bại, trả routing về phiên bản trước và xác nhận lại hệ thống cũ hoạt động.
 
 Không coi việc API Cloudflare Tunnel còn kết nối là bằng chứng frontend Vercel/Render hoặc Netlify/Railway đã hoạt động, hoặc ngược lại.
