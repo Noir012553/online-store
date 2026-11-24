@@ -10,6 +10,17 @@ export const getServerSideProps = async () => ({ props: {} });
 const terminalStatuses = new Set(['succeeded', 'failed']);
 const formatTime = (value?: number | string | null) => value ? new Date(value).toLocaleString() : '—';
 
+const getDeploymentErrorMessage = (error: unknown, fallback: string) => {
+  const code = error && typeof error === 'object' && 'code' in error ? error.code : null;
+  if (code === 'DEPLOYMENT_ROUTER_NOT_CONFIGURED') {
+    return 'Control plane deploy chưa được cấu hình đầy đủ. Cần cấu hình URL Worker và control token ở backend; cutover/rollback vẫn bị khóa.';
+  }
+  if (code === 'DEPLOYMENT_ROUTER_UNAVAILABLE') {
+    return 'Không kết nối được control plane deploy. Kiểm tra Worker và cấu hình backend; cutover/rollback vẫn bị khóa.';
+  }
+  return error instanceof Error ? error.message : fallback;
+};
+
 function DeploymentAdminPage() {
   const [status, setStatus] = useState<DeploymentStatus | null>(null);
   const [job, setJob] = useState<DeploymentJob | null>(null);
@@ -30,7 +41,7 @@ function DeploymentAdminPage() {
       setAudit(events.data || []);
       setControlPlaneEvents(events.controlPlaneEvents || []);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'Không thể tải trạng thái deploy.');
+      setError(getDeploymentErrorMessage(requestError, 'Không thể tải trạng thái deploy.'));
     } finally {
       setLoading(false);
     }
@@ -68,7 +79,7 @@ function DeploymentAdminPage() {
       toast[result.passed ? 'success' : 'error'](result.passed ? `Preflight ${mode} đạt.` : `Preflight ${mode} không đạt.`);
     } catch (requestError) {
       setPreflight((current) => ({ ...current, [mode]: false }));
-      toast.error(requestError instanceof Error ? requestError.message : 'Preflight thất bại.');
+      toast.error(getDeploymentErrorMessage(requestError, 'Preflight thất bại.'));
     } finally {
       setBusy(null);
     }
@@ -82,7 +93,7 @@ function DeploymentAdminPage() {
       setJob(created);
       toast.info(`Đã tạo job ${created.id}.`);
     } catch (requestError) {
-      toast.error(requestError instanceof Error ? requestError.message : 'Không thể tạo job cutover.');
+      toast.error(getDeploymentErrorMessage(requestError, 'Không thể tạo job cutover.'));
       await loadData();
     } finally {
       setBusy(null);
@@ -97,7 +108,7 @@ function DeploymentAdminPage() {
       setJob(created);
       toast.info(`Đã tạo job rollback ${created.id}.`);
     } catch (requestError) {
-      toast.error(requestError instanceof Error ? requestError.message : 'Không thể tạo job rollback.');
+      toast.error(getDeploymentErrorMessage(requestError, 'Không thể tạo job rollback.'));
       await loadData();
     } finally {
       setBusy(null);
