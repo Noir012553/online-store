@@ -76,8 +76,9 @@ Công tắc phải áp dụng một phiên bản cấu hình duy nhất cho cả
 
 ### Nút dừng dịch vụ Tunnel
 
-- Nút Super Admin tạo job cho thao tác cố định tương đương `npm run deployment:stop-tunnel-apps`; không nhận command, script path, service name hoặc port từ request.
-- API chỉ tạo job có kiểu hành động allowlist và ghi audit. Runner WinSW độc lập lấy job, chạy script npm cố định và chỉ được phép dừng `LaptopStoreFrontend` cùng `LaptopStoreBackend`; không dừng service theo port và không dừng `LaptopStoreTunnel`.
+- Nút Super Admin tạo job cho thao tác cố định tương đương `npm run deployment:stop-tunnel-apps -- -ConfirmStop`; rollback dùng `npm run deployment:start-tunnel-apps -- -ConfirmStart`. Không nhận command, script path, service name hoặc port từ request.
+- Hai script PowerShell đã có trong source và mặc định từ chối nếu thiếu cờ xác nhận; API/runner/UI tích hợp chưa hoàn tất. Không chạy các lệnh này như một cutover production thủ công.
+- Khi được tích hợp, API chỉ tạo job có kiểu hành động allowlist và ghi audit. Runner WinSW độc lập lấy job, chạy script npm cố định và chỉ được phép dừng/khởi động `LaptopStoreFrontend` cùng `LaptopStoreBackend`; không điều khiển theo port và không dừng `LaptopStoreTunnel`.
 - Preflight phải xác nhận frontend Vercel, backend Render và routing đích khỏe mạnh trước nút xác nhận cuối cùng. Job phải có ID, trạng thái, chống chạy trùng và kết quả để UI theo dõi qua Vercel + Render sau khi các service cũ đã dừng.
 - Runner phải chạy ngoài frontend/backend bị dừng; job queue và job status cũng phải nằm ở control plane độc lập (không phụ thuộc backend Tunnel đang bị dừng). Quyền Windows và credential job queue được giới hạn tối thiểu. Không để backend API tự chạy shell/npm rồi tự dừng.
 - Nút chỉ sẵn sàng sau khi URL/routing Vercel + Render đã cấu hình và kiểm thử. Runner chưa được cài hoặc preflight thất bại thì không gửi lệnh stop.
