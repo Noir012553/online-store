@@ -33,14 +33,15 @@ Trong chế độ Vercel + Render, Vercel cần được build với `NEXT_PUBLI
 
 - Không xóa, sửa hoặc thay thế DNS record đang phục vụ `manln.online`, `www.manln.online` hay `backend.manln.online`.
 - Không đổi nameserver, Tunnel ingress, origin service hoặc port.
-- Có thể dùng domain mặc định `*.vercel.app` để kiểm tra Vercel; domain này chưa chuyển traffic của khách từ Cloudflare.
+- Có thể dùng domain mặc định `*.vercel.app` để kiểm tra frontend Vercel; domain này chưa chuyển traffic production từ Cloudflare.
+- Có thể dùng URL dịch vụ Render cấp (thường có dạng `https://<tên-dịch-vụ>.onrender.com`) để kiểm tra riêng backend; URL này không cần đổi DNS production.
 - Ghi nhận cấu hình hiện tại và người có quyền rollback trước khi thay đổi routing.
 
 ### 2. Chuẩn bị staging riêng
 
 - Tạo dịch vụ Render staging với cấu hình backend cần thiết, database staging riêng và secrets được nhập trực tiếp trong secret settings của nhà cung cấp.
 - Tạo deployment Vercel Preview từ nhánh staging, đặt Root Directory là `online-store-frontend`.
-- Cấu hình `NEXT_PUBLIC_API_BASE_URL` của Preview thành URL backend Render staging.
+- Cấu hình `NEXT_PUBLIC_API_BASE_URL` của Vercel Preview thành URL backend Render staging (URL `onrender.com` của dịch vụ staging), không dùng URL Render production trong bài kiểm thử.
 - Không đưa token, secret, connection string hoặc giá trị biến môi trường nhạy cảm vào tài liệu, Git, log hay ảnh chụp.
 - Xác nhận backend staging có health endpoint, CORS/cookie phù hợp và không dùng nhầm database production.
 
