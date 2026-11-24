@@ -2,7 +2,7 @@
 
 ## Mục tiêu
 
-Một thao tác Super Admin có preflight và xác nhận, chuyển đồng bộ frontend/backend từ Cloudflare Tunnel sang Vercel + Render, rồi dừng hai service WinSW cũ. Nếu health check thất bại, khôi phục routing và khởi động lại hai service cũ.
+Một thao tác Super Admin có preflight và xác nhận, dùng runner độc lập dừng hai service WinSW cũ rồi chuyển mode đồng bộ sang Vercel + Render. Nếu stop hoặc health check target thất bại, Worker xếp job start để phục hồi Tunnel. Source đã có phần lớn control flow, nhưng chưa được cấu hình hoặc chạy trên hạ tầng thật.
 
 ## Đã xác minh
 
@@ -11,36 +11,41 @@ Một thao tác Super Admin có preflight và xác nhận, chuyển đồng bộ
 - Backend Node.js đọc cổng từ `PORT` và bind `0.0.0.0`.
 - Frontend rewrite `/api/*` theo `NEXT_PUBLIC_API_BASE_URL`; mặc định trỏ tới `https://backend.manln.online`.
 - Backend khởi chạy worker/scheduler có ghi dữ liệu khi startup; không được chạy song song với Render trên cùng database production trong cutover.
+- Backend candidate có `DEPLOYMENT_CANDIDATE_READ_ONLY=true`: yêu cầu `MONGO_READ_ONLY_URI`, từ chối HTTP method ghi và webhook, không khởi chạy worker/scheduler ghi dữ liệu và từ chối Socket.IO. Chưa được kiểm thử với MongoDB quyền đọc thực tế; GET endpoint vẫn cần rà soát side effect.
 
 ## Đã triển khai trong source
 
 - `online-store-backend/scripts/stop-tunnel-apps.ps1`: kiểm tra Windows/admin/service IDs và WinSW executable path trước khi dừng; thử khởi động lại service đã dừng nếu thao tác bị lỗi. Yêu cầu cờ `-ConfirmStop`.
 - `online-store-backend/scripts/start-tunnel-apps.ps1`: kiểm tra tương tự và yêu cầu `-ConfirmStart`; thử dừng service đã khởi động nếu rollback một phần thất bại.
 - `online-store-backend/package.json`: thêm npm scripts `deployment:stop-tunnel-apps` và `deployment:start-tunnel-apps`; scripts không tự truyền cờ xác nhận.
-- `cloudflare/deployment-router/worker.js`: Worker fail-closed, mode state trong Durable Object, authenticated status/preflight/mode endpoints, allowlist hai mode và proxy hai hostname theo mode.
-- `cloudflare/deployment-router/worker.test.js`: test offline cho auth, preflight, body allowlist, routing và trạng thái mode đồng bộ.
+- `cloudflare/deployment-router/worker.js`: Worker fail-closed, Durable Object mode/job queue, hai mode allowlist, proxy hai hostname, health preflight, runner heartbeat gate, audit event độc lập, rollback bằng action `startTunnelApps` và tự xếp recovery job khi cutover lỗi. Mode chỉ đổi sau khi runner action và health check thành công.
+- `cloudflare/deployment-router/wrangler.toml`: khai báo Durable Object, initial mode `tunnel`, runner identity và backend health path `/readyz`; cần provision origins/secrets/hostname thật.
+- `cloudflare/deployment-router/worker.test.js`: 17 test offline cho auth, heartbeat, preflight, job concurrency/lease, rollback/recovery và routing.
+- Backend: `src/routes/deploymentRoutes.js`, controller/service và `DeploymentAudit` cho status, preflight, cutover, rollback, job/audit. Tất cả route yêu cầu `protect` + `superAdmin`; Worker URL/token chỉ ở backend. `DEPLOYMENT_SWITCH_ENABLED` mặc định tắt và bắt buộc bật rõ ràng.
+- Frontend: `/admin/deployment` hiển thị mode, runner, preflight, xác nhận thao tác, theo dõi job và audit; nút cutover/rollback bị khóa nếu switch chưa bật, runner offline hoặc preflight chưa đạt.
+- `online-store-backend/scripts/deployment-runner.js`: polling heartbeat/job và chỉ chạy hai script PowerShell cố định với cờ xác nhận; chưa được cài thành WinSW service.
 - Runbook: `md/DEPLOYMENT_FLOW_SWITCHING_GUIDE.md`.
 
-## Chưa triển khai
+## Chưa hoàn tất
 
-- API Super Admin để gọi preflight/router, tạo job allowlist, xác nhận thao tác, theo dõi job và audit.
-- Control plane/job queue độc lập với backend Tunnel, để job còn theo dõi được sau khi backend cũ dừng.
-- WinSW runner service riêng chỉ được phép thực hiện các thao tác stop/start cố định.
-- UI Super Admin cho preflight, xác nhận cutover và theo dõi trạng thái.
-- Cấu hình Durable Object binding/migration, Worker secrets/origins và kiểm thử trên hostname staging.
-- Kiểm thử PowerShell trên Windows và kiểm thử integration trên hostname staging.
+- Cài runner script thành WinSW service độc lập trên host Windows và cấu hình service-control ACL tối thiểu để điều khiển đúng hai service.
+- Cấu hình URL frontend Vercel, backend Render, Tunnel origin riêng và Worker staging hostname; hiện `wrangler.toml` không có origins/secrets/production route.
+- Provision Durable Object và secrets `DEPLOYMENT_CONTROL_TOKEN`, `DEPLOYMENT_RUNNER_TOKEN`; cấu hình `DEPLOYMENT_ROUTER_URL`, `DEPLOYMENT_CONTROL_TOKEN` phía backend và giữ `DEPLOYMENT_SWITCH_ENABLED=false` đến sau staging.
+- Cấp `MONGO_READ_ONLY_URI` với quyền đọc cho candidate; xác minh `DEPLOYMENT_CANDIDATE_READ_ONLY` trên Render và rà soát các GET endpoint/background side effect.
+- Kiểm thử PowerShell trên Windows và integration trên staging: Host/TLS/cookie/websocket/upload/callback, stop/start partial failure, recovery và job theo dõi khi backend Tunnel đã dừng.
+- Chưa có xác nhận Vercel/Render build/runtime tương thích và URL/service ID thực tế.
 
 ## Blocker trước khi bật cutover
 
-- Chưa có URL/service ID Render đã xác minh hoặc routing Vercel + Render sẵn sàng.
-- Chưa có hostname origin riêng cho frontend Tunnel và hostname staging cho Worker.
-- Chưa có control-plane/runner heartbeat để chứng minh runner đang sống trước khi dừng backend cũ.
-- Chưa cài/kiểm thử runner trên host Windows.
-- Chưa chạy PowerShell tests: môi trường trợ lý không có PowerShell.
+- Chưa có URL/service ID Render và URL Vercel đã xác minh; chưa có origin Tunnel riêng và hostname Worker staging.
+- Chưa provision Worker bindings/secrets/route hoặc backend env; control plane hiện không thể được gọi từ production.
+- Runner heartbeat gate đã có trong Worker, nhưng runner chưa cài trên host Windows và chưa được kiểm thử với quyền vận hành cần thiết.
+- Chưa xác minh Mongo read-only user, candidate gate hoặc thứ tự chuyển credential production mà không chạy hai backend ghi cùng lúc.
+- Chưa chạy PowerShell tests hoặc hostname staging integration; môi trường trợ lý không có PowerShell hay quyền quản lý DNS/Cloudflare/Render/Vercel.
 
 ## An toàn vận hành
 
-- Không tạo database staging theo yêu cầu vận hành; Render production sẽ dùng database production.
-- Không nối Preview vào production API/database hoặc khởi động Render với `MONGO_URI` production khi Tunnel backend còn chạy.
-- Chưa thay đổi DNS, Tunnel ingress, service đang chạy hoặc production environment.
-- Không chạy npm stop/start scripts trong môi trường này; chỉ runner đã cài trên Windows được gọi sau preflight và xác nhận.
+- Không tạo database staging theo yêu cầu vận hành. Candidate read-only chỉ được dùng cùng database production khi có credential Mongo chỉ đọc đã xác minh; không dùng `MONGO_URI` ghi trên Preview.
+- Không khởi động đồng thời Tunnel và Render có quyền ghi vào cùng database. Chưa xác định được quy trình chuyển từ read-only candidate sang write-enabled production backend; cần runbook vận hành và xác nhận trước cutover.
+- Chưa thay đổi DNS, Tunnel ingress, service đang chạy, Worker/DO production hoặc production environment; `DEPLOYMENT_SWITCH_ENABLED` vẫn phải để false.
+- Không chạy npm stop/start scripts hoặc deployment runner trong môi trường này; chỉ dùng runner đã cài/kiểm thử trên Windows sau preflight và xác nhận.

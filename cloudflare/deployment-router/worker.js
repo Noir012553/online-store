@@ -4,15 +4,19 @@ const CONTROL_PATHS = new Set([
   "/__deployment/preflight",
   "/__deployment/mode",
   "/__deployment/cutover",
+  "/__deployment/rollback",
 ]);
-const RUNNER_LEASE_MS = 60_000;
+const RUNNER_LEASE_MS = 300_000;
+const RUNNER_HEARTBEAT_MAX_AGE_MS = 90_000;
 const ACTIVE_JOB_STORAGE_KEY = "activeJob";
+const AUDIT_STORAGE_KEY = "auditEvents";
+const RUNNER_HEARTBEAT_STORAGE_KEY = "runnerHeartbeat";
 const PUBLIC_HOSTS = new Set(["manln.online", "backend.manln.online"]);
 const HEALTH_PATHS = {
   tunnelFrontend: "/",
-  tunnelBackend: "/",
+  tunnelBackend: "/readyz",
   vercelFrontend: "/",
-  renderBackend: "/",
+  renderBackend: "/readyz",
 };
 const HOP_BY_HOP_HEADERS = new Set([
   "connection",
@@ -112,12 +116,17 @@ function getConfig(env) {
       env.DEPLOYMENT_RUNNER_TOKEN.length < 16) {
     throw new ConfigurationError("Missing or weak runner token binding");
   }
+  if (typeof env.DEPLOYMENT_RUNNER_ID !== "string" ||
+      !/^[A-Za-z0-9._-]{1,128}$/.test(env.DEPLOYMENT_RUNNER_ID)) {
+    throw new ConfigurationError("Missing or invalid runner identity binding");
+  }
 
   return {
     ...getRoutingConfig(env),
     stateBinding: env.DEPLOYMENT_STATE,
     token: env.DEPLOYMENT_CONTROL_TOKEN,
     runnerToken: env.DEPLOYMENT_RUNNER_TOKEN,
+    runnerId: env.DEPLOYMENT_RUNNER_ID,
   };
 }
 
@@ -147,16 +156,6 @@ function modeOrigins(mode, origins) {
     return { frontend: origins.vercelFrontend, backend: origins.renderBackend };
   }
   return null;
-}
-
-function parseModeBody(request) {
-  return request.json().then((body) => {
-    if (!body || typeof body !== "object" || Array.isArray(body) ||
-        Object.keys(body).length !== 1 || !Object.hasOwn(body, "mode") || !MODES.has(body.mode)) {
-      return null;
-    }
-    return body.mode;
-  }).catch(() => null);
 }
 
 async function preflight(mode, origins, healthPaths) {
@@ -208,34 +207,56 @@ async function controlRoute(request, config, path) {
   if (jobMatch && request.method === "GET") {
     return requestState(config.stateBinding, `/jobs/${jobMatch[1]}`, "GET");
   }
-  if (!CONTROL_PATHS.has(path)) return json({ error: "Not found" }, 404);
+  if (path === "/__deployment/audit" && request.method === "GET") {
+    return requestState(config.stateBinding, "/audit", "GET");
+  }
+  if (!CONTROL_PATHS.has(path) && path !== "/__deployment/audit") return json({ error: "Not found" }, 404);
 
   if (path === "/__deployment/status" && request.method === "GET") {
     return requestState(config.stateBinding, "/status", "GET");
   }
 
   if (path === "/__deployment/preflight" && request.method === "POST") {
-    const mode = await parseModeBody(request);
-    if (!mode) return json({ error: "Body must contain only an exact mode" }, 400);
-    return requestState(config.stateBinding, "/preflight", "POST", { mode });
+    let body;
+    try { body = await request.json(); } catch { body = null; }
+    if (!body || typeof body !== "object" || Array.isArray(body) ||
+        Object.keys(body).some((key) => !["mode", "actorId"].includes(key)) ||
+        !MODES.has(body.mode) || (body.actorId !== undefined && typeof body.actorId !== "string")) {
+      return json({ error: "Invalid preflight request" }, 400);
+    }
+    return requestState(config.stateBinding, "/preflight", "POST", { mode: body.mode, actorId: body.actorId || null });
   }
 
   if (path === "/__deployment/mode" && request.method === "POST") {
-    const mode = await parseModeBody(request);
-    if (!mode) return json({ error: "Body must contain only an exact mode" }, 400);
-    if (mode !== "tunnel") return json({ error: "Mode endpoint is reserved for rollback to tunnel" }, 400);
-    return requestState(config.stateBinding, "/mode", "POST", { mode });
+    return json({ error: "Direct mode changes are disabled; use the rollback workflow" }, 409);
+  }
+
+  if (path === "/__deployment/rollback" && request.method === "POST") {
+    let body;
+    try { body = await request.json(); } catch { body = null; }
+    if (!body || typeof body !== "object" || Array.isArray(body) ||
+        Object.keys(body).some((key) => !["confirmed", "renderStopped", "actorId"].includes(key)) ||
+        body.confirmed !== true || body.renderStopped !== true ||
+        (body.actorId !== undefined && typeof body.actorId !== "string")) {
+      return json({ error: "Rollback requires confirmation that the Render backend is stopped" }, 400);
+    }
+    return requestState(config.stateBinding, "/rollback", "POST", {
+      confirmed: true, renderStopped: true, actorId: body.actorId || null,
+    });
   }
 
   if (path === "/__deployment/cutover" && request.method === "POST") {
     let body;
     try { body = await request.json(); } catch { body = null; }
     if (!body || typeof body !== "object" || Array.isArray(body) ||
-        Object.keys(body).length !== 2 || body.mode !== "vercel-render" || body.confirmed !== true ||
-        !Object.hasOwn(body, "mode") || !Object.hasOwn(body, "confirmed")) {
-      return json({ error: "Body must be exactly {mode: 'vercel-render', confirmed: true}" }, 400);
+        Object.keys(body).some((key) => !["mode", "confirmed", "actorId"].includes(key)) ||
+        body.mode !== "vercel-render" || body.confirmed !== true ||
+        (body.actorId !== undefined && typeof body.actorId !== "string")) {
+      return json({ error: "Invalid cutover request" }, 400);
     }
-    return requestState(config.stateBinding, "/cutover", "POST", { mode: body.mode, confirmed: true });
+    return requestState(config.stateBinding, "/cutover", "POST", {
+      mode: body.mode, confirmed: true, actorId: body.actorId || null,
+    });
   }
 
   return json({ error: "Method not allowed" }, 405);
@@ -245,6 +266,20 @@ export class DeploymentState {
   constructor(state, env) {
     this.state = state;
     this.config = getRoutingConfig(env);
+    this.initialMode = env.DEPLOYMENT_INITIAL_MODE;
+  }
+
+  async runnerIsOnline() {
+    const heartbeat = await this.state.storage.get(RUNNER_HEARTBEAT_STORAGE_KEY);
+    return Boolean(heartbeat && Date.now() - heartbeat.lastHeartbeatAt <= RUNNER_HEARTBEAT_MAX_AGE_MS);
+  }
+
+  async recordEvent(type, details = {}) {
+    await this.state.storage.transaction(async (transaction) => {
+      const events = await transaction.get(AUDIT_STORAGE_KEY) || [];
+      events.push({ id: crypto.randomUUID(), type, timestamp: Date.now(), ...details });
+      await transaction.put(AUDIT_STORAGE_KEY, events.slice(-100));
+    });
   }
 
   async fetch(request) {
@@ -254,7 +289,11 @@ export class DeploymentState {
       return this.state.blockConcurrencyWhile(async () => {
         const job = await this.state.storage.get(`job:${jobMatch[1]}`);
         if (!job) return json({ error: "Job not found" }, 404);
-        return json({ id: job.id, status: job.status, action: job.action });
+        return json({
+          id: job.id, status: job.status, action: job.action, target: job.target,
+          recovery: Boolean(job.recovery), createdAt: job.createdAt || null,
+          finishedAt: job.finishedAt || null,
+        });
       });
     }
 
@@ -262,12 +301,15 @@ export class DeploymentState {
       let body;
       try { body = await request.json(); } catch { body = null; }
       if (!body || typeof body !== "object" || Array.isArray(body) ||
-          Object.keys(body).length !== 2 || body.mode !== "vercel-render" || body.confirmed !== true) {
+          Object.keys(body).some((key) => !["mode", "confirmed", "actorId"].includes(key)) ||
+          body.mode !== "vercel-render" || body.confirmed !== true ||
+          (body.actorId !== null && body.actorId !== undefined && typeof body.actorId !== "string")) {
         return json({ error: "Invalid cutover request" }, 400);
       }
       return this.state.blockConcurrencyWhile(async () => {
         const mode = await this.state.storage.get(MODE_STORAGE_KEY);
         if (mode !== "tunnel") return json({ error: "Cutover is only allowed from tunnel mode" }, 409);
+        if (!await this.runnerIsOnline()) return json({ error: "Deployment runner is not online" }, 503);
         const activeId = await this.state.storage.get(ACTIVE_JOB_STORAGE_KEY);
         if (activeId) {
           const activeJob = await this.state.storage.get(`job:${activeId}`);
@@ -279,10 +321,56 @@ export class DeploymentState {
         const passed = await preflight("vercel-render", this.config.origins, this.config.healthPaths);
         if (!passed) return json({ error: "Target preflight failed; no job was created" }, 502);
         const id = crypto.randomUUID();
-        const job = { id, status: "queued", action: "stopTunnelApps", target: "vercel-render" };
+        const job = {
+          id, status: "queued", action: "stopTunnelApps", target: "vercel-render",
+          actorId: body.actorId || null, createdAt: Date.now(),
+        };
+        await this.state.storage.transaction(async (transaction) => {
+          await transaction.put(`job:${id}`, job);
+          await transaction.put(ACTIVE_JOB_STORAGE_KEY, id);
+        });
+        await this.recordEvent("cutover_queued", { actorId: job.actorId, jobId: id, mode: "vercel-render" });
+        return json({ id, status: job.status, action: job.action, target: job.target, recovery: false, createdAt: job.createdAt, finishedAt: null }, 202);
+      });
+    }
+
+    if (path === "/rollback" && request.method === "POST") {
+      let body;
+      try { body = await request.json(); } catch { body = null; }
+      if (!body || typeof body !== "object" || Array.isArray(body) ||
+          Object.keys(body).some((key) => !["confirmed", "renderStopped", "actorId"].includes(key)) ||
+          body.confirmed !== true || body.renderStopped !== true ||
+          (body.actorId !== null && body.actorId !== undefined && typeof body.actorId !== "string")) {
+        return json({ error: "Invalid rollback request" }, 400);
+      }
+      return this.state.blockConcurrencyWhile(async () => {
+        const mode = await this.state.storage.get(MODE_STORAGE_KEY);
+        if (mode !== "vercel-render") return json({ error: "Rollback is only allowed from vercel-render mode" }, 409);
+        if (!await this.runnerIsOnline()) return json({ error: "Deployment runner is not online" }, 503);
+        const activeId = await this.state.storage.get(ACTIVE_JOB_STORAGE_KEY);
+        if (activeId) {
+          const activeJob = await this.state.storage.get(`job:${activeId}`);
+          if (activeJob && (activeJob.status === "queued" || activeJob.status === "processing")) {
+            return json({ error: "A deployment job is already active" }, 409);
+          }
+          await this.state.storage.delete(ACTIVE_JOB_STORAGE_KEY);
+        }
+        const id = crypto.randomUUID();
+        const job = { id, status: "queued", action: "startTunnelApps", target: "tunnel", actorId: body.actorId || null, createdAt: Date.now() };
         await this.state.storage.put(`job:${id}`, job);
         await this.state.storage.put(ACTIVE_JOB_STORAGE_KEY, id);
-        return json({ id, status: job.status, action: job.action }, 202);
+        await this.recordEvent("rollback_queued", { actorId: job.actorId, jobId: id, mode: "tunnel", renderStopped: true });
+        return json({ id, status: job.status, action: job.action, target: job.target, recovery: false, createdAt: job.createdAt, finishedAt: null }, 202);
+      });
+    }
+
+    if (path === "/runner/heartbeat" && request.method === "POST") {
+      const runnerId = request.headers.get("x-deployment-runner-id") || "";
+      if (!/^[A-Za-z0-9._-]{1,128}$/.test(runnerId)) return json({ error: "Invalid runner identity" }, 400);
+      return this.state.blockConcurrencyWhile(async () => {
+        const lastHeartbeatAt = Date.now();
+        await this.state.storage.put(RUNNER_HEARTBEAT_STORAGE_KEY, { runnerId, lastHeartbeatAt });
+        return json({ runnerOnline: true, lastHeartbeatAt });
       });
     }
 
@@ -319,7 +407,7 @@ export class DeploymentState {
       let body;
       try { body = await request.json(); } catch { body = null; }
       if (!body || typeof body !== "object" || Array.isArray(body) || Object.keys(body).length !== 1 ||
-          !Object.hasOwn(body, "result") || !["stopped", "failed"].includes(body.result)) {
+          !Object.hasOwn(body, "result") || !["stopped", "started", "failed"].includes(body.result)) {
         return json({ error: "Body must contain only an allowed result" }, 400);
       }
       const runnerId = request.headers.get("x-deployment-runner-id") || "";
@@ -332,22 +420,44 @@ export class DeploymentState {
             job.leaseVersion !== leaseVersion || job.leaseExpiresAt <= Date.now()) {
           return json({ error: "Job lease is not active" }, 409);
         }
+        const expectedResult = job.action === "stopTunnelApps" ? "stopped" : "started";
+        if (body.result !== expectedResult && body.result !== "failed") {
+          return json({ error: "Runner result does not match the assigned action" }, 400);
+        }
         if (body.result === "failed") {
-          await this.state.storage.put(`job:${job.id}`, { ...job, status: "failed" });
+          if (job.action === "stopTunnelApps") {
+            const recoveryJob = { ...job, status: "queued", action: "startTunnelApps", target: "tunnel", recovery: true, leaseExpiresAt: null };
+            await this.state.storage.put(`job:${job.id}`, recoveryJob);
+            await this.recordEvent("cutover_failed_recovery_queued", { actorId: job.actorId, jobId: job.id });
+            return json({ id: job.id, status: "queued", action: "startTunnelApps", recovery: true }, 202);
+          }
+          await this.state.storage.put(`job:${job.id}`, { ...job, status: "failed", finishedAt: Date.now() });
           await this.state.storage.delete(ACTIVE_JOB_STORAGE_KEY);
+          await this.recordEvent("deployment_job_failed", { actorId: job.actorId, jobId: job.id, action: job.action });
           return json({ id: job.id, status: "failed", action: job.action });
         }
         const mode = await this.state.storage.get(MODE_STORAGE_KEY);
-        const passed = mode === "tunnel" && await preflight(job.target, this.config.origins, this.config.healthPaths);
+        const expectedMode = job.action === "stopTunnelApps" || job.recovery ? "tunnel" : "vercel-render";
+        const passed = mode === expectedMode && await preflight(job.target, this.config.origins, this.config.healthPaths);
         if (!passed) {
-          await this.state.storage.put(`job:${job.id}`, { ...job, status: "failed" });
+          if (job.action === "stopTunnelApps") {
+            const recoveryJob = { ...job, status: "queued", action: "startTunnelApps", target: "tunnel", recovery: true, leaseExpiresAt: null };
+            await this.state.storage.put(`job:${job.id}`, recoveryJob);
+            await this.recordEvent("target_preflight_failed_recovery_queued", { actorId: job.actorId, jobId: job.id });
+            return json({ id: job.id, status: "queued", action: "startTunnelApps", recovery: true }, 202);
+          }
+          await this.state.storage.put(`job:${job.id}`, { ...job, status: "failed", finishedAt: Date.now() });
           await this.state.storage.delete(ACTIVE_JOB_STORAGE_KEY);
+          await this.recordEvent("rollback_health_check_failed", { actorId: job.actorId, jobId: job.id });
           return json({ id: job.id, status: "failed", action: job.action });
         }
         await this.state.storage.transaction(async (transaction) => {
           await transaction.put(MODE_STORAGE_KEY, job.target);
-          await transaction.put(`job:${job.id}`, { ...job, status: "succeeded" });
+          await transaction.put(`job:${job.id}`, { ...job, status: "succeeded", finishedAt: Date.now() });
           await transaction.delete(ACTIVE_JOB_STORAGE_KEY);
+        });
+        await this.recordEvent(job.action === "stopTunnelApps" ? "cutover_succeeded" : "rollback_succeeded", {
+          actorId: job.actorId, jobId: job.id, mode: job.target,
         });
         return json({ id: job.id, status: "succeeded", action: job.action });
       });
@@ -355,32 +465,43 @@ export class DeploymentState {
 
     if (path === "/status" && request.method === "GET") {
       return this.state.blockConcurrencyWhile(async () => {
-        const mode = await this.state.storage.get(MODE_STORAGE_KEY);
+        let mode = await this.state.storage.get(MODE_STORAGE_KEY);
+        if (!mode && this.initialMode === "tunnel") {
+          mode = "tunnel";
+          await this.state.storage.put(MODE_STORAGE_KEY, mode);
+          await this.recordEvent("initial_mode_set", { mode });
+        }
         if (!MODES.has(mode)) return json({ error: "Deployment mode is not configured" }, 503);
-        return json({ mode });
+        const heartbeat = await this.state.storage.get(RUNNER_HEARTBEAT_STORAGE_KEY);
+        const runnerOnline = Boolean(heartbeat && Date.now() - heartbeat.lastHeartbeatAt <= RUNNER_HEARTBEAT_MAX_AGE_MS);
+        const activeId = await this.state.storage.get(ACTIVE_JOB_STORAGE_KEY);
+        const activeJob = activeId ? await this.state.storage.get(`job:${activeId}`) : null;
+        return json({
+          mode,
+          runnerOnline,
+          lastRunnerHeartbeatAt: heartbeat?.lastHeartbeatAt || null,
+          activeJob: activeJob && ["queued", "processing"].includes(activeJob.status)
+            ? { id: activeJob.id, status: activeJob.status, action: activeJob.action, target: activeJob.target, recovery: Boolean(activeJob.recovery), createdAt: activeJob.createdAt || null }
+            : null,
+        });
       });
     }
 
-    if ((path === "/preflight" || path === "/mode") && request.method === "POST") {
-      const mode = await parseModeBody(request);
-      if (!mode) return json({ error: "Body must contain only an exact mode" }, 400);
+    if (path === "/audit" && request.method === "GET") {
+      return this.state.blockConcurrencyWhile(async () => json({ events: await this.state.storage.get(AUDIT_STORAGE_KEY) || [] }));
+    }
 
-      if (path === "/preflight") {
-        const passed = await preflight(mode, this.config.origins, this.config.healthPaths);
-        return json({ mode, passed }, passed ? 200 : 502);
+    if (path === "/preflight" && request.method === "POST") {
+      let body;
+      try { body = await request.json(); } catch { body = null; }
+      if (!body || typeof body !== "object" || Array.isArray(body) ||
+          Object.keys(body).some((key) => !["mode", "actorId"].includes(key)) ||
+          !MODES.has(body.mode) || (body.actorId !== null && body.actorId !== undefined && typeof body.actorId !== "string")) {
+        return json({ error: "Invalid preflight request" }, 400);
       }
-
-      if (path === "/mode" && mode !== "tunnel") {
-        return json({ error: "Mode endpoint is reserved for rollback to tunnel" }, 400);
-      }
-      return this.state.blockConcurrencyWhile(async () => {
-        const passed = await preflight(mode, this.config.origins, this.config.healthPaths);
-        if (!passed) {
-          return json({ error: "Preflight failed; deployment mode was not changed" }, 502);
-        }
-        await this.state.storage.put(MODE_STORAGE_KEY, mode);
-        return json({ mode, changed: true });
-      });
+      const passed = await preflight(body.mode, this.config.origins, this.config.healthPaths);
+      await this.recordEvent("preflight", { actorId: body.actorId || null, mode: body.mode, passed });
+      return json({ mode: body.mode, passed }, passed ? 200 : 502);
     }
 
     return json({ error: "Not found" }, 404);
@@ -427,12 +548,17 @@ export default {
 
     const url = new URL(request.url);
     const path = url.pathname;
+    const runnerHeartbeatPath = path === "/__deployment/runner/heartbeat" && request.method === "POST";
     const runnerJobPath = path === "/__deployment/runner/job" && request.method === "GET";
     const runnerCompleteMatch = /^\/__deployment\/runner\/job\/([0-9a-f-]{36})\/complete$/.exec(path);
-    if (runnerJobPath || (runnerCompleteMatch && request.method === "POST")) {
+    if (runnerHeartbeatPath || runnerJobPath || (runnerCompleteMatch && request.method === "POST")) {
       if (!authorized(request, config.runnerToken)) return json({ error: "Unauthorized" }, 401);
       const runnerId = request.headers.get("x-deployment-runner-id") || "";
+      if (runnerId !== config.runnerId) return json({ error: "Unauthorized runner identity" }, 401);
       const headers = { "x-deployment-runner-id": runnerId };
+      if (runnerHeartbeatPath) {
+        return requestState(config.stateBinding, "/runner/heartbeat", "POST", undefined, headers);
+      }
       if (runnerCompleteMatch) {
         let body;
         try { body = await request.json(); } catch { body = null; }

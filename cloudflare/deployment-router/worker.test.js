@@ -4,6 +4,7 @@ import worker, { DeploymentState } from "./worker.js";
 
 const TOKEN = "a-control-token-that-is-long-enough";
 const RUNNER_TOKEN = "a-runner-token-that-is-long-enough";
+const RUNNER_ID = "runner-1";
 const ORIGINS = {
   TUNNEL_FRONTEND_ORIGIN: "https://tunnel-frontend.example.net",
   TUNNEL_BACKEND_ORIGIN: "https://tunnel-backend.example.net",
@@ -12,7 +13,10 @@ const ORIGINS = {
 };
 
 function setup(mode = "tunnel") {
-  const values = new Map([["mode", mode]]);
+  const values = new Map([
+    ["mode", mode],
+    ["runnerHeartbeat", { runnerId: RUNNER_ID, lastHeartbeatAt: Date.now() }],
+  ]);
   const writes = [];
   const serialState = {
     storage: {
@@ -43,6 +47,7 @@ function setup(mode = "tunnel") {
     NODE_ENV: "production",
     DEPLOYMENT_CONTROL_TOKEN: TOKEN,
     DEPLOYMENT_RUNNER_TOKEN: RUNNER_TOKEN,
+    DEPLOYMENT_RUNNER_ID: RUNNER_ID,
     DEPLOYMENT_STATE: {
       idFromName(name) { assert.equal(name, "global-deployment-mode"); return name; },
       get(id) {
@@ -103,66 +108,68 @@ test("preflight endpoint reports failed health checks", async () => {
   });
 });
 
-test("preflight and mode endpoints reject extra JSON keys", async () => {
+test("preflight rejects extra JSON keys and direct mode changes are disabled", async () => {
   const { env, writes } = setup();
-  for (const path of ["/__deployment/preflight", "/__deployment/mode"]) {
-    const response = await worker.fetch(request(path, {
-      method: "POST", body: { mode: "tunnel", extra: "ignored" },
-    }), env);
-    assert.equal(response.status, 400);
-  }
+  const preflight = await worker.fetch(request("/__deployment/preflight", {
+    method: "POST", body: { mode: "tunnel", extra: "ignored" },
+  }), env);
+  const directMode = await worker.fetch(request("/__deployment/mode", {
+    method: "POST", body: { mode: "tunnel" },
+  }), env);
+  assert.equal(preflight.status, 400);
+  assert.equal(directMode.status, 409);
   assert.deepEqual(writes, []);
 });
 
-test("preflight failure prevents a mode change", async () => {
+test("preflight failure does not change the active deployment mode", async () => {
   const { env, values, writes } = setup("vercel-render");
   await withFetch(async () => new Response("unhealthy", { status: 503 }), async () => {
-    const response = await worker.fetch(request("/__deployment/mode", {
+    const response = await worker.fetch(request("/__deployment/preflight", {
       method: "POST", body: { mode: "tunnel" },
     }), env);
     assert.equal(response.status, 502);
     assert.equal(values.get("mode"), "vercel-render");
-    assert.deepEqual(writes, []);
+    assert.equal(writes.some(([key]) => key === "mode"), false);
   });
 });
 
-test("mode endpoint only rolls back to tunnel after both checks pass", async () => {
+test("direct mode changes cannot bypass service restart", async () => {
   const { env, values, writes } = setup("vercel-render");
-  const probed = [];
-  await withFetch(async (input) => {
-    probed.push(String(input instanceof Request ? input.url : input));
-    return new Response("ok", { status: 200 });
-  }, async () => {
-    const invalid = await worker.fetch(request("/__deployment/mode", {
-      method: "POST", body: { mode: "https://attacker.example" },
-    }), env);
-    assert.equal(invalid.status, 400);
-    assert.equal(writes.length, 0);
-
-    const valid = await worker.fetch(request("/__deployment/mode", {
-      method: "POST", body: { mode: "tunnel" },
-    }), env);
-    assert.equal(valid.status, 200);
-    assert.equal(values.get("mode"), "tunnel");
-    assert.deepEqual(writes, [["mode", "tunnel"]]);
-    assert.deepEqual(probed.sort(), [
-      "https://tunnel-backend.example.net/",
-      "https://tunnel-frontend.example.net/",
-    ]);
-  });
+  const response = await worker.fetch(request("/__deployment/mode", {
+    method: "POST", body: { mode: "tunnel" },
+  }), env);
+  assert.equal(response.status, 409);
+  assert.equal(values.get("mode"), "vercel-render");
+  assert.equal(writes.some(([key]) => key === "mode"), false);
 });
 
-test("simultaneous rollback requests leave the mode on the preflighted target", async () => {
-  const { env, values, writes } = setup("vercel-render");
+test("rollback queues the fixed start action before restoring Tunnel routing", async () => {
+  const { env, values } = setup("vercel-render");
   await withFetch(async () => new Response("ok", { status: 200 }), async () => {
-    const responses = await Promise.all([
-      worker.fetch(request("/__deployment/mode", { method: "POST", body: { mode: "tunnel" } }), env),
-      worker.fetch(request("/__deployment/mode", { method: "POST", body: { mode: "tunnel" } }), env),
-    ]);
-    assert.deepEqual(responses.map((response) => response.status), [200, 200]);
+    const response = await worker.fetch(request("/__deployment/rollback", {
+      method: "POST", body: { confirmed: true, renderStopped: true },
+    }), env);
+    assert.equal(response.status, 202);
+    const job = await response.json();
+    assert.equal(job.action, "startTunnelApps");
+    const claim = await (await worker.fetch(runnerRequest("/__deployment/runner/job"), env)).json();
+    assert.equal(claim.job.action, "startTunnelApps");
+    const completion = await worker.fetch(runnerRequest(`/__deployment/runner/job/${job.id}/complete`, {
+      method: "POST", leaseVersion: claim.job.leaseVersion, body: { result: "started" },
+    }), env);
+    assert.equal((await completion.json()).status, "succeeded");
     assert.equal(values.get("mode"), "tunnel");
-    assert.deepEqual(writes, [["mode", "tunnel"], ["mode", "tunnel"]]);
   });
+});
+
+test("stale runner heartbeat blocks cutover", async () => {
+  const { env, values } = setup();
+  values.set("runnerHeartbeat", { runnerId: RUNNER_ID, lastHeartbeatAt: Date.now() - 120_000 });
+  const response = await worker.fetch(request("/__deployment/cutover", {
+    method: "POST", body: { mode: "vercel-render", confirmed: true },
+  }), env);
+  assert.equal(response.status, 503);
+  assert.equal(values.has("activeJob"), false);
 });
 
 test("runner endpoints require their separate bearer token", async () => {
@@ -221,7 +228,7 @@ test("only one active job can be created and runner leases prevent competing cla
     assert.equal(claimedResponse.status, 200);
     assert.equal(claimed.job.action, "stopTunnelApps");
     const otherRunner = await worker.fetch(runnerRequest("/__deployment/runner/job", { runnerId: "runner-2" }), env);
-    assert.deepEqual(await otherRunner.json(), { job: null });
+    assert.equal(otherRunner.status, 401);
     const sameRunner = await worker.fetch(runnerRequest("/__deployment/runner/job"), env);
     assert.deepEqual(await sameRunner.json(), claimed);
   });
@@ -242,11 +249,12 @@ test("failed runner completion marks job failed and leaves mode unchanged", asyn
     const completion = await worker.fetch(runnerRequest(`/__deployment/runner/job/${id}/complete`, {
       method: "POST", leaseVersion: claim.job.leaseVersion, body: { result: "failed" },
     }), env);
-    assert.deepEqual(await completion.json(), { id, status: "failed", action: "stopTunnelApps" });
+    assert.deepEqual(await completion.json(), { id, status: "queued", action: "startTunnelApps", recovery: true });
     assert.equal(values.get("mode"), "tunnel");
-    assert.deepEqual(await (await worker.fetch(request(`/__deployment/jobs/${id}`), env)).json(), {
-      id, status: "failed", action: "stopTunnelApps",
-    });
+    const currentJob = await (await worker.fetch(request(`/__deployment/jobs/${id}`), env)).json();
+    assert.equal(currentJob.status, "queued");
+    assert.equal(currentJob.action, "startTunnelApps");
+    assert.equal(currentJob.recovery, true);
   });
 });
 
@@ -263,7 +271,7 @@ test("stopped completion changes mode only after successful completion preflight
     const failedPreflight = await worker.fetch(runnerRequest(`/__deployment/runner/job/${id}/complete`, {
       method: "POST", leaseVersion: claim.job.leaseVersion, body: { result: "stopped" },
     }), env);
-    assert.deepEqual(await failedPreflight.json(), { id, status: "failed", action: "stopTunnelApps" });
+    assert.deepEqual(await failedPreflight.json(), { id, status: "queued", action: "startTunnelApps", recovery: true });
     assert.equal(values.get("mode"), "tunnel");
   });
 
