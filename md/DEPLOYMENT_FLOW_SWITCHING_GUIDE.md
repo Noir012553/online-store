@@ -74,18 +74,26 @@ Frontend có một số luồng sử dụng `BACKEND_URL` trực tiếp ngoài c
 
 Công tắc phải áp dụng một phiên bản cấu hình duy nhất cho cả frontend/API, có kiểm tra trước khi kích hoạt, khóa tránh hai thao tác đồng thời, ghi audit, health check sau chuyển và rollback tự động về chế độ trước nếu kiểm tra thất bại. Không cập nhật một nửa luồng hoặc cho nhiều backend cùng nhận traffic production ngoài kế hoạch.
 
-Trước khi bật cơ chế này, cần có URL staging đã xác minh cho frontend/backend của cặp nền tảng sẽ thử trước; một hostname origin riêng cho frontend Tunnel; và một hostname staging cho Worker. Phải kiểm tra cách chuyển tiếp `Host`, HTTPS/TLS, header, cookie, websocket, body upload, timeout, cache và các đường dẫn callback. Không tạo Worker route production hay chỉnh DNS chỉ dựa trên ví dụ trong tài liệu; cần kiểm thử trên hostname staging trước. Không gửi token/secret qua chat hoặc ghi vào Markdown.
+### Nút dừng dịch vụ Tunnel
+
+- Nút Super Admin tạo job cho thao tác cố định tương đương `npm run deployment:stop-tunnel-apps`; không nhận command, script path, service name hoặc port từ request.
+- API chỉ tạo job có kiểu hành động allowlist và ghi audit. Runner WinSW độc lập lấy job, chạy script npm cố định và chỉ được phép dừng `LaptopStoreFrontend` cùng `LaptopStoreBackend`; không dừng service theo port và không dừng `LaptopStoreTunnel`.
+- Preflight phải xác nhận frontend Vercel, backend Render và routing đích khỏe mạnh trước nút xác nhận cuối cùng. Job phải có ID, trạng thái, chống chạy trùng và kết quả để UI theo dõi qua Vercel + Render sau khi các service cũ đã dừng.
+- Runner phải chạy ngoài frontend/backend bị dừng; job queue và job status cũng phải nằm ở control plane độc lập (không phụ thuộc backend Tunnel đang bị dừng). Quyền Windows và credential job queue được giới hạn tối thiểu. Không để backend API tự chạy shell/npm rồi tự dừng.
+- Nút chỉ sẵn sàng sau khi URL/routing Vercel + Render đã cấu hình và kiểm thử. Runner chưa được cài hoặc preflight thất bại thì không gửi lệnh stop.
+
+Trước khi bật cơ chế này, cần có URL đã xác minh cho frontend/backend Vercel + Render; một hostname origin riêng cho frontend Tunnel; và một hostname staging cho Worker. Phải kiểm tra cách chuyển tiếp `Host`, HTTPS/TLS, header, cookie, websocket, body upload, timeout, cache và các đường dẫn callback. Không tạo Worker route production hay chỉnh DNS chỉ dựa trên ví dụ trong tài liệu; cần kiểm thử trên hostname staging trước. Không gửi token/secret qua chat hoặc ghi vào Markdown.
 
 ## Quy trình chuyển production sau khi đã có điều phối
 
 1. Xác nhận stack đích khỏe mạnh, dùng đúng `MONGO_URI` production và đúng phiên bản ứng dụng; candidate chỉ được ghi dữ liệu sau khi trở thành luồng production được chọn.
 2. Xem bản diff cấu hình routing: chế độ hiện tại, chế độ đích, hostname/origin bị tác động và các callback liên quan.
 3. Xác nhận không có deploy/switch khác đang chạy; lưu lại phiên bản cấu hình để rollback.
-4. Bắt đầu cửa sổ bảo trì và chuyển đồng bộ cả `manln.online` (frontend) lẫn `backend.manln.online` (backend/API) sang Vercel + Render bằng một thao tác có xác nhận của quản trị viên.
-5. Sau khi routing mới trỏ tới đúng đích, dừng cả frontend cũ ở cổng 3000 và backend cũ ở cổng 5000 để tránh hai luồng cùng phục vụ production; giữ cấu hình và cách khởi động lại để rollback. Chỉ dừng tiến trình `cloudflared` khi xác nhận nó không còn cần cho route origin hoặc rollback.
-6. Chờ health check xác nhận frontend và backend/API thuộc cùng chế độ đều đáp ứng.
+4. Bắt đầu cửa sổ bảo trì, chuyển đồng bộ cả `manln.online` (frontend) lẫn `backend.manln.online` (backend/API) sang Vercel + Render, rồi health-check cả hai hostname.
+5. Admin xác nhận thao tác dừng. API tạo một job; runner WinSW độc lập gọi đúng script cố định để dừng `LaptopStoreFrontend` và `LaptopStoreBackend` cùng một lượt. Job giữ ID/trạng thái để UI Vercel + Render theo dõi.
+6. Xác nhận hai service cũ đã dừng và frontend/backend mới vẫn khỏe; giữ `LaptopStoreTunnel` cùng cấu hình service cũ cho rollback.
 7. Kiểm tra health, đăng nhập và các thao tác đọc trước; chỉ tạo đơn thử hoặc thao tác ghi trên production sau khi được phê duyệt rõ ràng, có phạm vi/đơn test đã định trước và có cách xử lý dữ liệu phát sinh.
-8. Nếu bất kỳ health check quan trọng nào thất bại, khởi động lại cả frontend/backend cũ, trả routing về phiên bản trước và xác nhận lại hệ thống cũ hoạt động.
+8. Nếu routing hoặc health check thất bại, dùng runner khởi động lại cả frontend/backend cũ, trả routing về phiên bản trước và xác nhận lại hệ thống cũ hoạt động.
 
 Không coi việc API Cloudflare Tunnel còn kết nối là bằng chứng frontend Vercel/Render hoặc Netlify/Railway đã hoạt động, hoặc ngược lại.
 
