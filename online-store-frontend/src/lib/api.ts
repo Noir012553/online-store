@@ -875,8 +875,10 @@ async function executeRequest<T = any>(
       let errorFields: string[] | undefined;
       try {
         const errorData = await response.json();
-        if (errorData && errorData.message) {
+        if (typeof errorData?.message === 'string') {
           errorMessage = errorData.message;
+        } else if (typeof errorData?.error === 'string') {
+          errorMessage = errorData.error;
         }
         errorCode = errorData?.code;
         errorParams = errorData?.params;
