@@ -3,7 +3,8 @@ import { useCallback, useEffect, useState, type InputHTMLAttributes } from 'reac
 import { toast } from 'sonner';
 import { withAdminLayout } from '../../components/admin/withAdminLayout';
 import { Button } from '../../components/ui/button';
-import { deploymentAPI, type DeploymentAuditEvent, type DeploymentControlPlaneEvent, type DeploymentJob, type DeploymentRouterConfig, type DeploymentStatus } from '../../lib/api';
+import { deploymentAPI, settingsAPI, type DeploymentAuditEvent, type DeploymentControlPlaneEvent, type DeploymentJob, type DeploymentRouterConfig, type DeploymentStatus } from '../../lib/api';
+import { normalizeSiteUrl } from '../../lib/seo';
 
 export const getServerSideProps = async () => ({ props: {} });
 
@@ -144,6 +145,7 @@ function DeploymentAdminPage() {
   const [controlToken, setControlToken] = useState('');
   const [runnerToken, setRunnerToken] = useState('');
   const [tunnelDomain, setTunnelDomain] = useState('');
+  const [storeDomain, setStoreDomain] = useState('');
   const [workerOrigins, setWorkerOrigins] = useState<DeploymentRouterConfig['workerOrigins']>({
     TUNNEL_FRONTEND_ORIGIN: '',
     TUNNEL_BACKEND_ORIGIN: '',
@@ -199,6 +201,14 @@ function DeploymentAdminPage() {
   }, []);
 
   useEffect(() => { void loadData(); }, [loadData]);
+
+  useEffect(() => {
+    let active = true;
+    settingsAPI.getPublic().then((settings) => {
+      if (active) setStoreDomain(normalizeSiteUrl(settings.branding.siteUrl));
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     try {
@@ -319,31 +329,29 @@ function DeploymentAdminPage() {
     }
   };
 
-  const buildSuggestions = (values: string[], sample: SuggestionOption) => Array.from(new Set([sample.value, ...values].filter(Boolean)))
-    .map((value) => value === sample.value ? sample : { value, label: value });
-  const originSuggestions = {
-    TUNNEL_FRONTEND_ORIGIN: buildSuggestions([workerOrigins.TUNNEL_FRONTEND_ORIGIN, ...suggestions.TUNNEL_FRONTEND_ORIGIN], {
-      value: 'https://tunnel-frontend.example.com', label: 'Mẫu Tunnel frontend — thay bằng hostname origin đã provision',
-    }),
-    TUNNEL_BACKEND_ORIGIN: buildSuggestions([workerOrigins.TUNNEL_BACKEND_ORIGIN, ...suggestions.TUNNEL_BACKEND_ORIGIN], {
-      value: 'https://tunnel-backend.example.com', label: 'Mẫu Tunnel backend — thay bằng hostname origin đã provision',
-    }),
-    VERCEL_FRONTEND_ORIGIN: buildSuggestions([workerOrigins.VERCEL_FRONTEND_ORIGIN, ...suggestions.VERCEL_FRONTEND_ORIGIN], {
-      value: 'https://your-project.vercel.app', label: 'Mẫu Vercel — thay bằng URL thực trong Vercel',
-    }),
-    RENDER_BACKEND_ORIGIN: buildSuggestions([workerOrigins.RENDER_BACKEND_ORIGIN, ...suggestions.RENDER_BACKEND_ORIGIN], {
-      value: 'https://your-service.onrender.com', label: 'Mẫu Render — thay bằng URL thực trong Render',
-    }),
+  const buildSuggestions = (values: string[], options: SuggestionOption[] = []) => {
+    const byValue = new Map(options.map((option) => [option.value, option]));
+    values.filter(Boolean).forEach((value) => {
+      if (!byValue.has(value)) byValue.set(value, { value, label: value });
+    });
+    return [...byValue.values()].slice(0, 8);
   };
-  const routerUrlSuggestions = buildSuggestions([routerUrl, ...suggestions.routerUrls], {
-    value: 'https://deployment-router.account-subdomain.workers.dev', label: 'Mẫu Worker — thay account subdomain bằng URL thực',
-  });
-  const runnerIdSuggestions = buildSuggestions([runnerId, ...suggestions.runnerIds], {
-    value: 'laptop-store-windows-01', label: 'Runner ID đã xác nhận trong source',
-  });
-  const runnerPathSuggestions = buildSuggestions([runnerTokenFilePath, ...suggestions.runnerTokenPaths], {
-    value: 'C:\\ProgramData\\LaptopStore\\runner-token.dpapi', label: 'Mẫu Windows path — khớp với vị trí file DPAPI thực tế',
-  });
+  const storeDomainHost = storeDomain ? new URL(storeDomain).hostname : '';
+  const originSuggestions = {
+    TUNNEL_FRONTEND_ORIGIN: buildSuggestions([workerOrigins.TUNNEL_FRONTEND_ORIGIN, ...suggestions.TUNNEL_FRONTEND_ORIGIN], storeDomainHost ? [{
+      value: `https://tunnel-frontend.${storeDomainHost}`,
+      label: 'Gợi ý từ domain cửa hàng — cần provision DNS và Tunnel origin riêng',
+    }] : []),
+    TUNNEL_BACKEND_ORIGIN: buildSuggestions([workerOrigins.TUNNEL_BACKEND_ORIGIN, ...suggestions.TUNNEL_BACKEND_ORIGIN], storeDomainHost ? [{
+      value: `https://tunnel-backend.${storeDomainHost}`,
+      label: 'Gợi ý từ domain cửa hàng — cần provision DNS và Tunnel origin riêng',
+    }] : []),
+    VERCEL_FRONTEND_ORIGIN: buildSuggestions([workerOrigins.VERCEL_FRONTEND_ORIGIN, ...suggestions.VERCEL_FRONTEND_ORIGIN]),
+    RENDER_BACKEND_ORIGIN: buildSuggestions([workerOrigins.RENDER_BACKEND_ORIGIN, ...suggestions.RENDER_BACKEND_ORIGIN]),
+  };
+  const routerUrlSuggestions = buildSuggestions([routerUrl, ...suggestions.routerUrls]);
+  const runnerIdSuggestions = buildSuggestions([runnerId, ...suggestions.runnerIds]);
+  const runnerPathSuggestions = buildSuggestions([runnerTokenFilePath, ...suggestions.runnerTokenPaths]);
   const activeJob = job && !terminalStatuses.has(job.status);
   const cutoverReady = status?.switchEnabled === true && status.mode === 'tunnel' && status.runnerOnline && preflight['vercel-render'] === true && !activeJob;
   const rollbackReady = status?.switchEnabled === true && status.mode === 'vercel-render' && status.runnerOnline && !activeJob;
@@ -365,7 +373,8 @@ function DeploymentAdminPage() {
 
       <section aria-labelledby="deployment-setup-title" className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 id="deployment-setup-title" className="text-lg font-semibold text-slate-900">Cấu hình deployment</h2>
-        <p className="mt-1 text-sm text-slate-600">Các mẫu trong dropdown dùng hostname giữ chỗ, không phải URL thật; thay bằng URL đã cấp trên Cloudflare, Vercel hoặc Render trước khi lưu. Giá trị mới được ghi nhớ riêng theo từng loại ô; token bí mật không được đưa vào gợi ý. Lưu tại đây không tự cập nhật Cloudflare hoặc WinSW.</p>
+        <p className="mt-1 text-sm text-slate-600">Gợi ý Tunnel lấy từ domain cửa hàng nhưng không xác nhận DNS đã provision. URL Vercel, Render và Worker phải lấy từ dashboard tương ứng. Các giá trị đã nhập được ghi nhớ riêng theo từng loại ô; token bí mật không được đưa vào gợi ý. Lưu tại đây không tự cập nhật Cloudflare hoặc WinSW.</p>
+        <p className="mt-2 text-sm text-slate-600">{storeDomainHost ? <>Domain cửa hàng dùng làm gợi ý: <code>{storeDomainHost}</code></> : <>Chưa tải được domain cửa hàng. Hãy cấu hình tại Cài đặt cửa hàng để tạo gợi ý Tunnel.</>}</p>
         {configError && <p role="alert" className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">{configError}</p>}
         {routerConfig && <p className="mt-3 text-xs text-slate-500">Backend URL: {routerConfig.routerUrlSource === 'unset' ? 'chưa cấu hình' : `nguồn ${routerConfig.routerUrlSource}`} · Control token: {routerConfig.controlTokenValid ? `đã cấu hình (${routerConfig.controlTokenSource})` : 'chưa hợp lệ hoặc chưa cấu hình'} · Runner token: {routerConfig.runnerTokenConfigured ? 'đã lưu mã hóa' : 'chưa lưu'} · Kho mã hóa: {routerConfig.storeAvailable ? 'sẵn sàng' : 'chưa sẵn sàng'}</p>}
         {routerConfig && !routerConfig.storeAvailable && <p role="alert" className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">Backend cần <code>PROVIDER_CONFIG_ENCRYPTION_KEY</code> gồm 64 ký tự hex để lưu cấu hình mã hóa.</p>}
@@ -376,9 +385,9 @@ function DeploymentAdminPage() {
               <p className="mt-1 text-sm text-slate-600">Nhập HTTPS origins và secrets cho Worker <code>deployment-router</code>. Durable Object binding <code>DEPLOYMENT_STATE</code> vẫn được quản lý qua Wrangler.</p>
               <div className="mt-3 grid gap-3">
                 <label className="block text-sm font-medium text-slate-800">Tên miền gốc Tunnel
-                  <input type="text" value={tunnelDomain} onChange={(event) => {
-                    const host = getTunnelOriginHost(event.target.value);
-                    setTunnelDomain(event.target.value);
+                  <SuggestionInput type="text" value={tunnelDomain} suggestions={storeDomainHost ? [{ value: storeDomainHost, label: 'Domain website — chỉ dùng nếu đã trỏ trực tiếp tới Tunnel' }] : []} onChange={(value) => {
+                    const host = getTunnelOriginHost(value);
+                    setTunnelDomain(value);
                     if (!host) return;
                     setTunnelDomain(host);
                     setWorkerOrigins((current) => ({
@@ -386,8 +395,8 @@ function DeploymentAdminPage() {
                       TUNNEL_FRONTEND_ORIGIN: `https://tunnel-frontend.${host}`,
                       TUNNEL_BACKEND_ORIGIN: `https://tunnel-backend.${host}`,
                     }));
-                  }} placeholder="example.com" className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" />
-                  <span className="mt-1 block text-xs font-normal text-slate-500">Nhập domain gốc đã trỏ tới Tunnel; tự tạo tunnel-frontend và tunnel-backend. Không dùng hostname đang đi qua Worker.</span>
+                  }} placeholder={storeDomainHost || 'Domain đã trỏ trực tiếp tới Tunnel'} className="w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" />
+                  <span className="mt-1 block text-xs font-normal text-slate-500">Gợi ý lấy từ domain cửa hàng; chỉ sử dụng sau khi đã provision hostname riêng và trỏ trực tiếp tới Tunnel, không dùng hostname đang đi qua Worker.</span>
                 </label>
                 {([
                   ['TUNNEL_FRONTEND_ORIGIN', 'Tunnel frontend origin'],
@@ -396,8 +405,8 @@ function DeploymentAdminPage() {
                   ['RENDER_BACKEND_ORIGIN', 'Render backend origin'],
                 ] as const).map(([key, label]) => (
                   <label key={key} className="block text-sm font-medium text-slate-800">{label}
-                    <SuggestionInput type="url" value={workerOrigins[key]} suggestions={originSuggestions[key]} onChange={(value) => setWorkerOrigins((current) => ({ ...current, [key]: value }))} onValueBlur={(value) => rememberSuggestion(key, value)} placeholder="https://example.com" className="w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" />
-                    <span className="mt-1 block text-xs font-normal text-slate-500">HTTPS origin riêng, không có path/query.</span>
+                    <SuggestionInput type="url" value={workerOrigins[key]} suggestions={originSuggestions[key]} onChange={(value) => setWorkerOrigins((current) => ({ ...current, [key]: value }))} onValueBlur={(value) => rememberSuggestion(key, value)} placeholder="HTTPS origin đã provision" className="w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" />
+                    <span className="mt-1 block text-xs font-normal text-slate-500">HTTPS origin riêng, không có path/query. Tunnel phải được provision; Vercel/Render lấy URL thật từ dashboard.</span>
                   </label>
                 ))}
                 <label className="block text-sm font-medium text-slate-800">DEPLOYMENT_RUNNER_ID
@@ -414,7 +423,7 @@ function DeploymentAdminPage() {
               <p className="mt-1 text-sm text-slate-600">Các trường này được backend dùng trực tiếp; cấu hình database ưu tiên environment variables.</p>
               <div className="mt-3 grid gap-3">
                 <label className="block text-sm font-medium text-slate-800">DEPLOYMENT_ROUTER_URL
-                  <SuggestionInput type="url" required maxLength={2048} value={routerUrl} suggestions={routerUrlSuggestions} onChange={setRouterUrl} onValueBlur={(value) => rememberSuggestion('routerUrls', value)} placeholder="https://<worker-host>" className="w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" />
+                  <SuggestionInput type="url" required maxLength={2048} value={routerUrl} suggestions={routerUrlSuggestions} onChange={setRouterUrl} onValueBlur={(value) => rememberSuggestion('routerUrls', value)} placeholder="URL Worker đã deploy" className="w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" />
                   <span className="mt-1 block text-xs font-normal text-slate-500">HTTPS origin của Worker, không có path, query hoặc thông tin đăng nhập.</span>
                 </label>
                 <label className="block text-sm font-medium text-slate-800">DEPLOYMENT_CONTROL_TOKEN mới
