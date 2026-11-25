@@ -19,6 +19,14 @@ Mục tiêu vận hành là giữ hostname công khai ổn định và chuyển 
 - Provider Catalog có metadata cho Vercel, Render và Cloudflare Tunnel nhưng chưa tự deploy ứng dụng hay quản lý routing.
 - Nếu Cloudflare Worker đứng trước `manln.online`, cần một hostname origin riêng trỏ trực tiếp tới frontend Tunnel; Worker không được forward về chính hostname production đang chạy Worker vì sẽ tạo vòng lặp. Chưa tạo hostname này.
 - Source hiện có API/UI Super Admin và Worker control plane cho `tunnel` ↔ `vercel-render`, nhưng chưa cấu hình hoặc triển khai trên Cloudflare/Render, chưa cài runner Windows và mặc định `DEPLOYMENT_SWITCH_ENABLED` tắt. Vì vậy hiện chưa có công tắc production khả dụng.
+- Source có cấu hình **tên miền website** tại `/admin/settings` → Cấu hình cửa hàng → Thương hiệu. Đây là domain canonical/SEO, không phải Tunnel origin. Preview hiện ghi nhận `GET /api/settings/admin` trả `400 INVALID_SETTINGS_FIELDS`; backend source hiện tại không trả mã này từ GET, nên phải đồng bộ/xác minh backend runtime trước khi tin rằng form đã tải hoặc lưu được.
+
+## Tên miền website và Tunnel origins
+
+- Nhập domain website tại `/admin/settings` → nhóm Thương hiệu, ví dụ `manln.online` hoặc `https://manln.online/`. Backend chuẩn hóa về HTTPS origin (`https://manln.online`) và public settings cung cấp giá trị này cho storefront.
+- Domain website được dùng làm nguồn canonical và URL SEO/share; product metadata lấy setting ở SSR. Khi setting trống hoặc API public lỗi, frontend dùng `SITE_URL` làm fallback.
+- Không tự dùng domain website làm Tunnel origin. Worker origin phải là hostname riêng trỏ trực tiếp tới từng dịch vụ Tunnel; forward về hostname đã đi qua Worker có thể tạo vòng lặp.
+- Trước khi coi cấu hình này hoạt động, triển khai backend có schema/API `branding.siteUrl`, xác nhận `GET /api/settings/admin` và `GET /api/settings/public`, lưu thử domain hợp lệ rồi kiểm tra canonical/hreflang/OG trên trang sản phẩm. Không lưu khi form chưa tải được cấu hình.
 
 ## Mô hình đích
 
@@ -106,5 +114,7 @@ Không coi việc API Cloudflare Tunnel còn kết nối là bằng chứng fron
 - Sau rollback, xác nhận frontend/API, đăng nhập, checkout và webhook hoạt động; giữ log/audit để điều tra nguyên nhân.
 
 ## Giới hạn phạm vi
+
+Lỗi `GET /api/settings/admin` trả `400 INVALID_SETTINGS_FIELDS` ở preview là dấu hiệu backend runtime chưa khớp với frontend/source đang kiểm tra; backend source hiện tại chỉ áp dụng validation này cho payload cập nhật. Cần xác minh URL backend mà preview đang proxy tới và triển khai phiên bản backend tương ứng trước khi xác nhận cấu hình website domain. Lỗi này riêng với `503 DEPLOYMENT_ROUTER_NOT_CONFIGURED`: lỗi thứ hai cho biết Worker control plane chưa được cấu hình.
 
 Provider Catalog hiện chỉ lưu metadata/cấu hình provider; metadata Vercel, Render hoặc Cloudflare Tunnel không tự tạo deployment hay đổi DNS. Control switch Vercel + Render là luồng riêng; chưa tự quản lý deployment hoặc bật quyền ghi MongoDB cho Render. `netlify-railway` vẫn chưa được hỗ trợ. Không bật production switch trước khi hoàn tất cấu hình hạ tầng, promotion credential, quyền runner và staging tests.

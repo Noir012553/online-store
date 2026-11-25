@@ -24,6 +24,7 @@ Một thao tác Super Admin có preflight và xác nhận, dùng runner độc l
 - Backend: `src/routes/deploymentRoutes.js`, controller/service và `DeploymentAudit` cho status, preflight, cutover, rollback, job/audit. Tất cả route yêu cầu `protect` + `superAdmin`; `GET/PUT /api/admin/deployment/config` tải/lưu backend Worker URL, Worker origins, runner identity/path và checklist trong `ProviderRuntimeConfiguration`; control/runner tokens được mã hóa, yêu cầu xác thực lại mật khẩu và ghi audit field names. API không trả plaintext secrets. Form chỉ quản lý cấu hình tham chiếu; chưa tự cập nhật Cloudflare/WinSW. `DEPLOYMENT_SWITCH_ENABLED` vẫn mặc định tắt.
 - `src/middleware/deploymentCandidateReadOnly.js` chặn webhook payment ở mọi method; analytics cache-clear dùng POST. `src/test/deployment-candidate-readonly.test.js` kiểm thử policy candidate offline.
 - Frontend: `/admin/deployment` có form tải/sửa/lưu Worker origins, backend router URL/control token, runner identity/token file path và checklist; mode, runner, preflight, xác nhận thao tác, job và audit. Nút cutover/rollback bị khóa nếu switch chưa bật, runner offline hoặc preflight chưa đạt.
+- Store Settings: `/admin/settings` có trường domain website trong nhóm Thương hiệu; backend source chuẩn hóa về HTTPS origin và public settings cung cấp giá trị để product SSR dùng cho canonical/hreflang/OG. Đây là cấu hình riêng, không sinh Tunnel origins.
 - `online-store-backend/scripts/deployment-runner.js`: polling heartbeat/job và chỉ chạy hai script PowerShell cố định với cờ xác nhận; chưa được cài thành WinSW service.
 - Runbook: `md/DEPLOYMENT_FLOW_SWITCHING_GUIDE.md`.
 
@@ -36,11 +37,14 @@ Một thao tác Super Admin có preflight và xác nhận, dùng runner độc l
 - Worker giữ header `Upgrade`/`Connection: Upgrade` khi proxy handshake WebSocket; test offline xác nhận header được chuyển tiếp nhưng chưa chứng minh kết nối WebSocket hoạt động trên Cloudflare runtime. Cần kiểm thử Socket.IO/WebSocket thực tế trên staging trước cutover.
 - Kiểm thử PowerShell trên Windows và integration trên staging: Host/TLS/cookie/websocket/upload/callback, stop/start partial failure, recovery và job theo dõi khi backend Tunnel đã dừng.
 - Chưa có xác nhận Vercel/Render build/runtime tương thích và URL/service ID thực tế.
+- Chưa xác minh end-to-end trường domain website bằng phiên Super Admin: preview hiện trả `GET /api/settings/admin` → `400 INVALID_SETTINGS_FIELDS`. Mã backend trong source hiện tại không validate GET request này; cần xác minh preview đang proxy tới backend nào và triển khai/đồng bộ backend tương ứng. Frontend chỉ bỏ toast `api_error` chung và hiển thị trạng thái backend không tương thích; việc đó không sửa lỗi API runtime.
+- Chưa xác nhận lưu `https://manln.online`, giá trị trả về từ `/api/settings/public`, hay canonical/hreflang/OG thực tế. Preview hiện chuyển về `/login`, nên chưa kiểm tra được form với quyền Super Admin.
 
 ## Blocker trước khi bật cutover
 
 - Chưa có URL/service ID Render và URL Vercel đã xác minh; chưa có origin Tunnel riêng và hostname Worker staging. Các trường có thể được nhập/lưu trên form nhưng chưa provision hạ tầng.
 - Chưa provision Worker bindings/secrets/route hoặc backend env. Form admin lưu cấu hình tham chiếu và mã hóa tokens ở backend; không deploy Worker, không ghi secrets lên Cloudflare và không thay thế cấu hình runner Windows.
+- Backend runtime phục vụ preview chưa được xác minh đồng bộ với frontend cho `/api/settings/admin`; xử lý blocker này trước khi coi cấu hình Store Settings/domain website đã hoạt động. Lỗi `503 DEPLOYMENT_ROUTER_NOT_CONFIGURED` là blocker riêng của control plane.
 - Runner heartbeat gate đã có trong Worker, nhưng runner chưa cài trên host Windows và chưa được kiểm thử với quyền vận hành cần thiết.
 - Chưa xác minh Mongo read-only user, candidate gate hoặc thứ tự chuyển credential production mà không chạy hai backend ghi cùng lúc.
 - Chưa chạy PowerShell tests hoặc hostname staging integration; môi trường trợ lý không có PowerShell hay quyền quản lý DNS/Cloudflare/Render/Vercel.
