@@ -568,6 +568,16 @@ export const settingsAPI = {
 
 export type ProviderCatalogCategory = 'email' | 'payment' | 'shipping' | 'deploy' | 'storage' | 'ai';
 
+export interface DeploymentRouterConfig {
+  routerUrl: string;
+  routerUrlSource: 'database' | 'environment' | 'unset';
+  controlTokenConfigured: boolean;
+  controlTokenValid: boolean;
+  controlTokenSource: 'database' | 'environment' | 'unset';
+  version: number;
+  storeAvailable: boolean;
+}
+
 export interface DeploymentStatus {
   mode: 'tunnel' | 'vercel-render';
   runnerOnline: boolean;
@@ -607,6 +617,10 @@ export interface DeploymentControlPlaneEvent {
 }
 
 export const deploymentAPI = {
+  getConfig: () => apiCall<{ success: boolean; data: DeploymentRouterConfig }>('/admin/deployment/config', { skipCache: true, skipErrorToast: true }),
+  saveConfig: (data: { routerUrl: string; controlToken: string; password: string }) => apiCall<{ success: boolean; data: { version: number; routerUrl: string; controlTokenUpdated: boolean } }>('/admin/deployment/config', {
+    method: 'PUT', body: JSON.stringify(data), skipCache: true, skipErrorToast: true,
+  }),
   getStatus: () => apiCall<DeploymentStatus>('/admin/deployment/status', { skipCache: true, skipErrorToast: true }),
   preflight: (mode: DeploymentStatus['mode']) => apiCall<{ mode: DeploymentStatus['mode']; passed: boolean }>('/admin/deployment/preflight', {
     method: 'POST', body: JSON.stringify({ mode }), skipErrorToast: true,

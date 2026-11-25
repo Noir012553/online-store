@@ -1,7 +1,18 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const Module = require('node:module');
+const originalLoad = Module._load;
+Module._load = function (request, parent, isMain) {
+  if (request === './deploymentRouterConfigService' && parent?.filename.endsWith('/deploymentRouterService.js')) {
+    return { getDeploymentRouterConfig: async () => ({
+      routerUrl: process.env.DEPLOYMENT_ROUTER_URL || '',
+      controlToken: process.env.DEPLOYMENT_CONTROL_TOKEN || '',
+    }) };
+  }
+  return originalLoad.call(this, request, parent, isMain);
+};
 const { callDeploymentRouter } = require('../services/deploymentRouterService');
-
+Module._load = originalLoad;
 const originalUrl = process.env.DEPLOYMENT_ROUTER_URL;
 const originalToken = process.env.DEPLOYMENT_CONTROL_TOKEN;
 const originalNodeEnv = process.env.NODE_ENV;

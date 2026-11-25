@@ -21,7 +21,7 @@ Một thao tác Super Admin có preflight và xác nhận, dùng runner độc l
 - `cloudflare/deployment-router/worker.js`: Worker fail-closed, Durable Object mode/job queue, hai mode allowlist, proxy hai hostname, health preflight, runner heartbeat gate, audit event độc lập, rollback bằng action `startTunnelApps` và tự xếp recovery job khi cutover lỗi. Mode chỉ đổi sau khi runner action và health check thành công.
 - `cloudflare/deployment-router/wrangler.toml`: khai báo Durable Object, initial mode `tunnel`, runner identity và backend health path `/readyz`; cần provision origins/secrets/hostname thật.
 - `cloudflare/deployment-router/worker.test.js`: 18 test offline cho auth, heartbeat, preflight, job concurrency/lease, rollback/recovery, routing và chuyển tiếp header WebSocket upgrade.
-- Backend: `src/routes/deploymentRoutes.js`, controller/service và `DeploymentAudit` cho status, preflight, cutover, rollback, job/audit. Tất cả route yêu cầu `protect` + `superAdmin`; Worker URL/token chỉ ở backend. `DEPLOYMENT_SWITCH_ENABLED` mặc định tắt và bắt buộc bật rõ ràng.
+- Backend: `src/routes/deploymentRoutes.js`, controller/service và `DeploymentAudit` cho status, preflight, cutover, rollback, job/audit. Tất cả route yêu cầu `protect` + `superAdmin`; `GET/PUT /api/admin/deployment/config` lưu Worker URL và control token mã hóa trong `ProviderRuntimeConfiguration`, yêu cầu xác thực lại mật khẩu và ghi audit. Status chỉ trả trạng thái token, không trả secret; cấu hình DB ưu tiên hơn env. `DEPLOYMENT_SWITCH_ENABLED` vẫn mặc định tắt.
 - `src/middleware/deploymentCandidateReadOnly.js` chặn webhook payment ở mọi method; analytics cache-clear dùng POST. `src/test/deployment-candidate-readonly.test.js` kiểm thử policy candidate offline.
 - Frontend: `/admin/deployment` hiển thị mode, runner, preflight, xác nhận thao tác, theo dõi job và audit; nút cutover/rollback bị khóa nếu switch chưa bật, runner offline hoặc preflight chưa đạt.
 - `online-store-backend/scripts/deployment-runner.js`: polling heartbeat/job và chỉ chạy hai script PowerShell cố định với cờ xác nhận; chưa được cài thành WinSW service.
@@ -31,7 +31,7 @@ Một thao tác Super Admin có preflight và xác nhận, dùng runner độc l
 
 - Cài runner script thành WinSW service độc lập trên host Windows và cấu hình service-control ACL tối thiểu để điều khiển đúng hai service.
 - Cấu hình URL frontend Vercel, backend Render, Tunnel origin riêng và Worker staging hostname; hiện `wrangler.toml` không có origins/secrets/production route.
-- Provision Durable Object và secrets `DEPLOYMENT_CONTROL_TOKEN`, `DEPLOYMENT_RUNNER_TOKEN`; cấu hình `DEPLOYMENT_ROUTER_URL`, `DEPLOYMENT_CONTROL_TOKEN` phía backend và giữ `DEPLOYMENT_SWITCH_ENABLED=false` đến sau staging.
+- Provision Durable Object và secrets Worker `DEPLOYMENT_CONTROL_TOKEN`, `DEPLOYMENT_RUNNER_TOKEN`; cấu hình backend `PROVIDER_CONFIG_ENCRYPTION_KEY` hợp lệ rồi nhập URL/control token qua form Super Admin hoặc dùng backend env fallback. Giữ `DEPLOYMENT_SWITCH_ENABLED=false` đến sau staging.
 - Cấp `MONGO_READ_ONLY_URI` với quyền đọc cho candidate; xác minh `DEPLOYMENT_CANDIDATE_READ_ONLY` trên Render và hoàn tất audit side effect cho các GET endpoint/background tasks.
 - Worker giữ header `Upgrade`/`Connection: Upgrade` khi proxy handshake WebSocket; test offline xác nhận header được chuyển tiếp nhưng chưa chứng minh kết nối WebSocket hoạt động trên Cloudflare runtime. Cần kiểm thử Socket.IO/WebSocket thực tế trên staging trước cutover.
 - Kiểm thử PowerShell trên Windows và integration trên staging: Host/TLS/cookie/websocket/upload/callback, stop/start partial failure, recovery và job theo dõi khi backend Tunnel đã dừng.
@@ -40,7 +40,7 @@ Một thao tác Super Admin có preflight và xác nhận, dùng runner độc l
 ## Blocker trước khi bật cutover
 
 - Chưa có URL/service ID Render và URL Vercel đã xác minh; chưa có origin Tunnel riêng và hostname Worker staging.
-- Chưa provision Worker bindings/secrets/route hoặc backend env; control plane hiện không thể được gọi từ production.
+- Chưa provision Worker bindings/secrets/route hoặc backend env. Form admin chỉ lưu URL/control token mã hóa ở backend; không deploy Worker, không ghi secrets lên Cloudflare và không thay thế runner Windows.
 - Runner heartbeat gate đã có trong Worker, nhưng runner chưa cài trên host Windows và chưa được kiểm thử với quyền vận hành cần thiết.
 - Chưa xác minh Mongo read-only user, candidate gate hoặc thứ tự chuyển credential production mà không chạy hai backend ghi cùng lúc.
 - Chưa chạy PowerShell tests hoặc hostname staging integration; môi trường trợ lý không có PowerShell hay quyền quản lý DNS/Cloudflare/Render/Vercel.

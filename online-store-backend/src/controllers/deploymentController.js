@@ -1,9 +1,66 @@
 const asyncHandler = require('express-async-handler');
 const DeploymentAudit = require('../models/DeploymentAudit');
+const ProviderRuntimeAudit = require('../models/ProviderRuntimeAudit');
+const User = require('../models/User');
 const { callDeploymentRouter } = require('../services/deploymentRouterService');
+const { getDeploymentRouterConfigStatus, saveDeploymentRouterConfig } = require('../services/deploymentRouterConfigService');
 
 const noStore = (res) => res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
 const allowedModes = new Set(['tunnel', 'vercel-render']);
+const deploymentRouterErrorCode = (error) => {
+  if (error.message === 'DEPLOYMENT_ROUTER_CONFIG_STORE_UNAVAILABLE') return error.message;
+  return error.message === 'DEPLOYMENT_ROUTER_NOT_CONFIGURED' ? error.message : 'DEPLOYMENT_ROUTER_UNAVAILABLE';
+};
+
+exports.getConfig = asyncHandler(async (req, res) => {
+  noStore(res);
+  try {
+    return res.json({ success: true, data: await getDeploymentRouterConfigStatus() });
+  } catch (error) {
+    return res.status(error.message === 'DEPLOYMENT_ROUTER_CONFIG_STORE_UNAVAILABLE' ? 503 : 500).json({
+      success: false,
+      code: error.message === 'DEPLOYMENT_ROUTER_CONFIG_STORE_UNAVAILABLE' ? error.message : 'DEPLOYMENT_ROUTER_CONFIG_UNAVAILABLE',
+    });
+  }
+});
+
+exports.updateConfig = asyncHandler(async (req, res) => {
+  noStore(res);
+  const body = req.body;
+  if (!body || typeof body !== 'object' || Array.isArray(body)
+    || Object.keys(body).some((key) => !['routerUrl', 'controlToken', 'password'].includes(key))
+    || typeof body.routerUrl !== 'string'
+    || (Object.hasOwn(body, 'controlToken') && typeof body.controlToken !== 'string')
+    || typeof body.password !== 'string') {
+    return res.status(400).json({ success: false, code: 'INVALID_DEPLOYMENT_ROUTER_CONFIG' });
+  }
+
+  const user = await User.findById(req.user._id);
+  if (!user || !(await user.matchPassword(body.password))) {
+    return res.status(401).json({ success: false, code: 'REAUTHENTICATION_FAILED' });
+  }
+
+  try {
+    const saved = await saveDeploymentRouterConfig({
+      routerUrl: body.routerUrl,
+      controlToken: body.controlToken,
+      updatedBy: req.user._id,
+    });
+    await ProviderRuntimeAudit.create({
+      providerCode: 'deployment_router',
+      action: 'update',
+      changedFields: ['DEPLOYMENT_ROUTER_URL', ...(saved.controlTokenUpdated ? ['DEPLOYMENT_CONTROL_TOKEN'] : [])],
+      userId: req.user._id,
+      userName: String(req.user.name || req.user.username || req.user.email || req.user._id).slice(0, 160),
+    });
+    return res.json({ success: true, data: { version: saved.version, routerUrl: saved.routerUrl, controlTokenUpdated: saved.controlTokenUpdated } });
+  } catch (error) {
+    const knownErrors = ['DEPLOYMENT_ROUTER_CONFIG_STORE_UNAVAILABLE', 'INVALID_DEPLOYMENT_ROUTER_URL', 'INVALID_DEPLOYMENT_CONTROL_TOKEN', 'DEPLOYMENT_CONTROL_TOKEN_REQUIRED'];
+    const code = knownErrors.includes(error.message) ? error.message : 'DEPLOYMENT_ROUTER_CONFIG_SAVE_FAILED';
+    const status = code === 'DEPLOYMENT_ROUTER_CONFIG_STORE_UNAVAILABLE' ? 503 : knownErrors.includes(code) ? 400 : 500;
+    return res.status(status).json({ success: false, code });
+  }
+});
 
 const audit = async (req, action, outcome, { mode = null, jobId = null } = {}) => {
   if (process.env.DEPLOYMENT_CANDIDATE_READ_ONLY === 'true') return;
@@ -27,11 +84,9 @@ const relay = async (req, res, action, path, options = {}, fields = {}) => {
     });
     return res.status(result.status).json(result.data);
   } catch (error) {
-    await audit(req, action, error.message === 'DEPLOYMENT_ROUTER_NOT_CONFIGURED' ? 'not-configured' : 'unavailable', fields);
-    return res.status(error.message === 'DEPLOYMENT_ROUTER_NOT_CONFIGURED' ? 503 : 502).json({
-      success: false,
-      code: error.message === 'DEPLOYMENT_ROUTER_NOT_CONFIGURED' ? 'DEPLOYMENT_ROUTER_NOT_CONFIGURED' : 'DEPLOYMENT_ROUTER_UNAVAILABLE',
-    });
+    const code = deploymentRouterErrorCode(error);
+    await audit(req, action, code === 'DEPLOYMENT_ROUTER_UNAVAILABLE' ? 'unavailable' : 'not-configured', fields);
+    return res.status(code === 'DEPLOYMENT_ROUTER_UNAVAILABLE' ? 502 : 503).json({ success: false, code });
   }
 };
 
@@ -43,12 +98,9 @@ exports.getStatus = asyncHandler(async (req, res) => {
     await audit(req, 'status', result.status < 300 ? 'success' : 'rejected', { mode: result.data?.mode || null });
     return res.status(result.status).json({ ...result.data, switchEnabled: enabled });
   } catch (error) {
-    await audit(req, 'status', error.message === 'DEPLOYMENT_ROUTER_NOT_CONFIGURED' ? 'not-configured' : 'unavailable');
-    return res.status(error.message === 'DEPLOYMENT_ROUTER_NOT_CONFIGURED' ? 503 : 502).json({
-      success: false,
-      code: error.message === 'DEPLOYMENT_ROUTER_NOT_CONFIGURED' ? 'DEPLOYMENT_ROUTER_NOT_CONFIGURED' : 'DEPLOYMENT_ROUTER_UNAVAILABLE',
-      switchEnabled: enabled,
-    });
+    const code = deploymentRouterErrorCode(error);
+    await audit(req, 'status', code === 'DEPLOYMENT_ROUTER_UNAVAILABLE' ? 'unavailable' : 'not-configured');
+    return res.status(code === 'DEPLOYMENT_ROUTER_UNAVAILABLE' ? 502 : 503).json({ success: false, code, switchEnabled: enabled });
   }
 });
 
@@ -108,10 +160,8 @@ exports.getJob = asyncHandler(async (req, res) => {
     const result = await callDeploymentRouter(`/__deployment/jobs/${jobId}`);
     return res.status(result.status).json(result.data);
   } catch (error) {
-    return res.status(error.message === 'DEPLOYMENT_ROUTER_NOT_CONFIGURED' ? 503 : 502).json({
-      success: false,
-      code: error.message === 'DEPLOYMENT_ROUTER_NOT_CONFIGURED' ? 'DEPLOYMENT_ROUTER_NOT_CONFIGURED' : 'DEPLOYMENT_ROUTER_UNAVAILABLE',
-    });
+    const code = deploymentRouterErrorCode(error);
+    return res.status(code === 'DEPLOYMENT_ROUTER_UNAVAILABLE' ? 502 : 503).json({ success: false, code });
   }
 });
 

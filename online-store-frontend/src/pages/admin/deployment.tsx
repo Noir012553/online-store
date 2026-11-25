@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { withAdminLayout } from '../../components/admin/withAdminLayout';
 import { Button } from '../../components/ui/button';
-import { deploymentAPI, type DeploymentAuditEvent, type DeploymentControlPlaneEvent, type DeploymentJob, type DeploymentStatus } from '../../lib/api';
+import { deploymentAPI, type DeploymentAuditEvent, type DeploymentControlPlaneEvent, type DeploymentJob, type DeploymentRouterConfig, type DeploymentStatus } from '../../lib/api';
 
 export const getServerSideProps = async () => ({ props: {} });
 
@@ -18,11 +18,24 @@ const getDeploymentErrorMessage = (error: unknown, fallback: string) => {
   if (code === 'DEPLOYMENT_ROUTER_UNAVAILABLE') {
     return 'Cloudflare Tunnel hiện tại vẫn có; chưa kết nối được Worker deployment router. Kiểm tra Worker và cấu hình backend; cutover/rollback vẫn bị khóa.';
   }
+  if (code === 'DEPLOYMENT_ROUTER_CONFIG_STORE_UNAVAILABLE' || code === 'PROVIDER_CONFIG_STORE_UNAVAILABLE') {
+    return 'Kho cấu hình mã hóa chưa sẵn sàng. Backend cần PROVIDER_CONFIG_ENCRYPTION_KEY hợp lệ trước khi lưu token.';
+  }
+  if (code === 'INVALID_DEPLOYMENT_ROUTER_URL') return 'URL Worker phải là HTTPS origin, không có đường dẫn, query hoặc thông tin đăng nhập.';
+  if (code === 'DEPLOYMENT_CONTROL_TOKEN_REQUIRED') return 'Nhập control token mới trước khi lưu vì hiện chưa có token cấu hình.';
+  if (code === 'INVALID_DEPLOYMENT_CONTROL_TOKEN') return 'Control token phải dài từ 32 đến 2048 ký tự.';
+  if (code === 'REAUTHENTICATION_FAILED') return 'Mật khẩu Super Admin không chính xác.';
   return error instanceof Error ? error.message : fallback;
 };
 
 function DeploymentAdminPage() {
   const [status, setStatus] = useState<DeploymentStatus | null>(null);
+  const [routerConfig, setRouterConfig] = useState<DeploymentRouterConfig | null>(null);
+  const [routerUrl, setRouterUrl] = useState('');
+  const [controlToken, setControlToken] = useState('');
+  const [reauthPassword, setReauthPassword] = useState('');
+  const [configSaving, setConfigSaving] = useState(false);
+  const [configError, setConfigError] = useState('');
   const [job, setJob] = useState<DeploymentJob | null>(null);
   const [audit, setAudit] = useState<DeploymentAuditEvent[]>([]);
   const [controlPlaneEvents, setControlPlaneEvents] = useState<DeploymentControlPlaneEvent[]>([]);
@@ -34,6 +47,14 @@ function DeploymentAdminPage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     setError('');
+    try {
+      const response = await deploymentAPI.getConfig();
+      setRouterConfig(response.data);
+      setRouterUrl(response.data.routerUrl);
+      setConfigError('');
+    } catch (requestError) {
+      setConfigError(getDeploymentErrorMessage(requestError, 'Không thể tải cấu hình control plane.'));
+    }
     try {
       const [current, events] = await Promise.all([deploymentAPI.getStatus(), deploymentAPI.getAudit()]);
       setStatus(current);
@@ -70,6 +91,22 @@ function DeploymentAdminPage() {
     }, 3000);
     return () => window.clearInterval(timer);
   }, [job]);
+
+  const saveRouterConfig = async () => {
+    setConfigSaving(true);
+    setConfigError('');
+    try {
+      await deploymentAPI.saveConfig({ routerUrl, controlToken, password: reauthPassword });
+      setControlToken('');
+      setReauthPassword('');
+      toast.success('Đã lưu cấu hình Worker. Token chỉ được lưu mã hóa và không hiển thị lại.');
+      await loadData();
+    } catch (requestError) {
+      setConfigError(getDeploymentErrorMessage(requestError, 'Không thể lưu cấu hình Worker.'));
+    } finally {
+      setConfigSaving(false);
+    }
+  };
 
   const runPreflight = async (mode: DeploymentStatus['mode']) => {
     setBusy(`preflight:${mode}`);
@@ -134,19 +171,48 @@ function DeploymentAdminPage() {
 
       {error && <div role="alert" className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"><CircleAlert className="mr-2 inline size-4" />{error}</div>}
 
+      <section aria-labelledby="deployment-router-config-title" className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 id="deployment-router-config-title" className="text-lg font-semibold text-slate-900">Cấu hình kết nối Worker</h2>
+        <p className="mt-1 text-sm text-slate-600">Form này lưu URL và control token mã hóa trong backend. Token không được đọc lại từ API; nếu đổi token, hãy cập nhật cùng giá trị trong Cloudflare Worker Secrets. Cần nhập lại mật khẩu Super Admin để lưu.</p>
+        {configError && <p role="alert" className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">{configError}</p>}
+        {routerConfig && <p className="mt-3 text-xs text-slate-500">URL: {routerConfig.routerUrlSource === 'unset' ? 'chưa cấu hình' : `đang lấy từ ${routerConfig.routerUrlSource}`} · Control token: {routerConfig.controlTokenValid ? `hợp lệ từ ${routerConfig.controlTokenSource}` : routerConfig.controlTokenConfigured ? 'đã có nhưng độ dài không hợp lệ' : 'chưa cấu hình'} · Kho mã hóa: {routerConfig.storeAvailable ? 'sẵn sàng' : 'chưa sẵn sàng'}</p>}
+        {routerConfig && !routerConfig.storeAvailable && <p role="alert" className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">Backend cần <code>PROVIDER_CONFIG_ENCRYPTION_KEY</code> gồm 64 ký tự hex để bật lưu mã hóa.</p>}
+        <form className="mt-4 grid gap-4 md:grid-cols-2" onSubmit={(event) => { event.preventDefault(); void saveRouterConfig(); }}>
+          <label className="block text-sm font-medium text-slate-800 md:col-span-2">
+            Worker URL
+            <input type="url" required maxLength={2048} value={routerUrl} onChange={(event) => setRouterUrl(event.target.value)} placeholder="https://<worker-host>" className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" />
+            <span className="mt-1 block text-xs font-normal text-slate-500">Chỉ HTTPS origin, không có đường dẫn, query hoặc thông tin đăng nhập.</span>
+          </label>
+          <label className="block text-sm font-medium text-slate-800">
+            Control token mới
+            <input type="password" required={!routerConfig?.controlTokenValid} autoComplete="new-password" maxLength={2048} value={controlToken} onChange={(event) => setControlToken(event.target.value)} placeholder={routerConfig?.controlTokenValid ? 'Để trống để giữ token hiện tại' : 'Nhập token từ 32 đến 2048 ký tự'} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" />
+            <span className="mt-1 block text-xs font-normal text-slate-500">Không hiển thị lại sau khi lưu; token phải khớp Cloudflare Worker Secret.</span>
+          </label>
+          <label className="block text-sm font-medium text-slate-800">
+            Mật khẩu Super Admin
+            <input type="password" required autoComplete="current-password" value={reauthPassword} onChange={(event) => setReauthPassword(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" />
+          </label>
+          <div className="md:col-span-2">
+            <Button type="submit" disabled={configSaving || loading || !routerConfig?.storeAvailable || !routerUrl.trim() || !reauthPassword}>
+              {configSaving && <LoaderCircle className="animate-spin" />} Lưu cấu hình kết nối
+            </Button>
+          </div>
+        </form>
+      </section>
+
       <section aria-labelledby="deployment-setup-title" className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 id="deployment-setup-title" className="text-lg font-semibold text-slate-900">Cấu hình control plane</h2>
-        <p className="mt-1 text-sm text-slate-600">Đây là checklist hướng dẫn, không phải form lưu secret. Nhập token trong secret settings của từng dịch vụ, không nhập vào Provider Catalog hay gửi qua chat.</p>
+        <p className="mt-1 text-sm text-slate-600">Checklist này hướng dẫn các cấu hình còn phải thực hiện ngoài form, gồm Worker origins/secrets và Windows runner. Không nhập secret vào Provider Catalog hay gửi qua chat.</p>
         <ol className="mt-4 grid gap-4 md:grid-cols-2">
           <li className="rounded-lg border border-slate-200 p-4">
             <h3 className="font-semibold text-slate-900">1. Cloudflare Worker</h3>
             <p className="mt-1 text-sm text-slate-600">Trong Worker <code>deployment-router</code>, mở Settings → Variables and Secrets; deploy Durable Object binding <code>DEPLOYMENT_STATE</code> từ <code>wrangler.toml</code>.</p>
             <p className="mt-2 text-sm text-slate-700">Variables: <code>TUNNEL_FRONTEND_ORIGIN</code>, <code>TUNNEL_BACKEND_ORIGIN</code>, <code>VERCEL_FRONTEND_ORIGIN</code>, <code>RENDER_BACKEND_ORIGIN</code> (HTTPS origin, không có path/query), và <code>DEPLOYMENT_RUNNER_ID=laptop-store-windows-01</code>.</p>
-            <p className="mt-2 text-sm text-slate-700">Secrets: <code>DEPLOYMENT_CONTROL_TOKEN</code> và <code>DEPLOYMENT_RUNNER_TOKEN</code> (mỗi token tối thiểu 16 ký tự).</p>
+            <p className="mt-2 text-sm text-slate-700">Secrets: <code>DEPLOYMENT_CONTROL_TOKEN</code> (tối thiểu 32 ký tự, phải khớp form phía trên) và <code>DEPLOYMENT_RUNNER_TOKEN</code> (tối thiểu 16 ký tự).</p>
           </li>
           <li className="rounded-lg border border-slate-200 p-4">
             <h3 className="font-semibold text-slate-900">2. Backend API</h3>
-            <p className="mt-1 text-sm text-slate-600">Trong environment variables của dịch vụ đang host backend, đặt:</p>
+            <p className="mt-1 text-sm text-slate-600">Dùng form phía trên để lưu URL và token mã hóa trong MongoDB; cấu hình database được ưu tiên hơn environment variables. Nếu dùng env fallback, đặt:</p>
             <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-slate-700">
               <li><code>DEPLOYMENT_ROUTER_URL</code>: HTTPS origin của Worker, chỉ gồm scheme và hostname.</li>
               <li><code>DEPLOYMENT_CONTROL_TOKEN</code>: cùng secret với Worker.</li>
