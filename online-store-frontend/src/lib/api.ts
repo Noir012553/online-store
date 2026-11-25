@@ -576,6 +576,11 @@ export interface DeploymentRouterConfig {
   controlTokenSource: 'database' | 'environment' | 'unset';
   version: number;
   storeAvailable: boolean;
+  workerOrigins: Record<'TUNNEL_FRONTEND_ORIGIN' | 'TUNNEL_BACKEND_ORIGIN' | 'VERCEL_FRONTEND_ORIGIN' | 'RENDER_BACKEND_ORIGIN', string>;
+  runnerId: string;
+  runnerTokenConfigured: boolean;
+  runnerTokenFilePath: string;
+  readinessChecklist: Record<'WORKER_DEPLOYED' | 'RUNNER_CONFIGURED' | 'STAGING_VERIFIED', boolean>;
 }
 
 export interface DeploymentStatus {
@@ -618,7 +623,16 @@ export interface DeploymentControlPlaneEvent {
 
 export const deploymentAPI = {
   getConfig: () => apiCall<{ success: boolean; data: DeploymentRouterConfig }>('/admin/deployment/config', { skipCache: true, skipErrorToast: true }),
-  saveConfig: (data: { routerUrl: string; controlToken: string; password: string }) => apiCall<{ success: boolean; data: { version: number; routerUrl: string; controlTokenUpdated: boolean } }>('/admin/deployment/config', {
+  saveConfig: (data: {
+    routerUrl: string;
+    controlToken: string;
+    workerOrigins: DeploymentRouterConfig['workerOrigins'];
+    runnerId: string;
+    runnerToken: string;
+    runnerTokenFilePath: string;
+    readinessChecklist: DeploymentRouterConfig['readinessChecklist'];
+    password: string;
+  }) => apiCall<{ success: boolean; data: { version: number; routerUrl: string; controlTokenUpdated: boolean; runnerTokenUpdated: boolean } }>('/admin/deployment/config', {
     method: 'PUT', body: JSON.stringify(data), skipCache: true, skipErrorToast: true,
   }),
   getStatus: () => apiCall<DeploymentStatus>('/admin/deployment/status', { skipCache: true, skipErrorToast: true }),

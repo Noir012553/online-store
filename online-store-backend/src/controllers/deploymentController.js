@@ -28,9 +28,14 @@ exports.updateConfig = asyncHandler(async (req, res) => {
   noStore(res);
   const body = req.body;
   if (!body || typeof body !== 'object' || Array.isArray(body)
-    || Object.keys(body).some((key) => !['routerUrl', 'controlToken', 'password'].includes(key))
+    || Object.keys(body).some((key) => !['routerUrl', 'controlToken', 'workerOrigins', 'runnerId', 'runnerToken', 'runnerTokenFilePath', 'readinessChecklist', 'password'].includes(key))
     || typeof body.routerUrl !== 'string'
     || (Object.hasOwn(body, 'controlToken') && typeof body.controlToken !== 'string')
+    || (Object.hasOwn(body, 'workerOrigins') && (!body.workerOrigins || typeof body.workerOrigins !== 'object' || Array.isArray(body.workerOrigins) || Object.keys(body.workerOrigins).some((key) => !['TUNNEL_FRONTEND_ORIGIN', 'TUNNEL_BACKEND_ORIGIN', 'VERCEL_FRONTEND_ORIGIN', 'RENDER_BACKEND_ORIGIN'].includes(key))))
+    || (Object.hasOwn(body, 'runnerId') && typeof body.runnerId !== 'string')
+    || (Object.hasOwn(body, 'runnerToken') && typeof body.runnerToken !== 'string')
+    || (Object.hasOwn(body, 'runnerTokenFilePath') && typeof body.runnerTokenFilePath !== 'string')
+    || (Object.hasOwn(body, 'readinessChecklist') && (!body.readinessChecklist || typeof body.readinessChecklist !== 'object' || Array.isArray(body.readinessChecklist) || Object.keys(body.readinessChecklist).some((key) => !['WORKER_DEPLOYED', 'RUNNER_CONFIGURED', 'STAGING_VERIFIED'].includes(key))))
     || typeof body.password !== 'string') {
     return res.status(400).json({ success: false, code: 'INVALID_DEPLOYMENT_ROUTER_CONFIG' });
   }
@@ -44,18 +49,23 @@ exports.updateConfig = asyncHandler(async (req, res) => {
     const saved = await saveDeploymentRouterConfig({
       routerUrl: body.routerUrl,
       controlToken: body.controlToken,
+      workerOrigins: body.workerOrigins,
+      runnerId: body.runnerId,
+      runnerToken: body.runnerToken,
+      runnerTokenFilePath: body.runnerTokenFilePath,
+      readinessChecklist: body.readinessChecklist,
       updatedBy: req.user._id,
     });
     await ProviderRuntimeAudit.create({
       providerCode: 'deployment_router',
       action: 'update',
-      changedFields: ['DEPLOYMENT_ROUTER_URL', ...(saved.controlTokenUpdated ? ['DEPLOYMENT_CONTROL_TOKEN'] : [])],
+      changedFields: saved.changedFields,
       userId: req.user._id,
       userName: String(req.user.name || req.user.username || req.user.email || req.user._id).slice(0, 160),
     });
-    return res.json({ success: true, data: { version: saved.version, routerUrl: saved.routerUrl, controlTokenUpdated: saved.controlTokenUpdated } });
+    return res.json({ success: true, data: { version: saved.version, routerUrl: saved.routerUrl, controlTokenUpdated: saved.controlTokenUpdated, runnerTokenUpdated: saved.runnerTokenUpdated } });
   } catch (error) {
-    const knownErrors = ['DEPLOYMENT_ROUTER_CONFIG_STORE_UNAVAILABLE', 'INVALID_DEPLOYMENT_ROUTER_URL', 'INVALID_DEPLOYMENT_CONTROL_TOKEN', 'DEPLOYMENT_CONTROL_TOKEN_REQUIRED'];
+    const knownErrors = ['DEPLOYMENT_ROUTER_CONFIG_STORE_UNAVAILABLE', 'INVALID_DEPLOYMENT_ROUTER_URL', 'INVALID_DEPLOYMENT_CONTROL_TOKEN', 'DEPLOYMENT_CONTROL_TOKEN_REQUIRED', 'INVALID_DEPLOYMENT_ORIGIN', 'INVALID_DEPLOYMENT_RUNNER_ID', 'INVALID_DEPLOYMENT_RUNNER_TOKEN', 'INVALID_DEPLOYMENT_RUNNER_TOKEN_FILE', 'INVALID_DEPLOYMENT_CHECKLIST'];
     const code = knownErrors.includes(error.message) ? error.message : 'DEPLOYMENT_ROUTER_CONFIG_SAVE_FAILED';
     const status = code === 'DEPLOYMENT_ROUTER_CONFIG_STORE_UNAVAILABLE' ? 503 : knownErrors.includes(code) ? 400 : 500;
     return res.status(status).json({ success: false, code });

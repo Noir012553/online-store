@@ -85,6 +85,49 @@ test('blank token updates the URL without replacing the encrypted token', async 
   assert.equal((await getDeploymentRouterConfig()).routerUrl, 'https://second-router.example.test');
 });
 
+test('saves Worker origins, runner settings, encrypted runner token, and checklist state', async () => {
+  const runnerToken = 'a-runner-token-long-enough';
+  const savedResult = await saveDeploymentRouterConfig({
+    routerUrl: 'https://router.example.test',
+    controlToken: 'a-control-token-long-enough-for-production',
+    workerOrigins: {
+      TUNNEL_FRONTEND_ORIGIN: 'https://tunnel-frontend.example.test/',
+      TUNNEL_BACKEND_ORIGIN: 'https://tunnel-backend.example.test',
+      VERCEL_FRONTEND_ORIGIN: 'https://store.example.test',
+      RENDER_BACKEND_ORIGIN: 'https://api.example.test',
+    },
+    runnerId: 'windows-runner-02',
+    runnerToken,
+    runnerTokenFilePath: 'C:\\\\runner\\\\secrets\\\\token.dpapi',
+    readinessChecklist: { WORKER_DEPLOYED: true, RUNNER_CONFIGURED: false, STAGING_VERIFIED: true },
+    updatedBy: 'admin-id',
+  });
+
+  assert.equal(savedResult.runnerTokenUpdated, true);
+  assert.equal(saved.values.TUNNEL_FRONTEND_ORIGIN, 'https://tunnel-frontend.example.test');
+  assert.equal(saved.values.DEPLOYMENT_RUNNER_ID, 'windows-runner-02');
+  assert.equal(saved.values.DEPLOYMENT_RUNNER_TOKEN_DPAPI_FILE, 'C:\\\\runner\\\\secrets\\\\token.dpapi');
+  assert.equal(JSON.stringify(saved.encryptedSecrets).includes(runnerToken), false);
+  const status = await getDeploymentRouterConfigStatus();
+  assert.equal(status.runnerTokenConfigured, true);
+  assert.equal(status.runnerId, 'windows-runner-02');
+  assert.equal(status.workerOrigins.RENDER_BACKEND_ORIGIN, 'https://api.example.test');
+  assert.equal(status.readinessChecklist.STAGING_VERIFIED, true);
+  assert.equal(Object.hasOwn(status, 'runnerToken'), false);
+});
+
+test('validates Worker origins and runner credentials', async () => {
+  const config = {
+    routerUrl: 'https://router.example.test',
+    controlToken: 'a-control-token-long-enough-for-production',
+    updatedBy: 'admin-id',
+  };
+  await assert.rejects(saveDeploymentRouterConfig({ ...config, workerOrigins: { TUNNEL_FRONTEND_ORIGIN: 'http://insecure.example.test' } }), { message: 'INVALID_DEPLOYMENT_ORIGIN' });
+  await assert.rejects(saveDeploymentRouterConfig({ ...config, runnerId: 'bad id' }), { message: 'INVALID_DEPLOYMENT_RUNNER_ID' });
+  await assert.rejects(saveDeploymentRouterConfig({ ...config, runnerToken: 'too-short' }), { message: 'INVALID_DEPLOYMENT_RUNNER_TOKEN' });
+  await assert.rejects(saveDeploymentRouterConfig({ ...config, readinessChecklist: { WORKER_DEPLOYED: 'yes' } }), { message: 'INVALID_DEPLOYMENT_CHECKLIST' });
+});
+
 test('database configuration takes precedence over environment values', async () => {
   process.env.DEPLOYMENT_ROUTER_URL = 'https://env-router.example.test';
   process.env.DEPLOYMENT_CONTROL_TOKEN = 'environment-control-token-that-is-long-enough';
