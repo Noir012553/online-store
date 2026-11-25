@@ -304,7 +304,7 @@ function AppContent({ Component, pageProps }: AppContentProps) {
 }
 
 function MyApp({ Component, pageProps }: AppProps) {
-  const [siteUrl, setSiteUrl] = useState(SITE_URL);
+  const [siteUrl, setSiteUrl] = useState(() => normalizeSiteUrl(pageProps.siteUrl) || SITE_URL);
 
   useEffect(() => {
     let active = true;
