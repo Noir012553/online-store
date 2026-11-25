@@ -23,6 +23,8 @@
   "table_value": "Giá trị",
   "brand": "Thương hiệu",
   "store_name": "Tên cửa hàng",
+  "site_domain": "Tên miền website",
+  "site_domain_help": "Nhập tên miền chính của cửa hàng, có thể bỏ https://. Dùng cho canonical và URL chia sẻ; không dùng làm Tunnel origin.",
   "support_email": "Email hỗ trợ",
   "logo_main": "Logo chính",
   "logo_dark": "Logo nền tối",

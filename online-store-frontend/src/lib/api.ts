@@ -516,6 +516,7 @@ export async function apiCall<T = any>(
 export interface StoreSettingsRecord {
   branding: {
     storeName: string;
+    siteUrl: string;
     supportEmail: string;
     logoUrl: string;
     darkLogoUrl: string;

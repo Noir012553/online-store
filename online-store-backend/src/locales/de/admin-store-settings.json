@@ -23,6 +23,8 @@
   "table_value": "Wert",
   "brand": "Branding",
   "store_name": "Shopname",
+  "site_domain": "Website-Domain",
+  "site_domain_help": "Geben Sie die Hauptdomain des Shops mit oder ohne https:// ein. Sie wird für Canonical- und Freigabe-URLs verwendet, nicht als Tunnel-Origin.",
   "support_email": "Support-E-Mail",
   "logo_main": "Hauptlogo",
   "logo_dark": "Logo für dunklen Hintergrund",

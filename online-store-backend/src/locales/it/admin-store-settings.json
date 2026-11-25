@@ -23,6 +23,8 @@
   "table_value": "Valore",
   "brand": "Marchio",
   "store_name": "Nome del negozio",
+  "site_domain": "Dominio del sito web",
+  "site_domain_help": "Inserisci il dominio principale del negozio, con o senza https://. Usato per URL canonical e di condivisione, non come origine Tunnel.",
   "support_email": "E-mail di supporto",
   "logo_main": "Logo principale",
   "logo_dark": "Logo per sfondo scuro",
