@@ -139,11 +139,17 @@ const getDeploymentErrorMessage = (error: unknown, fallback: string) => {
   return error instanceof Error ? error.message : fallback;
 };
 
-const copyRunnerToken = async (token: string) => {
+const createRandomToken = () => {
+  if (!window.crypto?.getRandomValues) throw new Error('Web Crypto unavailable');
+  const bytes = window.crypto.getRandomValues(new Uint8Array(32));
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+};
+
+const copyToken = async (token: string, tokenType: 'control' | 'runner') => {
   try {
     if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable');
     await navigator.clipboard.writeText(token);
-    toast.success('Đã sao chép runner token.');
+    toast.success(`Đã sao chép ${tokenType} token.`);
   } catch {
     toast.error('Không thể sao chép tự động. Hãy chọn và sao chép token thủ công.');
   }
@@ -204,7 +210,7 @@ function RevealRunnerToken({ onDismiss }: { onDismiss: () => void }) {
             <input type="text" readOnly value={token} onFocus={(event) => event.currentTarget.select()} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-sm" />
           </label>
           <div className="mt-2 flex flex-wrap gap-2">
-            <Button type="button" variant="outline" onClick={() => void copyRunnerToken(token)}>Sao chép token</Button>
+            <Button type="button" variant="outline" onClick={() => void copyToken(token, 'runner')}>Sao chép token</Button>
             <Button type="button" variant="outline" onClick={dismiss}>Đóng và xóa khỏi màn hình</Button>
           </div>
         </div>
@@ -364,9 +370,15 @@ function DeploymentAdminPage() {
 
   const generateRunnerToken = () => {
     try {
-      if (!window.crypto?.getRandomValues) throw new Error('Web Crypto unavailable');
-      const bytes = window.crypto.getRandomValues(new Uint8Array(32));
-      setRunnerToken(Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join(''));
+      setRunnerToken(createRandomToken());
+    } catch {
+      toast.error('Không thể tạo token an toàn. Hãy sử dụng trình duyệt hỗ trợ Web Crypto trong ngữ cảnh bảo mật.');
+    }
+  };
+
+  const generateControlToken = () => {
+    try {
+      setControlToken(createRandomToken());
     } catch {
       toast.error('Không thể tạo token an toàn. Hãy sử dụng trình duyệt hỗ trợ Web Crypto trong ngữ cảnh bảo mật.');
     }
@@ -505,7 +517,7 @@ function DeploymentAdminPage() {
                   </label>
                   <div className="mt-2 flex flex-wrap gap-2">
                     <Button type="button" variant="outline" onClick={generateRunnerToken}>Tạo token ngẫu nhiên 256-bit</Button>
-                    <Button type="button" variant="outline" disabled={!runnerToken} onClick={() => void copyRunnerToken(runnerToken)}>Sao chép token mới</Button>
+                    <Button type="button" variant="outline" disabled={!runnerToken} onClick={() => void copyToken(runnerToken, 'runner')}>Sao chép token mới</Button>
                   </div>
                   <p className="mt-2 text-xs text-slate-600">Tạo token không tự lưu. Nhấn Lưu cấu hình deployment và xác nhận bằng mật khẩu Super Admin để lưu mã hóa; sau đó phải tự đồng bộ chính giá trị này vào Cloudflare Worker Secret và file DPAPI của Windows runner.</p>
                   <p className="mt-1 text-xs text-slate-600">Token không phải mật khẩu dùng một lần: tạo một lần và dùng để xác thực cho đến khi được thay thế (rotate).</p>
@@ -520,10 +532,16 @@ function DeploymentAdminPage() {
                   <SuggestionInput type="url" required maxLength={2048} value={routerUrl} suggestions={routerUrlSuggestions} onChange={setRouterUrl} onValueBlur={(value) => rememberSuggestion('routerUrls', value)} placeholder="URL Worker đã deploy" className="w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" />
                   <span className="mt-1 block text-xs font-normal text-slate-500">HTTPS origin của Worker, không có path, query hoặc thông tin đăng nhập.</span>
                 </label>
-                <label className="block text-sm font-medium text-slate-800">DEPLOYMENT_CONTROL_TOKEN mới
-                  <input type="password" required={!routerConfig?.controlTokenValid} autoComplete="new-password" maxLength={2048} value={controlToken} onChange={(event) => setControlToken(event.target.value)} placeholder={routerConfig?.controlTokenValid ? 'Để trống để giữ token hiện tại' : 'Từ 32 đến 2048 ký tự'} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" />
-                  <span className="mt-1 block text-xs font-normal text-slate-500">Token được lưu mã hóa và phải khớp Cloudflare Worker Secret.</span>
-                </label>
+                <div>
+                  <label className="block text-sm font-medium text-slate-800">DEPLOYMENT_CONTROL_TOKEN mới
+                    <input type="password" required={!routerConfig?.controlTokenValid} autoComplete="new-password" maxLength={2048} value={controlToken} onChange={(event) => setControlToken(event.target.value)} placeholder={routerConfig?.controlTokenValid ? 'Để trống để giữ token hiện tại' : 'Từ 32 đến 2048 ký tự'} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" />
+                  </label>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Button type="button" variant="outline" onClick={generateControlToken}>Tạo control token ngẫu nhiên 256-bit</Button>
+                    <Button type="button" variant="outline" disabled={!controlToken} onClick={() => void copyToken(controlToken, 'control')}>Sao chép token mới</Button>
+                  </div>
+                  <p className="mt-2 text-xs text-slate-600">Token được lưu mã hóa khi bấm Lưu và phải đồng bộ cùng giá trị với Cloudflare Worker Secret. Token dùng lâu dài cho tới khi thay thế, không phải mã dùng một lần.</p>
+                </div>
                 <p className="text-xs text-slate-600"><code>DEPLOYMENT_SWITCH_ENABLED=false</code> cho đến khi staging được duyệt.</p>
               </div>
             </li>
