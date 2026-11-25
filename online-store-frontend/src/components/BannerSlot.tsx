@@ -39,7 +39,7 @@ export function BannerSlot({ slot, variant = 'strip', className = '', limit = 10
     const loadBanners = async () => {
       setIsLoading(true);
       try {
-        const response = await bannerAPI.getBanners(slot, true, 1, limit, locale as any);
+        const response = await bannerAPI.getBanners(slot, true, 1, limit, locale as any, { skipErrorToast: true });
         if (!isMounted) return;
         setBanners(response.banners || []);
         setCurrentIndex(0);

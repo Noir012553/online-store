@@ -64,7 +64,7 @@ export function NotificationBell() {
     const requestId = ++requestIdRef.current;
     try {
       setIsLoading(true);
-      const response = await orderAPI.getAllOrders(1, locale, locale, currencyCode);
+      const response = await orderAPI.getAllOrders(1, locale, locale, currencyCode, {}, { skipErrorToast: true });
       if (requestId !== requestIdRef.current) return;
       const allOrders = response.orders || [];
       const pending = allOrders.filter(
