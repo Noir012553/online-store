@@ -535,7 +535,7 @@ export interface StoreSettingsRecord {
 
 export const settingsAPI = {
   getPublic: () => apiCall<Pick<StoreSettingsRecord, 'branding' | 'maintenance'>>('/settings/public', { skipCache: true, skipErrorToast: true }),
-  getAdmin: () => apiCall<{ success: boolean; data: StoreSettingsRecord }>('/settings/admin', { skipCache: true }),
+  getAdmin: () => apiCall<{ success: boolean; data: StoreSettingsRecord }>('/settings/admin', { skipCache: true, skipErrorToast: true }),
   update: (data: Partial<Pick<StoreSettingsRecord, 'branding' | 'maintenance'>>) => apiCall<{ success: boolean; data: StoreSettingsRecord }>('/settings/admin', {
     method: 'PUT',
     body: JSON.stringify(data),

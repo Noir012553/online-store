@@ -66,7 +66,7 @@ function SettingsAdminPage() {
       setLoadError(null);
     } catch (error) {
       const apiError = error as Error & { code?: string; status?: number };
-      setLoadError(apiError.code === 'ROUTE_NOT_FOUND' || apiError.status === 404 ? 'backend-missing' : 'load-failed');
+      setLoadError(apiError.code === 'ROUTE_NOT_FOUND' || apiError.code === 'INVALID_SETTINGS_FIELDS' || apiError.status === 404 ? 'backend-missing' : 'load-failed');
     } finally {
       setLoading(false);
     }
