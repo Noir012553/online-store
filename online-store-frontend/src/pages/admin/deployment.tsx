@@ -134,6 +134,36 @@ function DeploymentAdminPage() {
 
       {error && <div role="alert" className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"><CircleAlert className="mr-2 inline size-4" />{error}</div>}
 
+      <section aria-labelledby="deployment-setup-title" className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 id="deployment-setup-title" className="text-lg font-semibold text-slate-900">Cấu hình control plane</h2>
+        <p className="mt-1 text-sm text-slate-600">Đây là checklist hướng dẫn, không phải form lưu secret. Nhập token trong secret settings của từng dịch vụ, không nhập vào Provider Catalog hay gửi qua chat.</p>
+        <ol className="mt-4 grid gap-4 md:grid-cols-2">
+          <li className="rounded-lg border border-slate-200 p-4">
+            <h3 className="font-semibold text-slate-900">1. Cloudflare Worker</h3>
+            <p className="mt-1 text-sm text-slate-600">Trong Worker <code>deployment-router</code>, mở Settings → Variables and Secrets; deploy Durable Object binding <code>DEPLOYMENT_STATE</code> từ <code>wrangler.toml</code>.</p>
+            <p className="mt-2 text-sm text-slate-700">Variables: <code>TUNNEL_FRONTEND_ORIGIN</code>, <code>TUNNEL_BACKEND_ORIGIN</code>, <code>VERCEL_FRONTEND_ORIGIN</code>, <code>RENDER_BACKEND_ORIGIN</code> (HTTPS origin, không có path/query), và <code>DEPLOYMENT_RUNNER_ID=laptop-store-windows-01</code>.</p>
+            <p className="mt-2 text-sm text-slate-700">Secrets: <code>DEPLOYMENT_CONTROL_TOKEN</code> và <code>DEPLOYMENT_RUNNER_TOKEN</code> (mỗi token tối thiểu 16 ký tự).</p>
+          </li>
+          <li className="rounded-lg border border-slate-200 p-4">
+            <h3 className="font-semibold text-slate-900">2. Backend API</h3>
+            <p className="mt-1 text-sm text-slate-600">Trong environment variables của dịch vụ đang host backend, đặt:</p>
+            <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-slate-700">
+              <li><code>DEPLOYMENT_ROUTER_URL</code>: HTTPS origin của Worker, chỉ gồm scheme và hostname.</li>
+              <li><code>DEPLOYMENT_CONTROL_TOKEN</code>: cùng secret với Worker.</li>
+              <li><code>DEPLOYMENT_SWITCH_ENABLED=false</code> cho đến khi staging được duyệt.</li>
+            </ul>
+          </li>
+          <li className="rounded-lg border border-slate-200 p-4">
+            <h3 className="font-semibold text-slate-900">3. Windows runner</h3>
+            <p className="mt-1 text-sm text-slate-600">Trong cấu hình WinSW service, đặt <code>DEPLOYMENT_ROUTER_URL</code>, <code>DEPLOYMENT_RUNNER_ID</code> trùng với Worker, và <code>DEPLOYMENT_RUNNER_TOKEN_DPAPI_FILE</code> trỏ tới file token được bảo vệ bằng DPAPI. Token trong file phải khớp secret <code>DEPLOYMENT_RUNNER_TOKEN</code> của Worker.</p>
+          </li>
+          <li className="rounded-lg border border-slate-200 p-4">
+            <h3 className="font-semibold text-slate-900">4. Kiểm tra trước khi bật switch</h3>
+            <p className="mt-1 text-sm text-slate-600">Deploy cấu hình, khởi động runner, tải lại trạng thái và xác nhận runner online; chạy preflight cho cả Tunnel lẫn Vercel + Render. Origin Tunnel phải là HTTPS hostname riêng, không dùng <code>127.0.0.1</code> hoặc hostname production đi qua chính Worker.</p>
+          </li>
+        </ol>
+      </section>
+
       <section className="grid gap-4 md:grid-cols-3">
         <div className="rounded-xl border bg-white p-5 shadow-sm">
           <p className="text-sm text-slate-500">Luồng đang hoạt động</p>
