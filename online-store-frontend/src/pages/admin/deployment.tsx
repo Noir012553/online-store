@@ -30,6 +30,29 @@ const emptySuggestions: DeploymentSuggestions = {
 };
 const formatTime = (value?: number | string | null) => value ? new Date(value).toLocaleString() : '—';
 
+const getTunnelDomain = (frontendOrigin: string, backendOrigin: string) => {
+  for (const [origin, prefix] of [[frontendOrigin, 'tunnel-frontend'], [backendOrigin, 'tunnel-backend']] as const) {
+    try {
+      const url = new URL(origin);
+      if (url.hostname.startsWith(`${prefix}.`)) return `${url.hostname.slice(prefix.length + 1)}${url.port ? `:${url.port}` : ''}`;
+    } catch {
+      continue;
+    }
+  }
+  return '';
+};
+
+const getTunnelOriginHost = (value: string) => {
+  try {
+    const domain = value.trim().replace(/^https?:\/\//i, '');
+    const url = new URL(`https://${domain}`);
+    if (url.username || url.password || url.pathname !== '/' || url.search || url.hash || !url.hostname.includes('.')) return '';
+    return `${url.hostname}${url.port ? `:${url.port}` : ''}`;
+  } catch {
+    return '';
+  }
+};
+
 type SuggestionInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'onBlur' | 'list'> & {
   value: string;
   suggestions: SuggestionOption[];
@@ -120,6 +143,7 @@ function DeploymentAdminPage() {
   const [routerUrl, setRouterUrl] = useState('');
   const [controlToken, setControlToken] = useState('');
   const [runnerToken, setRunnerToken] = useState('');
+  const [tunnelDomain, setTunnelDomain] = useState('');
   const [workerOrigins, setWorkerOrigins] = useState<DeploymentRouterConfig['workerOrigins']>({
     TUNNEL_FRONTEND_ORIGIN: '',
     TUNNEL_BACKEND_ORIGIN: '',
@@ -153,6 +177,7 @@ function DeploymentAdminPage() {
       setRouterConfig(response.data);
       setRouterUrl(response.data.routerUrl);
       setWorkerOrigins(response.data.workerOrigins);
+      setTunnelDomain(getTunnelDomain(response.data.workerOrigins.TUNNEL_FRONTEND_ORIGIN, response.data.workerOrigins.TUNNEL_BACKEND_ORIGIN));
       setRunnerId(response.data.runnerId);
       setRunnerTokenFilePath(response.data.runnerTokenFilePath);
       setReadinessChecklist(response.data.readinessChecklist);
@@ -350,6 +375,20 @@ function DeploymentAdminPage() {
               <h3 className="font-semibold text-slate-900">1. Cloudflare Worker</h3>
               <p className="mt-1 text-sm text-slate-600">Nhập HTTPS origins và secrets cho Worker <code>deployment-router</code>. Durable Object binding <code>DEPLOYMENT_STATE</code> vẫn được quản lý qua Wrangler.</p>
               <div className="mt-3 grid gap-3">
+                <label className="block text-sm font-medium text-slate-800">Tên miền gốc Tunnel
+                  <input type="text" value={tunnelDomain} onChange={(event) => {
+                    const host = getTunnelOriginHost(event.target.value);
+                    setTunnelDomain(event.target.value);
+                    if (!host) return;
+                    setTunnelDomain(host);
+                    setWorkerOrigins((current) => ({
+                      ...current,
+                      TUNNEL_FRONTEND_ORIGIN: `https://tunnel-frontend.${host}`,
+                      TUNNEL_BACKEND_ORIGIN: `https://tunnel-backend.${host}`,
+                    }));
+                  }} placeholder="example.com" className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" />
+                  <span className="mt-1 block text-xs font-normal text-slate-500">Nhập domain gốc đã trỏ tới Tunnel; tự tạo tunnel-frontend và tunnel-backend. Không dùng hostname đang đi qua Worker.</span>
+                </label>
                 {([
                   ['TUNNEL_FRONTEND_ORIGIN', 'Tunnel frontend origin'],
                   ['TUNNEL_BACKEND_ORIGIN', 'Tunnel backend origin'],
