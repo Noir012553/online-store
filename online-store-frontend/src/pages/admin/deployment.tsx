@@ -8,6 +8,9 @@ import { deploymentAPI, type DeploymentAuditEvent, type DeploymentControlPlaneEv
 export const getServerSideProps = async () => ({ props: {} });
 
 const terminalStatuses = new Set(['succeeded', 'failed']);
+const suggestionStorageKey = 'deployment-config-suggestions-v1';
+type DeploymentSuggestions = { origins: string[]; routerUrls: string[]; runnerIds: string[]; runnerTokenPaths: string[] };
+const emptySuggestions: DeploymentSuggestions = { origins: [], routerUrls: [], runnerIds: [], runnerTokenPaths: [] };
 const formatTime = (value?: number | string | null) => value ? new Date(value).toLocaleString() : '—';
 
 const getDeploymentErrorMessage = (error: unknown, fallback: string) => {
@@ -53,6 +56,7 @@ function DeploymentAdminPage() {
     RUNNER_CONFIGURED: false,
     STAGING_VERIFIED: false,
   });
+  const [suggestions, setSuggestions] = useState(emptySuggestions);
   const [reauthPassword, setReauthPassword] = useState('');
   const [configSaving, setConfigSaving] = useState(false);
   const [configError, setConfigError] = useState('');
@@ -93,6 +97,33 @@ function DeploymentAdminPage() {
   }, []);
 
   useEffect(() => { void loadData(); }, [loadData]);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(suggestionStorageKey);
+      if (!stored) return;
+      const parsed = JSON.parse(stored);
+      setSuggestions(Object.fromEntries(Object.keys(emptySuggestions).map((key) => [
+        key,
+        Array.isArray(parsed?.[key]) ? parsed[key].filter((value: unknown) => typeof value === 'string').slice(0, 8) : [],
+      ])) as typeof emptySuggestions);
+    } catch {
+      setSuggestions(emptySuggestions);
+    }
+  }, []);
+
+  const rememberSuggestion = (key: keyof typeof emptySuggestions, value: string) => {
+    const normalized = value.trim();
+    if (!normalized) return;
+    const next = [normalized, ...suggestions[key].filter((item) => item !== normalized)].slice(0, 8);
+    const updated = { ...suggestions, [key]: next };
+    setSuggestions(updated);
+    try {
+      localStorage.setItem(suggestionStorageKey, JSON.stringify(updated));
+    } catch {
+      return;
+    }
+  };
 
   useEffect(() => {
     if (!job || terminalStatuses.has(job.status)) return;
@@ -186,6 +217,10 @@ function DeploymentAdminPage() {
     }
   };
 
+  const originSuggestions = Array.from(new Set([...Object.values(workerOrigins), ...suggestions.origins].filter(Boolean)));
+  const routerUrlSuggestions = Array.from(new Set([routerUrl, ...suggestions.routerUrls, ...originSuggestions].filter(Boolean)));
+  const runnerIdSuggestions = Array.from(new Set([runnerId, 'laptop-store-windows-01', ...suggestions.runnerIds].filter(Boolean)));
+  const runnerPathSuggestions = Array.from(new Set([runnerTokenFilePath, ...suggestions.runnerTokenPaths].filter(Boolean)));
   const activeJob = job && !terminalStatuses.has(job.status);
   const cutoverReady = status?.switchEnabled === true && status.mode === 'tunnel' && status.runnerOnline && preflight['vercel-render'] === true && !activeJob;
   const rollbackReady = status?.switchEnabled === true && status.mode === 'vercel-render' && status.runnerOnline && !activeJob;
@@ -207,11 +242,15 @@ function DeploymentAdminPage() {
 
       <section aria-labelledby="deployment-setup-title" className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 id="deployment-setup-title" className="text-lg font-semibold text-slate-900">Cấu hình deployment</h2>
-        <p className="mt-1 text-sm text-slate-600">Các giá trị được tải từ backend để Super Admin sửa. Lưu tại đây không tự cập nhật Cloudflare hoặc WinSW; hãy đồng bộ các giá trị tương ứng ở những nơi đó. Secrets không được trả lại sau khi lưu.</p>
+        <p className="mt-1 text-sm text-slate-600">Các giá trị được tải từ backend để Super Admin sửa. Gõ hoặc chọn gợi ý từ cấu hình hiện tại và lịch sử cục bộ; token bí mật không được lưu vào gợi ý. Lưu tại đây không tự cập nhật Cloudflare hoặc WinSW.</p>
         {configError && <p role="alert" className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">{configError}</p>}
         {routerConfig && <p className="mt-3 text-xs text-slate-500">Backend URL: {routerConfig.routerUrlSource === 'unset' ? 'chưa cấu hình' : `nguồn ${routerConfig.routerUrlSource}`} · Control token: {routerConfig.controlTokenValid ? `đã cấu hình (${routerConfig.controlTokenSource})` : 'chưa hợp lệ hoặc chưa cấu hình'} · Runner token: {routerConfig.runnerTokenConfigured ? 'đã lưu mã hóa' : 'chưa lưu'} · Kho mã hóa: {routerConfig.storeAvailable ? 'sẵn sàng' : 'chưa sẵn sàng'}</p>}
         {routerConfig && !routerConfig.storeAvailable && <p role="alert" className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">Backend cần <code>PROVIDER_CONFIG_ENCRYPTION_KEY</code> gồm 64 ký tự hex để lưu cấu hình mã hóa.</p>}
         <form className="mt-4" onSubmit={(event) => { event.preventDefault(); void saveRouterConfig(); }}>
+          <datalist id="deployment-origin-suggestions">{originSuggestions.map((value) => <option key={value} value={value} />)}</datalist>
+          <datalist id="deployment-router-url-suggestions">{routerUrlSuggestions.map((value) => <option key={value} value={value} />)}</datalist>
+          <datalist id="deployment-runner-id-suggestions">{runnerIdSuggestions.map((value) => <option key={value} value={value} />)}</datalist>
+          <datalist id="deployment-runner-path-suggestions">{runnerPathSuggestions.map((value) => <option key={value} value={value} />)}</datalist>
           <ol className="grid gap-4 md:grid-cols-2">
             <li className="rounded-lg border border-slate-200 p-4">
               <h3 className="font-semibold text-slate-900">1. Cloudflare Worker</h3>
@@ -224,12 +263,12 @@ function DeploymentAdminPage() {
                   ['RENDER_BACKEND_ORIGIN', 'Render backend origin'],
                 ] as const).map(([key, label]) => (
                   <label key={key} className="block text-sm font-medium text-slate-800">{label}
-                    <input type="url" value={workerOrigins[key]} onChange={(event) => setWorkerOrigins((current) => ({ ...current, [key]: event.target.value }))} placeholder="https://example.com" className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" />
+                    <input type="url" list="deployment-origin-suggestions" value={workerOrigins[key]} onChange={(event) => setWorkerOrigins((current) => ({ ...current, [key]: event.target.value }))} onBlur={(event) => rememberSuggestion('origins', event.target.value)} placeholder="https://example.com" className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" />
                     <span className="mt-1 block text-xs font-normal text-slate-500">HTTPS origin riêng, không có path/query.</span>
                   </label>
                 ))}
                 <label className="block text-sm font-medium text-slate-800">DEPLOYMENT_RUNNER_ID
-                  <input required maxLength={128} value={runnerId} onChange={(event) => setRunnerId(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" />
+                  <input required list="deployment-runner-id-suggestions" maxLength={128} value={runnerId} onChange={(event) => setRunnerId(event.target.value)} onBlur={(event) => rememberSuggestion('runnerIds', event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" />
                 </label>
                 <label className="block text-sm font-medium text-slate-800">DEPLOYMENT_RUNNER_TOKEN mới
                   <input type="password" autoComplete="new-password" maxLength={2048} value={runnerToken} onChange={(event) => setRunnerToken(event.target.value)} placeholder={routerConfig?.runnerTokenConfigured ? 'Để trống để giữ token hiện tại' : 'Tối thiểu 16 ký tự'} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" />
@@ -242,7 +281,7 @@ function DeploymentAdminPage() {
               <p className="mt-1 text-sm text-slate-600">Các trường này được backend dùng trực tiếp; cấu hình database ưu tiên environment variables.</p>
               <div className="mt-3 grid gap-3">
                 <label className="block text-sm font-medium text-slate-800">DEPLOYMENT_ROUTER_URL
-                  <input type="url" required maxLength={2048} value={routerUrl} onChange={(event) => setRouterUrl(event.target.value)} placeholder="https://<worker-host>" className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" />
+                  <input type="url" required list="deployment-router-url-suggestions" maxLength={2048} value={routerUrl} onChange={(event) => setRouterUrl(event.target.value)} onBlur={(event) => rememberSuggestion('routerUrls', event.target.value)} placeholder="https://<worker-host>" className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" />
                   <span className="mt-1 block text-xs font-normal text-slate-500">HTTPS origin của Worker, không có path, query hoặc thông tin đăng nhập.</span>
                 </label>
                 <label className="block text-sm font-medium text-slate-800">DEPLOYMENT_CONTROL_TOKEN mới
@@ -263,7 +302,7 @@ function DeploymentAdminPage() {
                   <input readOnly value={runnerId} className="mt-1 w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 font-normal text-slate-600" />
                 </label>
                 <label className="block text-sm font-medium text-slate-800">DEPLOYMENT_RUNNER_TOKEN_DPAPI_FILE
-                  <input maxLength={1024} value={runnerTokenFilePath} onChange={(event) => setRunnerTokenFilePath(event.target.value)} placeholder="Đường dẫn file DPAPI trên máy runner" className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" />
+                  <input list="deployment-runner-path-suggestions" maxLength={1024} value={runnerTokenFilePath} onChange={(event) => setRunnerTokenFilePath(event.target.value)} onBlur={(event) => rememberSuggestion('runnerTokenPaths', event.target.value)} placeholder="Đường dẫn file DPAPI trên máy runner" className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" />
                 </label>
               </div>
             </li>
