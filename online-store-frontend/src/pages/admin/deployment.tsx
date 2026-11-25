@@ -9,13 +9,30 @@ export const getServerSideProps = async () => ({ props: {} });
 
 const terminalStatuses = new Set(['succeeded', 'failed']);
 const suggestionStorageKey = 'deployment-config-suggestions-v1';
-type DeploymentSuggestions = { origins: string[]; routerUrls: string[]; runnerIds: string[]; runnerTokenPaths: string[] };
-const emptySuggestions: DeploymentSuggestions = { origins: [], routerUrls: [], runnerIds: [], runnerTokenPaths: [] };
+type DeploymentSuggestions = {
+  TUNNEL_FRONTEND_ORIGIN: string[];
+  TUNNEL_BACKEND_ORIGIN: string[];
+  VERCEL_FRONTEND_ORIGIN: string[];
+  RENDER_BACKEND_ORIGIN: string[];
+  routerUrls: string[];
+  runnerIds: string[];
+  runnerTokenPaths: string[];
+};
+type SuggestionOption = { value: string; label: string };
+const emptySuggestions: DeploymentSuggestions = {
+  TUNNEL_FRONTEND_ORIGIN: [],
+  TUNNEL_BACKEND_ORIGIN: [],
+  VERCEL_FRONTEND_ORIGIN: [],
+  RENDER_BACKEND_ORIGIN: [],
+  routerUrls: [],
+  runnerIds: [],
+  runnerTokenPaths: [],
+};
 const formatTime = (value?: number | string | null) => value ? new Date(value).toLocaleString() : '—';
 
 type SuggestionInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'onBlur' | 'list'> & {
   value: string;
-  suggestions: string[];
+  suggestions: SuggestionOption[];
   onChange: (value: string) => void;
   onValueBlur?: (value: string) => void;
 };
@@ -24,8 +41,8 @@ function SuggestionInput({ value, suggestions, onChange, onValueBlur, className,
   const [open, setOpen] = useState(false);
   const [filterMatches, setFilterMatches] = useState(false);
   const filteredSuggestions = suggestions
-    .filter((suggestion) => !filterMatches || suggestion !== value)
-    .filter((suggestion) => !filterMatches || !value || suggestion.toLowerCase().includes(value.toLowerCase()))
+    .filter((suggestion) => !filterMatches || suggestion.value !== value)
+    .filter((suggestion) => !filterMatches || !value || suggestion.value.toLowerCase().includes(value.toLowerCase()))
     .slice(0, 8);
 
   return (
@@ -54,17 +71,18 @@ function SuggestionInput({ value, suggestions, onChange, onValueBlur, className,
         <div className="absolute left-0 right-0 top-full z-30 mt-1 max-h-56 overflow-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
           {filteredSuggestions.length ? filteredSuggestions.map((suggestion) => (
             <button
-              key={suggestion}
+              key={suggestion.value}
               type="button"
               role="option"
               onMouseDown={(event) => event.preventDefault()}
-              onClick={() => { onChange(suggestion); onValueBlur?.(suggestion); setOpen(false); }}
-              className="block w-full truncate px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100"
+              onClick={() => { onChange(suggestion.value); onValueBlur?.(suggestion.value); setOpen(false); }}
+              className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100"
             >
-              {suggestion}
+              <span className="block truncate">{suggestion.label}</span>
+              {suggestion.label !== suggestion.value && <span className="block truncate text-xs text-slate-500">{suggestion.value}</span>}
             </button>
           )) : (
-            <p className="px-3 py-2 text-sm text-slate-500">Chưa có origin đã cấu hình hoặc lưu trước đó để gợi ý. Nhập một HTTPS origin đã được provision; lần sau nó sẽ xuất hiện trong danh sách.</p>
+            <p className="px-3 py-2 text-sm text-slate-500">Không có gợi ý khớp nội dung đang nhập; xóa nội dung để xem các mẫu.</p>
           )}
         </div>
       )}
@@ -276,10 +294,31 @@ function DeploymentAdminPage() {
     }
   };
 
-  const originSuggestions = Array.from(new Set([...Object.values(workerOrigins), ...suggestions.origins].filter(Boolean)));
-  const routerUrlSuggestions = Array.from(new Set([routerUrl, ...suggestions.routerUrls, ...originSuggestions].filter(Boolean)));
-  const runnerIdSuggestions = Array.from(new Set([runnerId, 'laptop-store-windows-01', ...suggestions.runnerIds].filter(Boolean)));
-  const runnerPathSuggestions = Array.from(new Set([runnerTokenFilePath, ...suggestions.runnerTokenPaths].filter(Boolean)));
+  const buildSuggestions = (values: string[], sample: SuggestionOption) => Array.from(new Set([sample.value, ...values].filter(Boolean)))
+    .map((value) => value === sample.value ? sample : { value, label: value });
+  const originSuggestions = {
+    TUNNEL_FRONTEND_ORIGIN: buildSuggestions([workerOrigins.TUNNEL_FRONTEND_ORIGIN, ...suggestions.TUNNEL_FRONTEND_ORIGIN], {
+      value: 'https://tunnel-frontend.example.com', label: 'Mẫu Tunnel frontend — thay bằng hostname origin đã provision',
+    }),
+    TUNNEL_BACKEND_ORIGIN: buildSuggestions([workerOrigins.TUNNEL_BACKEND_ORIGIN, ...suggestions.TUNNEL_BACKEND_ORIGIN], {
+      value: 'https://tunnel-backend.example.com', label: 'Mẫu Tunnel backend — thay bằng hostname origin đã provision',
+    }),
+    VERCEL_FRONTEND_ORIGIN: buildSuggestions([workerOrigins.VERCEL_FRONTEND_ORIGIN, ...suggestions.VERCEL_FRONTEND_ORIGIN], {
+      value: 'https://your-project.vercel.app', label: 'Mẫu Vercel — thay bằng URL thực trong Vercel',
+    }),
+    RENDER_BACKEND_ORIGIN: buildSuggestions([workerOrigins.RENDER_BACKEND_ORIGIN, ...suggestions.RENDER_BACKEND_ORIGIN], {
+      value: 'https://your-service.onrender.com', label: 'Mẫu Render — thay bằng URL thực trong Render',
+    }),
+  };
+  const routerUrlSuggestions = buildSuggestions([routerUrl, ...suggestions.routerUrls], {
+    value: 'https://deployment-router.account-subdomain.workers.dev', label: 'Mẫu Worker — thay account subdomain bằng URL thực',
+  });
+  const runnerIdSuggestions = buildSuggestions([runnerId, ...suggestions.runnerIds], {
+    value: 'laptop-store-windows-01', label: 'Runner ID đã xác nhận trong source',
+  });
+  const runnerPathSuggestions = buildSuggestions([runnerTokenFilePath, ...suggestions.runnerTokenPaths], {
+    value: 'C:\\ProgramData\\LaptopStore\\runner-token.dpapi', label: 'Mẫu Windows path — khớp với vị trí file DPAPI thực tế',
+  });
   const activeJob = job && !terminalStatuses.has(job.status);
   const cutoverReady = status?.switchEnabled === true && status.mode === 'tunnel' && status.runnerOnline && preflight['vercel-render'] === true && !activeJob;
   const rollbackReady = status?.switchEnabled === true && status.mode === 'vercel-render' && status.runnerOnline && !activeJob;
@@ -301,7 +340,7 @@ function DeploymentAdminPage() {
 
       <section aria-labelledby="deployment-setup-title" className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 id="deployment-setup-title" className="text-lg font-semibold text-slate-900">Cấu hình deployment</h2>
-        <p className="mt-1 text-sm text-slate-600">Các giá trị được tải từ backend để Super Admin sửa. Gõ hoặc chọn gợi ý từ cấu hình hiện tại và lịch sử cục bộ; token bí mật không được lưu vào gợi ý. Lưu tại đây không tự cập nhật Cloudflare hoặc WinSW.</p>
+        <p className="mt-1 text-sm text-slate-600">Các mẫu trong dropdown dùng hostname giữ chỗ, không phải URL thật; thay bằng URL đã cấp trên Cloudflare, Vercel hoặc Render trước khi lưu. Giá trị mới được ghi nhớ riêng theo từng loại ô; token bí mật không được đưa vào gợi ý. Lưu tại đây không tự cập nhật Cloudflare hoặc WinSW.</p>
         {configError && <p role="alert" className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">{configError}</p>}
         {routerConfig && <p className="mt-3 text-xs text-slate-500">Backend URL: {routerConfig.routerUrlSource === 'unset' ? 'chưa cấu hình' : `nguồn ${routerConfig.routerUrlSource}`} · Control token: {routerConfig.controlTokenValid ? `đã cấu hình (${routerConfig.controlTokenSource})` : 'chưa hợp lệ hoặc chưa cấu hình'} · Runner token: {routerConfig.runnerTokenConfigured ? 'đã lưu mã hóa' : 'chưa lưu'} · Kho mã hóa: {routerConfig.storeAvailable ? 'sẵn sàng' : 'chưa sẵn sàng'}</p>}
         {routerConfig && !routerConfig.storeAvailable && <p role="alert" className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">Backend cần <code>PROVIDER_CONFIG_ENCRYPTION_KEY</code> gồm 64 ký tự hex để lưu cấu hình mã hóa.</p>}
@@ -318,7 +357,7 @@ function DeploymentAdminPage() {
                   ['RENDER_BACKEND_ORIGIN', 'Render backend origin'],
                 ] as const).map(([key, label]) => (
                   <label key={key} className="block text-sm font-medium text-slate-800">{label}
-                    <SuggestionInput type="url" value={workerOrigins[key]} suggestions={originSuggestions} onChange={(value) => setWorkerOrigins((current) => ({ ...current, [key]: value }))} onValueBlur={(value) => rememberSuggestion('origins', value)} placeholder="https://example.com" className="w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" />
+                    <SuggestionInput type="url" value={workerOrigins[key]} suggestions={originSuggestions[key]} onChange={(value) => setWorkerOrigins((current) => ({ ...current, [key]: value }))} onValueBlur={(value) => rememberSuggestion(key, value)} placeholder="https://example.com" className="w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" />
                     <span className="mt-1 block text-xs font-normal text-slate-500">HTTPS origin riêng, không có path/query.</span>
                   </label>
                 ))}
