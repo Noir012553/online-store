@@ -310,6 +310,32 @@ test("ordinary routing preserves path, query, method and body while selecting th
   });
 });
 
+test("public routing hosts can be configured without changing their default routes", async () => {
+  const { env } = setup();
+  env.DEPLOYMENT_PUBLIC_FRONTEND_HOST = "shop.example.com";
+  env.DEPLOYMENT_PUBLIC_BACKEND_HOST = "api.example.com";
+  let calls = 0;
+  await withFetch(async (input) => {
+    calls++;
+    assert.equal(input.url, "https://tunnel-frontend.example.net/products");
+    return new Response("proxied");
+  }, async () => {
+    const configuredHost = await worker.fetch(request("/products", { host: "shop.example.com" }), env);
+    const previousHost = await worker.fetch(request("/products"), env);
+    assert.equal(configuredHost.status, 200);
+    assert.equal(previousHost.status, 421);
+    assert.equal(calls, 1);
+  });
+});
+
+test("configured public hostnames cannot be used as upstream origins", async () => {
+  const { env } = setup();
+  env.DEPLOYMENT_PUBLIC_FRONTEND_HOST = "shop.example.com";
+  env.TUNNEL_FRONTEND_ORIGIN = "https://shop.example.com";
+  const response = await worker.fetch(request("/"), env);
+  assert.equal(response.status, 503);
+});
+
 test("WebSocket upgrade headers are forwarded to the selected upstream", async () => {
   const { env } = setup("vercel-render");
   await withFetch(async (input) => {

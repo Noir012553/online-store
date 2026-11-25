@@ -80,7 +80,7 @@ Worker đặt trước hostname production và Durable Object state/queue đã �
 - **`tunnel`**: chuyển website tới frontend hiện tại; API và các dịch vụ liên quan tiếp tục dùng backend/Tunnel hiện tại.
 - **`vercel-render`**: chuyển website tới frontend Vercel; API `/api/*` của frontend Vercel được rewrite tới backend Render.
 
-Worker chuyển cả hostname website và API theo một mode duy nhất, khóa job đồng thời, ghi sự kiện Durable Object, kiểm tra health trước/sau và chỉ đổi mode sau khi thao tác service hoàn tất. Khi stop thất bại hoặc health check candidate thất bại, Worker xếp job `startTunnelApps` để phục hồi. Nếu runner offline, cần xử lý thủ công trên Windows; không coi recovery tự động là bảo đảm khi runner/control plane mất kết nối. `netlify-railway` chưa được Worker hỗ trợ.
+Worker mặc định nhận hostname website `manln.online` và API `backend.manln.online`; có thể cấu hình `DEPLOYMENT_PUBLIC_FRONTEND_HOST` và `DEPLOYMENT_PUBLIC_BACKEND_HOST` trong Wrangler cho môi trường khác. Hai hostname phải khác nhau và không được dùng làm upstream origin để tránh vòng lặp. Worker chuyển cả hostname website và API theo một mode duy nhất, khóa job đồng thời, ghi sự kiện Durable Object, kiểm tra health trước/sau và chỉ đổi mode sau khi thao tác service hoàn tất. Khi stop thất bại hoặc health check candidate thất bại, Worker xếp job `startTunnelApps` để phục hồi. Nếu runner offline, cần xử lý thủ công trên Windows; không coi recovery tự động là bảo đảm khi runner/control plane mất kết nối. `netlify-railway` chưa được Worker hỗ trợ. Cấu hình hostname linh hoạt không tự thêm mode VPS hoặc runner Linux.
 
 ### Nút dừng dịch vụ Tunnel
 

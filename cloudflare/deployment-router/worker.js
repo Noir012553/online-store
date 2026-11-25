@@ -11,7 +11,10 @@ const RUNNER_HEARTBEAT_MAX_AGE_MS = 90_000;
 const ACTIVE_JOB_STORAGE_KEY = "activeJob";
 const AUDIT_STORAGE_KEY = "auditEvents";
 const RUNNER_HEARTBEAT_STORAGE_KEY = "runnerHeartbeat";
-const PUBLIC_HOSTS = new Set(["manln.online", "backend.manln.online"]);
+const DEFAULT_PUBLIC_HOSTS = {
+  frontend: "manln.online",
+  backend: "backend.manln.online",
+};
 const HEALTH_PATHS = {
   tunnelFrontend: "/",
   tunnelBackend: "/readyz",
@@ -44,7 +47,17 @@ function json(data, status = 200) {
   });
 }
 
-function validOrigin(value, name, production) {
+function publicHostname(value, fallback, name) {
+  const candidate = value === undefined || value === "" ? fallback : value;
+  if (typeof candidate !== "string") throw new ConfigurationError(`Invalid ${name}`);
+  const hostname = candidate.trim().toLowerCase();
+  if (!/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))*$/.test(hostname)) {
+    throw new ConfigurationError(`Invalid ${name}`);
+  }
+  return hostname;
+}
+
+function validOrigin(value, name, production, publicHosts) {
   if (typeof value !== "string" || !value.trim()) {
     throw new ConfigurationError(`Missing ${name}`);
   }
@@ -70,7 +83,7 @@ function validOrigin(value, name, production) {
   }
 
   const hostname = parsed.hostname.toLowerCase();
-  if (PUBLIC_HOSTS.has(hostname)) {
+  if (publicHosts.has(hostname)) {
     throw new ConfigurationError(`${name} must not use a Worker public hostname`);
   }
   return parsed.origin;
@@ -86,12 +99,19 @@ function healthPath(value, fallback, name) {
 
 function getRoutingConfig(env) {
   const production = env.NODE_ENV !== "development" && env.NODE_ENV !== "test";
+  const publicHosts = {
+    frontend: publicHostname(env.DEPLOYMENT_PUBLIC_FRONTEND_HOST, DEFAULT_PUBLIC_HOSTS.frontend, "DEPLOYMENT_PUBLIC_FRONTEND_HOST"),
+    backend: publicHostname(env.DEPLOYMENT_PUBLIC_BACKEND_HOST, DEFAULT_PUBLIC_HOSTS.backend, "DEPLOYMENT_PUBLIC_BACKEND_HOST"),
+  };
+  if (publicHosts.frontend === publicHosts.backend) throw new ConfigurationError("Public frontend and backend hosts must differ");
+  const publicHostSet = new Set(Object.values(publicHosts));
   return {
+    publicHosts,
     origins: {
-      tunnelFrontend: validOrigin(env.TUNNEL_FRONTEND_ORIGIN, "TUNNEL_FRONTEND_ORIGIN", production),
-      tunnelBackend: validOrigin(env.TUNNEL_BACKEND_ORIGIN, "TUNNEL_BACKEND_ORIGIN", production),
-      vercelFrontend: validOrigin(env.VERCEL_FRONTEND_ORIGIN, "VERCEL_FRONTEND_ORIGIN", production),
-      renderBackend: validOrigin(env.RENDER_BACKEND_ORIGIN, "RENDER_BACKEND_ORIGIN", production),
+      tunnelFrontend: validOrigin(env.TUNNEL_FRONTEND_ORIGIN, "TUNNEL_FRONTEND_ORIGIN", production, publicHostSet),
+      tunnelBackend: validOrigin(env.TUNNEL_BACKEND_ORIGIN, "TUNNEL_BACKEND_ORIGIN", production, publicHostSet),
+      vercelFrontend: validOrigin(env.VERCEL_FRONTEND_ORIGIN, "VERCEL_FRONTEND_ORIGIN", production, publicHostSet),
+      renderBackend: validOrigin(env.RENDER_BACKEND_ORIGIN, "RENDER_BACKEND_ORIGIN", production, publicHostSet),
     },
     healthPaths: {
       tunnelFrontend: healthPath(env.TUNNEL_FRONTEND_HEALTH_PATH, HEALTH_PATHS.tunnelFrontend, "TUNNEL_FRONTEND_HEALTH_PATH"),
@@ -583,8 +603,8 @@ export default {
 
     const hostname = url.hostname.toLowerCase().replace(/\.$/, "");
     let route;
-    if (hostname === "manln.online") route = "frontend";
-    else if (hostname === "backend.manln.online") route = "backend";
+    if (hostname === config.publicHosts.frontend) route = "frontend";
+    else if (hostname === config.publicHosts.backend) route = "backend";
     else return json({ error: "Unknown host" }, 421);
 
     try {
