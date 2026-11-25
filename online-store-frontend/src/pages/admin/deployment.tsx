@@ -1,5 +1,5 @@
 import { Activity, ArrowLeftRight, ChevronDown, CircleAlert, LoaderCircle, RefreshCw, RotateCcw, ShieldCheck } from 'lucide-react';
-import { useCallback, useEffect, useState, type InputHTMLAttributes } from 'react';
+import { useCallback, useEffect, useRef, useState, type InputHTMLAttributes } from 'react';
 import { toast } from 'sonner';
 import { withAdminLayout } from '../../components/admin/withAdminLayout';
 import { Button } from '../../components/ui/button';
@@ -131,6 +131,7 @@ const getDeploymentErrorMessage = (error: unknown, fallback: string) => {
   if (code === 'INVALID_DEPLOYMENT_ORIGIN') return 'Origin phải là HTTPS origin hợp lệ, không có đường dẫn, query hoặc thông tin đăng nhập.';
   if (code === 'INVALID_DEPLOYMENT_RUNNER_ID') return 'Runner ID chỉ được chứa chữ, số, dấu chấm, gạch ngang hoặc gạch dưới (tối đa 128 ký tự).';
   if (code === 'INVALID_DEPLOYMENT_RUNNER_TOKEN') return 'Runner token phải dài từ 16 đến 2048 ký tự.';
+  if (code === 'DEPLOYMENT_RUNNER_TOKEN_NOT_CONFIGURED') return 'Chưa có runner token được lưu.';
   if (code === 'INVALID_DEPLOYMENT_RUNNER_TOKEN_FILE') return 'Đường dẫn file token runner không hợp lệ hoặc quá dài.';
   if (code === 'INVALID_DEPLOYMENT_CHECKLIST') return 'Giá trị checklist không hợp lệ.';
   if (code === 'ROUTE_NOT_FOUND') return 'Backend đang chạy chưa có API cấu hình deployment. Cần triển khai phiên bản backend có /api/admin/deployment/config.';
@@ -138,12 +139,87 @@ const getDeploymentErrorMessage = (error: unknown, fallback: string) => {
   return error instanceof Error ? error.message : fallback;
 };
 
+const copyRunnerToken = async (token: string) => {
+  try {
+    if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable');
+    await navigator.clipboard.writeText(token);
+    toast.success('Đã sao chép runner token.');
+  } catch {
+    toast.error('Không thể sao chép tự động. Hãy chọn và sao chép token thủ công.');
+  }
+};
+
+function RevealRunnerToken({ onDismiss }: { onDismiss: () => void }) {
+  const [password, setPassword] = useState('');
+  const [token, setToken] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const request = useRef<AbortController | null>(null);
+
+  useEffect(() => () => { request.current?.abort(); }, []);
+
+  const reveal = async () => {
+    const controller = new AbortController();
+    request.current = controller;
+    setLoading(true);
+    setError('');
+    try {
+      const response = await deploymentAPI.revealRunnerToken(password, controller.signal);
+      if (controller.signal.aborted) return;
+      const revealedToken = 'runnerToken' in response ? response.runnerToken : 'runnerToken' in response.data ? response.data.runnerToken : response.data.value;
+      if (typeof revealedToken !== 'string' || !revealedToken) throw new Error('Backend không trả về runner token hợp lệ.');
+      setToken(revealedToken);
+      setPassword('');
+    } catch (requestError) {
+      if (!controller.signal.aborted) setError(getDeploymentErrorMessage(requestError, 'Không thể hiển thị runner token.'));
+    } finally {
+      if (!controller.signal.aborted) setLoading(false);
+    }
+  };
+
+  const dismiss = () => {
+    request.current?.abort();
+    setPassword('');
+    setToken('');
+    setError('');
+    onDismiss();
+  };
+
+  return (
+    <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+      <h3 className="font-semibold text-slate-900">Xem runner token đã lưu</h3>
+      <p className="mt-1 text-xs text-slate-600">Xác thực lại bằng mật khẩu Super Admin. Token chỉ hiển thị trong phiên này và được xóa khỏi màn hình khi đóng.</p>
+      {error && <p role="alert" className="mt-2 text-sm text-red-700">{error}</p>}
+      {!token ? (
+        <form className="mt-3 flex flex-wrap items-end gap-2" onSubmit={(event) => { event.preventDefault(); void reveal(); }}>
+          <label className="block min-w-0 flex-1 text-sm font-medium text-slate-800">Mật khẩu Super Admin
+            <input type="password" required autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" />
+          </label>
+          <Button type="submit" disabled={loading || !password}>{loading && <LoaderCircle className="animate-spin" />} Hiển thị token</Button>
+          <Button type="button" variant="outline" onClick={dismiss}>Đóng</Button>
+        </form>
+      ) : (
+        <div className="mt-3">
+          <label className="block text-sm font-medium text-slate-800">Runner token đã lưu
+            <input type="text" readOnly value={token} onFocus={(event) => event.currentTarget.select()} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-sm" />
+          </label>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button type="button" variant="outline" onClick={() => void copyRunnerToken(token)}>Sao chép token</Button>
+            <Button type="button" variant="outline" onClick={dismiss}>Đóng và xóa khỏi màn hình</Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DeploymentAdminPage() {
   const [status, setStatus] = useState<DeploymentStatus | null>(null);
   const [routerConfig, setRouterConfig] = useState<DeploymentRouterConfig | null>(null);
   const [routerUrl, setRouterUrl] = useState('');
   const [controlToken, setControlToken] = useState('');
   const [runnerToken, setRunnerToken] = useState('');
+  const [revealOpen, setRevealOpen] = useState(false);
   const [tunnelDomain, setTunnelDomain] = useState('');
   const [storeDomain, setStoreDomain] = useState('');
   const [workerOrigins, setWorkerOrigins] = useState<DeploymentRouterConfig['workerOrigins']>({
@@ -275,6 +351,7 @@ function DeploymentAdminPage() {
       });
       setControlToken('');
       setRunnerToken('');
+      setRevealOpen(false);
       setReauthPassword('');
       toast.success('Đã lưu cấu hình. Các token được mã hóa; cần đồng bộ thủ công với Worker và runner.');
       await loadData();
@@ -282,6 +359,16 @@ function DeploymentAdminPage() {
       setConfigError(getDeploymentErrorMessage(requestError, 'Không thể lưu cấu hình Worker.'));
     } finally {
       setConfigSaving(false);
+    }
+  };
+
+  const generateRunnerToken = () => {
+    try {
+      if (!window.crypto?.getRandomValues) throw new Error('Web Crypto unavailable');
+      const bytes = window.crypto.getRandomValues(new Uint8Array(32));
+      setRunnerToken(Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join(''));
+    } catch {
+      toast.error('Không thể tạo token an toàn. Hãy sử dụng trình duyệt hỗ trợ Web Crypto trong ngữ cảnh bảo mật.');
     }
   };
 
@@ -412,10 +499,17 @@ function DeploymentAdminPage() {
                 <label className="block text-sm font-medium text-slate-800">DEPLOYMENT_RUNNER_ID
                   <SuggestionInput required maxLength={128} value={runnerId} suggestions={runnerIdSuggestions} onChange={setRunnerId} onValueBlur={(value) => rememberSuggestion('runnerIds', value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" />
                 </label>
-                <label className="block text-sm font-medium text-slate-800">DEPLOYMENT_RUNNER_TOKEN mới
-                  <input type="password" autoComplete="new-password" maxLength={2048} value={runnerToken} onChange={(event) => setRunnerToken(event.target.value)} placeholder={routerConfig?.runnerTokenConfigured ? 'Để trống để giữ token hiện tại' : 'Tối thiểu 16 ký tự'} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" />
-                  <span className="mt-1 block text-xs font-normal text-slate-500">Token được lưu mã hóa; cần đồng bộ cùng giá trị vào Cloudflare Secret và file DPAPI của runner.</span>
-                </label>
+                <div>
+                  <label className="block text-sm font-medium text-slate-800">DEPLOYMENT_RUNNER_TOKEN mới
+                    <input type="text" autoComplete="off" spellCheck={false} maxLength={2048} value={runnerToken} onChange={(event) => setRunnerToken(event.target.value)} placeholder={routerConfig?.runnerTokenConfigured ? 'Để trống để giữ token hiện tại' : 'Tối thiểu 16 ký tự'} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" />
+                  </label>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Button type="button" variant="outline" onClick={generateRunnerToken}>Tạo token ngẫu nhiên 256-bit</Button>
+                    <Button type="button" variant="outline" disabled={!runnerToken} onClick={() => void copyRunnerToken(runnerToken)}>Sao chép token mới</Button>
+                  </div>
+                  <p className="mt-2 text-xs text-slate-600">Tạo token không tự lưu. Nhấn Lưu cấu hình deployment và xác nhận bằng mật khẩu Super Admin để lưu mã hóa; sau đó phải tự đồng bộ chính giá trị này vào Cloudflare Worker Secret và file DPAPI của Windows runner.</p>
+                  <p className="mt-1 text-xs text-slate-600">Token không phải mật khẩu dùng một lần: tạo một lần và dùng để xác thực cho đến khi được thay thế (rotate).</p>
+                </div>
               </div>
             </li>
             <li className="rounded-lg border border-slate-200 p-4">
@@ -477,6 +571,11 @@ function DeploymentAdminPage() {
             </div>
           </div>
         </form>
+        {routerConfig?.runnerTokenConfigured && (revealOpen ? (
+          <RevealRunnerToken onDismiss={() => setRevealOpen(false)} />
+        ) : (
+          <Button type="button" variant="outline" className="mt-4" onClick={() => setRevealOpen(true)}>Xem token runner đã lưu</Button>
+        ))}
       </section>
 
       <section className="grid gap-4 md:grid-cols-3">

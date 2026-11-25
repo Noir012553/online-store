@@ -636,6 +636,9 @@ export const deploymentAPI = {
   }) => apiCall<{ success: boolean; data: { version: number; routerUrl: string; controlTokenUpdated: boolean; runnerTokenUpdated: boolean } }>('/admin/deployment/config', {
     method: 'PUT', body: JSON.stringify(data), skipCache: true, skipErrorToast: true,
   }),
+  revealRunnerToken: (password: string, signal?: AbortSignal) => apiCall<{ runnerToken: string } | { success: boolean; data: { runnerToken: string } | { key: string; value: string } }>('/admin/deployment/config/runner-token/reveal', {
+    method: 'POST', body: JSON.stringify({ password }), signal, cache: 'no-store', skipCache: true, skipErrorToast: true, skipRetry: true,
+  }),
   getStatus: () => apiCall<DeploymentStatus>('/admin/deployment/status', { skipCache: true, skipErrorToast: true }),
   preflight: (mode: DeploymentStatus['mode']) => apiCall<{ mode: DeploymentStatus['mode']; passed: boolean }>('/admin/deployment/preflight', {
     method: 'POST', body: JSON.stringify({ mode }), skipErrorToast: true,

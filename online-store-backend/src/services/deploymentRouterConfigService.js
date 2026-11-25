@@ -58,6 +58,16 @@ const getDeploymentRouterConfig = async () => {
   };
 };
 
+const getStoredDeploymentRunnerToken = async () => {
+  const stored = await ProviderRuntimeConfiguration.findOne({ providerCode: PROVIDER_CODE }).lean();
+  const encrypted = stored?.encryptedSecrets?.DEPLOYMENT_RUNNER_TOKEN;
+  if (!encrypted) return '';
+  if (!/^[a-f0-9]{64}$/i.test(process.env.PROVIDER_CONFIG_ENCRYPTION_KEY || '')) {
+    throw new Error('DEPLOYMENT_ROUTER_CONFIG_STORE_UNAVAILABLE');
+  }
+  return decryptSecret(encrypted);
+};
+
 const getDeploymentRouterConfigStatus = async () => {
   const config = await getDeploymentRouterConfig();
   return {
@@ -168,6 +178,7 @@ const saveDeploymentRouterConfig = async ({ routerUrl, controlToken, workerOrigi
 module.exports = {
   getDeploymentRouterConfig,
   getDeploymentRouterConfigStatus,
+  getStoredDeploymentRunnerToken,
   normalizeRouterOrigin,
   ROUTER_TOKEN_MIN_LENGTH,
   saveDeploymentRouterConfig,

@@ -91,6 +91,10 @@ const debugApi = () => {};
 // ==================== Middleware Configuration ====================
 
 app.disable('x-powered-by');
+app.use('/api/admin/deployment/config/runner-token/reveal', (req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  next();
+});
 app.use((req, res, next) => {
   res.set({
     'X-Content-Type-Options': 'nosniff',
