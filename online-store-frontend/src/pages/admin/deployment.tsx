@@ -24,7 +24,7 @@ function SuggestionInput({ value, suggestions, onChange, onValueBlur, className,
   const [open, setOpen] = useState(false);
   const [filterMatches, setFilterMatches] = useState(false);
   const filteredSuggestions = suggestions
-    .filter((suggestion) => suggestion !== value)
+    .filter((suggestion) => !filterMatches || suggestion !== value)
     .filter((suggestion) => !filterMatches || !value || suggestion.toLowerCase().includes(value.toLowerCase()))
     .slice(0, 8);
 
@@ -64,7 +64,7 @@ function SuggestionInput({ value, suggestions, onChange, onValueBlur, className,
               {suggestion}
             </button>
           )) : (
-            <p className="px-3 py-2 text-sm text-slate-500">Chưa có gợi ý phù hợp; giá trị mới sẽ được lưu vào danh sách cục bộ.</p>
+            <p className="px-3 py-2 text-sm text-slate-500">Chưa có origin đã cấu hình hoặc lưu trước đó để gợi ý. Nhập một HTTPS origin đã được provision; lần sau nó sẽ xuất hiện trong danh sách.</p>
           )}
         </div>
       )}
