@@ -84,7 +84,7 @@ Worker chuyển cả hostname website và API theo một mode duy nhất, khóa 
 
 ### Nút dừng dịch vụ Tunnel
 
-- API `online-store-backend/src/routes/deploymentRoutes.js` chỉ cho Super Admin gọi status, preflight, cutover, rollback, job status và cập nhật router connection. Form `/admin/deployment` tải/lưu Worker origins, runner identity/path, checklist và backend router connection; control token và runner token được mã hóa trong backend, yêu cầu xác thực lại mật khẩu và không trả plaintext về trình duyệt. Các giá trị Worker/runner trong form chỉ là cấu hình tham chiếu, chưa tự cập nhật Cloudflare hoặc WinSW; phải đồng bộ thủ công. Nếu không dùng form, backend có thể dùng `DEPLOYMENT_ROUTER_URL` và `DEPLOYMENT_CONTROL_TOKEN` từ environment. `DEPLOYMENT_SWITCH_ENABLED` phải được cấu hình `true` mới nhận cutover/rollback; mặc định thao tác bị khóa.
+- API `online-store-backend/src/routes/deploymentRoutes.js` chỉ cho Super Admin gọi status, preflight, cutover, rollback, job status và cập nhật router connection. Form `/admin/deployment` tải/lưu Worker origins, runner identity/path, checklist và backend router connection; control token và runner token được mã hóa trong backend và lưu yêu cầu xác thực lại mật khẩu. API cấu hình thông thường không trả plaintext; riêng runner token đã lưu có thể được Super Admin xem lại sau khi xác thực mật khẩu, thao tác được ghi audit. Các giá trị Worker/runner trong form chỉ là cấu hình tham chiếu, chưa tự cập nhật Cloudflare hoặc WinSW; phải đồng bộ thủ công. Nếu không dùng form, backend có thể dùng `DEPLOYMENT_ROUTER_URL` và `DEPLOYMENT_CONTROL_TOKEN` từ environment. `DEPLOYMENT_SWITCH_ENABLED` phải được cấu hình `true` mới nhận cutover/rollback; mặc định thao tác bị khóa.
 - UI `/admin/deployment` yêu cầu preflight Vercel + Render đạt, runner heartbeat còn mới và xác nhận trên trình duyệt trước cutover. UI có theo dõi job và hiển thị audit phía backend/Worker.
 - Worker nhận action allowlist `stopTunnelApps`/`startTunnelApps`; runner `online-store-backend/scripts/deployment-runner.js` chỉ gọi đúng hai PowerShell script với tham số xác nhận cố định. Không nhận command, script path, service name hoặc port từ request.
 - Hai script PowerShell chỉ điều khiển `LaptopStoreFrontend` và `LaptopStoreBackend`; không dừng `LaptopStoreTunnel`. Runner script đã có trong source nhưng chưa được cài thành WinSW service và chưa có cơ chế cấp quyền service-control tối thiểu được kiểm thử.
@@ -92,6 +92,18 @@ Worker chuyển cả hostname website và API theo một mode duy nhất, khóa 
 - Không bật switch cho tới khi URL/origin, Worker staging route, secrets, DO binding, runner service và luồng rollback được cấu hình, kiểm thử trên staging; route health đơn thuần không xác minh cookies, websocket, upload, callback hay tương thích Next.js.
 
 Trước khi bật cơ chế này, cần có URL đã xác minh cho frontend/backend Vercel + Render; một hostname origin riêng cho frontend Tunnel; và một hostname staging cho Worker. Phải kiểm tra cách chuyển tiếp `Host`, HTTPS/TLS, header, cookie, websocket, body upload, timeout, cache và các đường dẫn callback. Không tạo Worker route production hay chỉnh DNS chỉ dựa trên ví dụ trong tài liệu; cần kiểm thử trên hostname staging trước. Không gửi token/secret qua chat hoặc ghi vào Markdown.
+
+### Tạo và sử dụng runner token
+
+`DEPLOYMENT_RUNNER_TOKEN` là bí mật do người vận hành tự tạo, không phải Tunnel token do Cloudflare cấp và không phải `DEPLOYMENT_CONTROL_TOKEN`. Tại `/admin/deployment`, chọn **Tạo token ngẫu nhiên 256-bit**, sao chép giá trị và lưu cấu hình bằng mật khẩu Super Admin. Form lưu cùng cấu hình Worker nên cần Worker URL hợp lệ, control token hợp lệ và khóa mã hóa backend trước khi lưu. Có thể xem lại token đã lưu bằng mật khẩu Super Admin; đóng phần xem sau khi sử dụng. Token được tạo một lần nhưng được runner dùng nhiều lần cho đến khi thay thế, không phải mã OTP.
+
+Có thể tự tạo bằng Node.js trên máy tin cậy nếu không dùng nút trên giao diện:
+
+```sh
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+Lệnh in bí mật ra màn hình: tránh ghi output vào log hoặc chia sẻ; nhập giá trị vào form và lưu. Sao chép cùng giá trị vào secret `DEPLOYMENT_RUNNER_TOKEN` của Worker và file DPAPI của runner trên Windows. Form không thực hiện việc đồng bộ này; repository chưa có công cụ tạo file DPAPI riêng cho runner. File phải dùng DPAPI `LocalMachine`, chứa UTF-8 và có ACL hạn chế phù hợp với tài khoản service. Kiểm thử quy trình cấp file và quyền đọc trên staging trước khi chạy runner. Khi thay token, đồng bộ cả Worker và runner theo kế hoạch vận hành; nếu lệch, runner không xác thực được. Control token là bí mật riêng và không được dùng chung.
 
 ## Quy trình chuyển production sau khi đã có điều phối
 

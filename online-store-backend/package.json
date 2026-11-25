@@ -12,7 +12,7 @@
     "test": "node src/test/test-runner.js --suite=products",
     "test:all": "node src/test/test-runner.js",
     "test:integration": "node src/test/test-runner.js -- --suite=backend",
-    "test:deployment": "node --test src/test/deployment-router-service.test.js src/test/deployment-router-config-service.test.js src/test/deployment-candidate-readonly.test.js",
+    "test:deployment": "node --test src/test/deployment-router-service.test.js src/test/deployment-router-config-service.test.js src/test/deployment-candidate-readonly.test.js src/test/deployment-runner-token-reveal.test.js",
     "test:integration:import-export": "node src/test/test-runner.js -- --suite=import-export",
     "test:offline": "node src/test/frontend-offline-manual.test.js",
     "test:python": "python python/run_tests.py",

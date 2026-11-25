@@ -3,7 +3,7 @@ const DeploymentAudit = require('../models/DeploymentAudit');
 const ProviderRuntimeAudit = require('../models/ProviderRuntimeAudit');
 const User = require('../models/User');
 const { callDeploymentRouter } = require('../services/deploymentRouterService');
-const { getDeploymentRouterConfigStatus, saveDeploymentRouterConfig } = require('../services/deploymentRouterConfigService');
+const { getDeploymentRouterConfigStatus, getStoredDeploymentRunnerToken, saveDeploymentRouterConfig } = require('../services/deploymentRouterConfigService');
 
 const noStore = (res) => res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
 const allowedModes = new Set(['tunnel', 'vercel-render']);
@@ -20,6 +20,40 @@ exports.getConfig = asyncHandler(async (req, res) => {
     return res.status(error.message === 'DEPLOYMENT_ROUTER_CONFIG_STORE_UNAVAILABLE' ? 503 : 500).json({
       success: false,
       code: error.message === 'DEPLOYMENT_ROUTER_CONFIG_STORE_UNAVAILABLE' ? error.message : 'DEPLOYMENT_ROUTER_CONFIG_UNAVAILABLE',
+    });
+  }
+});
+
+exports.revealRunnerToken = asyncHandler(async (req, res) => {
+  noStore(res);
+  const body = req.body;
+  if (!body || typeof body !== 'object' || Array.isArray(body)
+    || Object.keys(body).length !== 1 || typeof body.password !== 'string') {
+    return res.status(400).json({ success: false, code: 'INVALID_REVEAL_REQUEST' });
+  }
+
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user || !user.password || !(await user.matchPassword(body.password))) {
+      return res.status(401).json({ success: false, code: 'REAUTHENTICATION_FAILED' });
+    }
+
+    const value = await getStoredDeploymentRunnerToken();
+    if (!value) return res.status(404).json({ success: false, code: 'DEPLOYMENT_RUNNER_TOKEN_NOT_CONFIGURED' });
+
+    await ProviderRuntimeAudit.create({
+      providerCode: 'deployment_router',
+      action: 'reveal',
+      changedFields: ['DEPLOYMENT_RUNNER_TOKEN'],
+      userId: req.user._id,
+      userName: String(req.user.name || req.user.username || req.user.email || req.user._id).slice(0, 160),
+    });
+    return res.json({ success: true, data: { key: 'DEPLOYMENT_RUNNER_TOKEN', value } });
+  } catch (error) {
+    const unavailable = error.message === 'DEPLOYMENT_ROUTER_CONFIG_STORE_UNAVAILABLE';
+    return res.status(unavailable ? 503 : 500).json({
+      success: false,
+      code: unavailable ? error.message : 'DEPLOYMENT_RUNNER_TOKEN_REVEAL_FAILED',
     });
   }
 });

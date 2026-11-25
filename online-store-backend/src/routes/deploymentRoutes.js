@@ -3,7 +3,12 @@ const { protect, superAdmin } = require('../middleware/authMiddleware');
 const deploymentController = require('../controllers/deploymentController');
 
 const router = express.Router();
+router.use('/config/runner-token/reveal', (req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  next();
+});
 router.use(protect, superAdmin);
+router.post('/config/runner-token/reveal', deploymentController.revealRunnerToken);
 router.get('/config', deploymentController.getConfig);
 router.put('/config', deploymentController.updateConfig);
 router.get('/status', deploymentController.getStatus);
