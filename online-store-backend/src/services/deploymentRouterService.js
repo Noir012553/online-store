@@ -37,6 +37,10 @@ const callDeploymentRouter = async (path, options = {}) => {
     redirect: 'error',
   });
 
+  if (response.status === 401 || response.status === 403) {
+    throw new Error('DEPLOYMENT_ROUTER_AUTH_FAILED');
+  }
+
   let data;
   try {
     data = await response.json();

@@ -122,6 +122,9 @@ const getDeploymentErrorMessage = (error: unknown, fallback: string) => {
   if (error instanceof Error && error.message === 'Deployment router is not configured safely') {
     return 'Worker đã nhận request nhưng thiếu cấu hình an toàn. Kiểm tra binding DEPLOYMENT_STATE, secrets control/runner, runner ID và các HTTPS origin trong cấu hình Worker. Lỗi này không liên quan đến đường dẫn DPAPI runner.';
   }
+  if (code === 'DEPLOYMENT_ROUTER_AUTH_FAILED') {
+    return 'Backend đã kết nối được Worker nhưng Worker từ chối control token. Hãy bảo đảm DEPLOYMENT_CONTROL_TOKEN trong cấu hình backend trùng chính xác với Worker Secret, rồi tải lại trạng thái.';
+  }
   if (code === 'DEPLOYMENT_ROUTER_UNAVAILABLE') {
     return 'Cloudflare Tunnel hiện tại vẫn có; chưa kết nối được Worker deployment router. Kiểm tra Worker và cấu hình backend; cutover/rollback vẫn bị khóa.';
   }

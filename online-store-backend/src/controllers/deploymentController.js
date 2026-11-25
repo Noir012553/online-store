@@ -8,9 +8,11 @@ const { getDeploymentRouterConfigStatus, getStoredDeploymentRunnerToken, saveDep
 const noStore = (res) => res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
 const allowedModes = new Set(['tunnel', 'vercel-render']);
 const deploymentRouterErrorCode = (error) => {
-  if (error.message === 'DEPLOYMENT_ROUTER_CONFIG_STORE_UNAVAILABLE') return error.message;
+  if (['DEPLOYMENT_ROUTER_CONFIG_STORE_UNAVAILABLE', 'DEPLOYMENT_ROUTER_AUTH_FAILED'].includes(error.message)) return error.message;
   return error.message === 'DEPLOYMENT_ROUTER_NOT_CONFIGURED' ? error.message : 'DEPLOYMENT_ROUTER_UNAVAILABLE';
 };
+const deploymentRouterErrorStatus = (code) =>
+  ['DEPLOYMENT_ROUTER_UNAVAILABLE', 'DEPLOYMENT_ROUTER_AUTH_FAILED'].includes(code) ? 502 : 503;
 
 exports.getConfig = asyncHandler(async (req, res) => {
   noStore(res);
@@ -130,7 +132,7 @@ const relay = async (req, res, action, path, options = {}, fields = {}) => {
   } catch (error) {
     const code = deploymentRouterErrorCode(error);
     await audit(req, action, code === 'DEPLOYMENT_ROUTER_UNAVAILABLE' ? 'unavailable' : 'not-configured', fields);
-    return res.status(code === 'DEPLOYMENT_ROUTER_UNAVAILABLE' ? 502 : 503).json({ success: false, code });
+    return res.status(deploymentRouterErrorStatus(code)).json({ success: false, code });
   }
 };
 
@@ -144,7 +146,7 @@ exports.getStatus = asyncHandler(async (req, res) => {
   } catch (error) {
     const code = deploymentRouterErrorCode(error);
     await audit(req, 'status', code === 'DEPLOYMENT_ROUTER_UNAVAILABLE' ? 'unavailable' : 'not-configured');
-    return res.status(code === 'DEPLOYMENT_ROUTER_UNAVAILABLE' ? 502 : 503).json({ success: false, code, switchEnabled: enabled });
+    return res.status(deploymentRouterErrorStatus(code)).json({ success: false, code, switchEnabled: enabled });
   }
 });
 
@@ -205,7 +207,7 @@ exports.getJob = asyncHandler(async (req, res) => {
     return res.status(result.status).json(result.data);
   } catch (error) {
     const code = deploymentRouterErrorCode(error);
-    return res.status(code === 'DEPLOYMENT_ROUTER_UNAVAILABLE' ? 502 : 503).json({ success: false, code });
+    return res.status(deploymentRouterErrorStatus(code)).json({ success: false, code });
   }
 });
 

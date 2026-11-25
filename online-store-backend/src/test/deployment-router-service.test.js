@@ -55,3 +55,16 @@ test('deployment router adapter keeps token server-side and sends fixed JSON req
   assert.equal(result.status, 200);
   assert.deepEqual(result.data, { mode: 'vercel-render', passed: true });
 });
+
+test('deployment router authorization failures are reported as upstream auth errors', async () => {
+  process.env.NODE_ENV = 'production';
+  process.env.DEPLOYMENT_ROUTER_URL = 'https://router.example';
+  process.env.DEPLOYMENT_CONTROL_TOKEN = 'a-control-token-that-is-long-enough';
+
+  for (const status of [401, 403]) {
+    global.fetch = async () => Response.json({ error: 'Unauthorized' }, { status });
+    await assert.rejects(callDeploymentRouter('/__deployment/status'), {
+      message: 'DEPLOYMENT_ROUTER_AUTH_FAILED',
+    });
+  }
+});
