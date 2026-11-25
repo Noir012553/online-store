@@ -685,7 +685,7 @@ export default function ProductDetail({ initialProduct, routeLocale, canonicalSl
       priceCurrency: laptop.baseCurrencyCode,
       price: laptop.price,
       availability: laptop.countInStock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
-      url: canonicalUrl,
+      ...(siteUrl ? { url: canonicalUrl } : {}),
     },
   };
 
@@ -700,12 +700,12 @@ export default function ProductDetail({ initialProduct, routeLocale, canonicalSl
         <meta property="og:title" content={pageTitle} key="og-title" />
         <meta property="og:description" content={pageDescription} key="og-description" />
         <meta property="og:image" content={pageImage} key="og-image" />
-        <meta property="og:url" content={canonicalUrl} key="og-url" />
-        <link rel="canonical" href={canonicalUrl} key="canonical" />
-        {Object.entries(localizedSlugs).map(([alternateLocale, slug]) => (
+        {siteUrl && <meta property="og:url" content={canonicalUrl} key="og-url" />}
+        {siteUrl && <link rel="canonical" href={canonicalUrl} key="canonical" />}
+        {siteUrl && Object.entries(localizedSlugs).map(([alternateLocale, slug]) => (
           <link key={alternateLocale} rel="alternate" hrefLang={alternateLocale} href={`${siteUrl}/product/${slug}`} />
         ))}
-        {defaultSlug && <link rel="alternate" hrefLang="x-default" href={`${siteUrl}/product/${defaultSlug}`} />}
+        {siteUrl && defaultSlug && <link rel="alternate" hrefLang="x-default" href={`${siteUrl}/product/${defaultSlug}`} />}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(productStructuredData).replace(/</g, '\\u003c') }}

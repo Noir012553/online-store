@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const asyncHandler = require('express-async-handler');
 const mongoose = require('mongoose');
 const ProviderCatalogEntry = require('../models/ProviderCatalogEntry');
+const StoreSettings = require('../models/StoreSettings');
 const ProviderConfiguration = require('../models/ProviderConfiguration');
 const ProviderConfigurationAudit = require('../models/ProviderConfigurationAudit');
 const ProviderRuntimeAudit = require('../models/ProviderRuntimeAudit');
@@ -22,9 +23,9 @@ const PROVIDER_SCHEMAS = {
     { key: 'PAYPAL_CLIENT_ID', label: 'Client ID Sandbox', type: 'text', required: true, helpText: 'Lấy Client ID của REST API app trong Apps & Credentials, chọn Sandbox.' },
     { key: 'PAYPAL_CLIENT_SECRET', label: 'Client Secret Sandbox', type: 'secret', required: true, helpText: 'Lấy Client Secret cùng REST API app Sandbox với Client ID.' },
     { key: 'PAYPAL_WEBHOOK_ID', label: 'Webhook ID Sandbox', type: 'text', required: true, placeholder: 'Nhập ID webhook Sandbox của REST API app này', helpText: 'Bắt buộc để xác minh webhook. Nếu app đã đủ 10 webhook, dùng lại ID của webhook Sandbox hiện có trong cùng REST API app.' },
-    { key: 'PAYPAL_RETURN_URL', label: 'URL quay lại', type: 'url', options: ['https://manln.online/return?method=paypal'], placeholder: 'https://manln.online/return?method=paypal', helpText: 'Chọn URL của cửa hàng hoặc nhập URL khác. Route đã xử lý token PayPal ở trang /return.' },
-    { key: 'PAYPAL_CANCEL_URL', label: 'URL hủy', type: 'url', options: ['https://manln.online/return?method=paypal&status=cancelled'], placeholder: 'https://manln.online/return?method=paypal&status=cancelled', helpText: 'Chọn URL của cửa hàng hoặc nhập URL khác. URL hủy không xác nhận đơn đã thanh toán.' },
-    { key: 'PAYPAL_WEBHOOK_URL', label: 'URL webhook', type: 'url', options: ['https://backend.manln.online/api/payments/webhook/paypal'], placeholder: 'https://backend.manln.online/api/payments/webhook/paypal', helpText: 'Endpoint PayPal Sandbox đang xác minh chữ ký và cập nhật đơn; đăng ký đúng URL này trong ứng dụng PayPal.' },
+    { key: 'PAYPAL_RETURN_URL', label: 'URL quay lại', type: 'url', helpText: 'Chọn URL của cửa hàng hoặc nhập URL khác. Route đã xử lý token PayPal ở trang /return.' },
+    { key: 'PAYPAL_CANCEL_URL', label: 'URL hủy', type: 'url', helpText: 'Chọn URL của cửa hàng hoặc nhập URL khác. URL hủy không xác nhận đơn đã thanh toán.' },
+    { key: 'PAYPAL_WEBHOOK_URL', label: 'URL webhook', type: 'url', helpText: 'Endpoint PayPal Sandbox đang xác minh chữ ký và cập nhật đơn; đăng ký đúng URL này trong ứng dụng PayPal.' },
   ],
   sendgrid: [
     { key: 'EMAIL_HOST', label: 'SMTP host', type: 'select', required: true, options: ['smtp.sendgrid.net'], defaultValue: 'smtp.sendgrid.net' },
@@ -155,6 +156,35 @@ const PROVIDER_SETUP_GUIDES = {
   sendgrid: { label: 'SendGrid SMTP', url: 'https://docs.sendgrid.com/for-developers/sending-email/getting-started-smtp', note: 'Chỉ dùng API key và sender đã xác minh cho môi trường staging.' },
   vercel: { label: 'Vercel REST API', url: 'https://vercel.com/docs/rest-api#creating-an-access-token', note: 'Preview branch có thể dùng cho staging; không mặc định dùng Vercel Hobby cho cửa hàng thương mại, hãy xác minh điều khoản hiện hành. Cấu hình tại đây chưa tự deploy.' },
   render: { label: 'Render API', url: 'https://render.com/docs/api', note: 'Render Free có thể spin down sau 15 phút không có traffic và filesystem không bền vững; Preview Environments đa dịch vụ không có trên Free. Cấu hình tại đây chưa tự deploy.' },
+};
+
+const httpsOrigin = (value) => {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && !url.username && !url.password ? url.origin : null;
+  } catch {
+    return null;
+  }
+};
+
+const getProviderSchema = async (providerCode) => {
+  const fields = PROVIDER_SCHEMAS[providerCode];
+  if (!fields || providerCode !== 'paypal') return fields;
+
+  const settings = await StoreSettings.findOne({ key: 'storefront' }).lean();
+  const storefront = httpsOrigin(settings?.branding?.siteUrl);
+  const backend = httpsOrigin(process.env.BACKEND_URL);
+  const suggestions = {
+    PAYPAL_RETURN_URL: storefront && `${storefront}/return?method=paypal`,
+    PAYPAL_CANCEL_URL: storefront && `${storefront}/return?method=paypal&status=cancelled`,
+    PAYPAL_WEBHOOK_URL: backend && `${backend}/api/payments/webhook/paypal`,
+  };
+  return fields.map((field) => {
+    if (!Object.hasOwn(suggestions, field.key)) return { ...field };
+    const suggestion = suggestions[field.key];
+    return { ...field, options: suggestion ? [suggestion] : [], ...(suggestion ? { placeholder: suggestion } : {}) };
+  });
 };
 
 const noStore = (res) => res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
@@ -669,7 +699,7 @@ exports.updateCloudflareAiRuntime = asyncHandler(async (req, res) => {
 });
 
 exports.getSchema = asyncHandler(async (req, res) => {
-  const fields = PROVIDER_SCHEMAS[req.params.providerCode];
+  const fields = await getProviderSchema(req.params.providerCode);
   if (!fields) return res.status(404).json({ success: false, code: 'PROVIDER_CONFIG_UNSUPPORTED' });
   const storeAvailable = /^[a-f0-9]{64}$/i.test(process.env.PROVIDER_CONFIG_ENCRYPTION_KEY || '');
   noStore(res);
@@ -679,7 +709,7 @@ exports.getSchema = asyncHandler(async (req, res) => {
 exports.get = asyncHandler(async (req, res) => {
   const provider = await getProvider(req.params.id);
   if (!provider) return res.status(404).json({ success: false, code: 'PROVIDER_NOT_FOUND' });
-  const fields = PROVIDER_SCHEMAS[provider.providerCode];
+  const fields = await getProviderSchema(provider.providerCode);
   if (!fields) return res.status(404).json({ success: false, code: 'PROVIDER_CONFIG_UNSUPPORTED' });
   const configuration = await ProviderConfiguration.findOne({ providerId: provider._id }).lean();
   const values = { ...(configuration?.values || {}) };

@@ -16,6 +16,7 @@ const UserContentTranslationCache = require('../models/UserContentTranslationCac
 const StaticTranslation = require('../models/StaticTranslation');
 const ProductCatalogTranslationCache = require('../models/ProductCatalogTranslationCache');
 const ProductLocalizedSlug = require('../models/ProductLocalizedSlug');
+const StoreSettings = require('../models/StoreSettings');
 const LiveTranslationCache = require('../models/LiveTranslationCache');
 const { withTimeout } = require('../utils/mongooseUtils');
 const { normalizeSpecs } = require('../utils/specNormalizer');
@@ -771,6 +772,18 @@ const xmlEscape = (value) => String(value)
   .replace(/'/g, '&apos;');
 
 const getProductSitemap = asyncHandler(async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const settings = await StoreSettings.findOne({ key: 'storefront' }).lean();
+  const configuredUrl = settings?.branding?.siteUrl || process.env.FRONTEND_URL;
+  let frontendUrl;
+  try {
+    const parsed = new URL(configuredUrl);
+    if (!['http:', 'https:'].includes(parsed.protocol) || parsed.username || parsed.password) throw new Error('Invalid storefront URL');
+    frontendUrl = parsed.origin;
+  } catch {
+    return res.status(503).json({ success: false, code: 'STOREFRONT_URL_UNAVAILABLE' });
+  }
+
   const records = await ProductLocalizedSlug.find({ status: 'canonical' })
     .select('productId locale slug')
     .sort({ productId: 1, locale: 1 })
@@ -795,7 +808,6 @@ const getProductSitemap = asyncHandler(async (req, res) => {
     slugsByProduct.set(productId, localized);
   });
 
-  const frontendUrl = new URL(process.env.FRONTEND_URL || 'https://manln.online').origin;
   const entries = [...slugsByProduct.entries()].flatMap(([productId, localized]) => {
     const product = productsById.get(productId);
     const alternates = localized.map(({ locale, slug }) => (
@@ -812,7 +824,6 @@ const getProductSitemap = asyncHandler(async (req, res) => {
   });
 
   res.set('Content-Type', 'application/xml; charset=utf-8');
-  res.set('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
   res.send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">${entries.join('')}</urlset>`);
 });
 

@@ -24,7 +24,8 @@ Mục tiêu vận hành là giữ hostname công khai ổn định và chuyển 
 ## Tên miền website và Tunnel origins
 
 - Nhập domain website tại `/admin/settings` → nhóm Thương hiệu, ví dụ `manln.online` hoặc `https://manln.online/`. Backend chuẩn hóa về HTTPS origin (`https://manln.online`) và public settings cung cấp giá trị này cho storefront.
-- Domain website được dùng làm nguồn canonical và URL SEO/share; product metadata lấy setting ở SSR. Khi setting trống hoặc API public lỗi, frontend dùng `SITE_URL` làm fallback.
+- Domain website là nguồn canonical, hreflang và URL SEO/share; product metadata lấy setting ở SSR và sitemap đọc trực tiếp Store Settings. Khi setting trống hoặc API public lỗi, frontend dùng `NEXT_PUBLIC_SITE_URL` nếu được cấu hình; nếu không, không xuất canonical/hreflang có hostname suy đoán. Sitemap dùng `FRONTEND_URL` khi setting trống và trả 503 nếu không có URL hợp lệ. Cấu hình các fallback về cùng website công khai và triển khai lại frontend khi đổi `NEXT_PUBLIC_SITE_URL`.
+- Gợi ý URL quay lại/hủy PayPal lấy từ domain website; gợi ý webhook chỉ lấy từ `BACKEND_URL`. Các URL đã lưu và cấu hình trên dashboard nhà cung cấp không tự thay đổi.
 - Không tự dùng domain website làm Tunnel origin. Worker origin phải là hostname riêng trỏ trực tiếp tới từng dịch vụ Tunnel; forward về hostname đã đi qua Worker có thể tạo vòng lặp.
 - Trước khi coi cấu hình này hoạt động, triển khai backend có schema/API `branding.siteUrl`, xác nhận `GET /api/settings/admin` và `GET /api/settings/public`, lưu thử domain hợp lệ rồi kiểm tra canonical/hreflang/OG trên trang sản phẩm. Không lưu khi form chưa tải được cấu hình.
 
