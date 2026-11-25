@@ -1,7 +1,8 @@
 const ROUTER_TOKEN_MIN_LENGTH = 16;
 
-const getRouterOrigin = () => {
-  const value = process.env.DEPLOYMENT_ROUTER_URL;
+const { getDeploymentRouterConfig } = require('./deploymentRouterConfigService');
+
+const getRouterOrigin = (value) => {
   if (typeof value !== 'string' || !value.trim()) throw new Error('DEPLOYMENT_ROUTER_NOT_CONFIGURED');
   let parsed;
   try {
@@ -19,12 +20,13 @@ const getRouterOrigin = () => {
 };
 
 const callDeploymentRouter = async (path, options = {}) => {
-  const token = process.env.DEPLOYMENT_CONTROL_TOKEN;
+  const config = await getDeploymentRouterConfig();
+  const token = config.controlToken;
   if (typeof token !== 'string' || token.length < ROUTER_TOKEN_MIN_LENGTH) {
     throw new Error('DEPLOYMENT_ROUTER_NOT_CONFIGURED');
   }
 
-  const response = await fetch(`${getRouterOrigin()}${path}`, {
+  const response = await fetch(`${getRouterOrigin(config.routerUrl)}${path}`, {
     method: options.method || 'GET',
     headers: {
       authorization: `Bearer ${token}`,

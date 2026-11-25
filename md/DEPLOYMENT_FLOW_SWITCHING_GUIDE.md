@@ -19,6 +19,14 @@ Mục tiêu vận hành là giữ hostname công khai ổn định và chuyển 
 - Provider Catalog có metadata cho Vercel, Render và Cloudflare Tunnel nhưng chưa tự deploy ứng dụng hay quản lý routing.
 - Nếu Cloudflare Worker đứng trước `manln.online`, cần một hostname origin riêng trỏ trực tiếp tới frontend Tunnel; Worker không được forward về chính hostname production đang chạy Worker vì sẽ tạo vòng lặp. Chưa tạo hostname này.
 - Source hiện có API/UI Super Admin và Worker control plane cho `tunnel` ↔ `vercel-render`, nhưng chưa cấu hình hoặc triển khai trên Cloudflare/Render, chưa cài runner Windows và mặc định `DEPLOYMENT_SWITCH_ENABLED` tắt. Vì vậy hiện chưa có công tắc production khả dụng.
+- Source có cấu hình **tên miền website** tại `/admin/settings` → Cấu hình cửa hàng → Thương hiệu. Đây là domain canonical/SEO, không phải Tunnel origin. Preview hiện ghi nhận `GET /api/settings/admin` trả `400 INVALID_SETTINGS_FIELDS`; backend source hiện tại không trả mã này từ GET, nên phải đồng bộ/xác minh backend runtime trước khi tin rằng form đã tải hoặc lưu được.
+
+## Tên miền website và Tunnel origins
+
+- Nhập domain website tại `/admin/settings` → nhóm Thương hiệu, ví dụ `manln.online` hoặc `https://manln.online/`. Backend chuẩn hóa về HTTPS origin (`https://manln.online`) và public settings cung cấp giá trị này cho storefront.
+- Domain website được dùng làm nguồn canonical và URL SEO/share; product metadata lấy setting ở SSR. Khi setting trống hoặc API public lỗi, frontend dùng `SITE_URL` làm fallback.
+- Không tự dùng domain website làm Tunnel origin. Worker origin phải là hostname riêng trỏ trực tiếp tới từng dịch vụ Tunnel; forward về hostname đã đi qua Worker có thể tạo vòng lặp.
+- Trước khi coi cấu hình này hoạt động, triển khai backend có schema/API `branding.siteUrl`, xác nhận `GET /api/settings/admin` và `GET /api/settings/public`, lưu thử domain hợp lệ rồi kiểm tra canonical/hreflang/OG trên trang sản phẩm. Không lưu khi form chưa tải được cấu hình.
 
 ## Mô hình đích
 
@@ -45,7 +53,7 @@ Trong chế độ Netlify + Railway, cấu hình `NEXT_PUBLIC_API_BASE_URL` củ
 ### 2. Chuẩn bị candidate Vercel + Render
 
 - Theo yêu cầu vận hành, không tạo database khác. Candidate chỉ được dùng MongoDB credential có quyền đọc, cùng namespace production; không cấp credential ghi.
-- Backend có gate `DEPLOYMENT_CANDIDATE_READ_ONLY=true`: từ chối HTTP method ghi, chặn webhook, không chạy worker/scheduler ghi dữ liệu và từ chối Socket.IO. Candidate phải đồng thời dùng `MONGO_READ_ONLY_URI`; nếu biến này thiếu, backend không kết nối bằng `MONGO_URI` dự phòng. Gate này chưa được triển khai trên Render hoặc kiểm thử đầy đủ trên production snapshot; không kết nối candidate cho tới khi kiểm tra quyền MongoDB thực tế và mọi API GET side effect.
+- Backend có gate `DEPLOYMENT_CANDIDATE_READ_ONLY=true`: từ chối HTTP method ghi, chặn mọi đường dẫn webhook ở mọi method, không chạy worker/scheduler ghi dữ liệu và từ chối Socket.IO. Candidate phải đồng thời dùng `MONGO_READ_ONLY_URI`; nếu biến này thiếu, backend không kết nối bằng `MONGO_URI` dự phòng. Analytics cache-clear chỉ nhận POST. Policy có test offline nhưng chưa được triển khai trên Render, kiểm thử với MongoDB quyền đọc thực tế hoặc audit hết side effect của mọi GET endpoint; không kết nối candidate cho tới khi các kiểm tra này hoàn tất.
 - Tạo candidate backend Render và frontend Vercel Preview từ nhánh phù hợp; frontend dùng Root Directory `online-store-frontend`. Lấy URL do từng dashboard cấp.
 - Khi đã có read-only gate, cấu hình `NEXT_PUBLIC_API_BASE_URL` của Vercel Preview thành URL candidate Render; không cho candidate thực hiện mutation trên dữ liệu production.
 - Kiểm thử riêng cách Vercel xử lý SSR, image optimization, rewrites/proxy `/api/*`, cookies và websocket; nếu tính năng nào không tương thích thì dừng trước khi gắn hostname production.
@@ -75,7 +83,7 @@ Worker chuyển cả hostname website và API theo một mode duy nhất, khóa 
 
 ### Nút dừng dịch vụ Tunnel
 
-- API `online-store-backend/src/routes/deploymentRoutes.js` chỉ cho Super Admin gọi status, preflight, cutover, rollback và job status; Worker token chỉ nằm ở backend. `DEPLOYMENT_SWITCH_ENABLED` phải được cấu hình `true` mới nhận cutover/rollback; mặc định thao tác bị khóa.
+- API `online-store-backend/src/routes/deploymentRoutes.js` chỉ cho Super Admin gọi status, preflight, cutover, rollback, job status và cập nhật router connection. Form `/admin/deployment` tải/lưu Worker origins, runner identity/path, checklist và backend router connection; control token và runner token được mã hóa trong backend, yêu cầu xác thực lại mật khẩu và không trả plaintext về trình duyệt. Các giá trị Worker/runner trong form chỉ là cấu hình tham chiếu, chưa tự cập nhật Cloudflare hoặc WinSW; phải đồng bộ thủ công. Nếu không dùng form, backend có thể dùng `DEPLOYMENT_ROUTER_URL` và `DEPLOYMENT_CONTROL_TOKEN` từ environment. `DEPLOYMENT_SWITCH_ENABLED` phải được cấu hình `true` mới nhận cutover/rollback; mặc định thao tác bị khóa.
 - UI `/admin/deployment` yêu cầu preflight Vercel + Render đạt, runner heartbeat còn mới và xác nhận trên trình duyệt trước cutover. UI có theo dõi job và hiển thị audit phía backend/Worker.
 - Worker nhận action allowlist `stopTunnelApps`/`startTunnelApps`; runner `online-store-backend/scripts/deployment-runner.js` chỉ gọi đúng hai PowerShell script với tham số xác nhận cố định. Không nhận command, script path, service name hoặc port từ request.
 - Hai script PowerShell chỉ điều khiển `LaptopStoreFrontend` và `LaptopStoreBackend`; không dừng `LaptopStoreTunnel`. Runner script đã có trong source nhưng chưa được cài thành WinSW service và chưa có cơ chế cấp quyền service-control tối thiểu được kiểm thử.
@@ -106,5 +114,7 @@ Không coi việc API Cloudflare Tunnel còn kết nối là bằng chứng fron
 - Sau rollback, xác nhận frontend/API, đăng nhập, checkout và webhook hoạt động; giữ log/audit để điều tra nguyên nhân.
 
 ## Giới hạn phạm vi
+
+Lỗi `GET /api/settings/admin` trả `400 INVALID_SETTINGS_FIELDS` ở preview là dấu hiệu backend runtime chưa khớp với frontend/source đang kiểm tra; backend source hiện tại chỉ áp dụng validation này cho payload cập nhật. Cần xác minh URL backend mà preview đang proxy tới và triển khai phiên bản backend tương ứng trước khi xác nhận cấu hình website domain. Lỗi này riêng với `503 DEPLOYMENT_ROUTER_NOT_CONFIGURED`: lỗi thứ hai cho biết Worker control plane chưa được cấu hình.
 
 Provider Catalog hiện chỉ lưu metadata/cấu hình provider; metadata Vercel, Render hoặc Cloudflare Tunnel không tự tạo deployment hay đổi DNS. Control switch Vercel + Render là luồng riêng; chưa tự quản lý deployment hoặc bật quyền ghi MongoDB cho Render. `netlify-railway` vẫn chưa được hỗ trợ. Không bật production switch trước khi hoàn tất cấu hình hạ tầng, promotion credential, quyền runner và staging tests.

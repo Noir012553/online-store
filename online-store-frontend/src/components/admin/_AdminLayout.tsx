@@ -15,6 +15,8 @@ import {
   ArrowDownUp,
   BarChart3,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Megaphone,
   Shield,
   Languages,
@@ -174,6 +176,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
+  const systemSettingsSteps: AdminMenuLink[] = [
+    { path: "/admin/settings", icon: Settings2, label: t('page_title', 'admin-store-settings') },
+    { path: "/admin/providerCatalog", icon: Package, label: t('provider_catalog_title', 'admin-provider-catalog') },
+    { path: "/admin/deployment", icon: ArrowDownUp, label: 'Chuyển luồng deploy' },
+  ];
+
   const menuItems: Array<{ type: "link"; id: string; item: AdminMenuLink } | { type: "group"; group: AdminMenuGroup }> = adminNamespaceLoaded ? [
     {
       type: "group" as const,
@@ -240,11 +248,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           id: "settings",
           title: t('settings_group_title', 'admin-store-settings'),
           icon: Settings2,
-          children: [
-            { path: "/admin/settings", icon: Settings2, label: t('page_title', 'admin-store-settings') },
-            { path: "/admin/providerCatalog", icon: Package, label: t('provider_catalog_title', 'admin-provider-catalog') },
-            { path: "/admin/deployment", icon: ArrowDownUp, label: 'Chuyển luồng deploy' },
-          ],
+          children: systemSettingsSteps,
         },
       },
     ] : []),
@@ -266,6 +270,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   ] : [];
 
   const isChildActive = (path: string) => router.isReady && router.pathname === path;
+  const currentSystemSettingsIndex = systemSettingsSteps.findIndex((step) => router.pathname === step.path);
   const closeSidebarOnMobile = () => {
     if (window.matchMedia('(max-width: 767px)').matches) {
       setSidebarOpen(false);
@@ -459,6 +464,47 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <NotificationBell />
           </div>
           <div className="flex-1 overflow-y-auto p-4 sm:p-8">
+            {currentSystemSettingsIndex >= 0 && (
+              <nav aria-label="Điều hướng cài đặt hệ thống" className="mx-auto mb-6 max-w-6xl rounded-xl border border-slate-200 bg-white shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Thiết lập hệ thống</p>
+                    <p className="mt-1 text-sm font-medium text-slate-900">Bước {currentSystemSettingsIndex + 1} / {systemSettingsSteps.length}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    {currentSystemSettingsIndex > 0 && (
+                      <Link href={systemSettingsSteps[currentSystemSettingsIndex - 1].path} className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                        <ChevronLeft className="h-4 w-4" /> Trước
+                      </Link>
+                    )}
+                    {currentSystemSettingsIndex < systemSettingsSteps.length - 1 && (
+                      <Link href={systemSettingsSteps[currentSystemSettingsIndex + 1].path} className="inline-flex items-center gap-1 rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700">
+                        Tiếp theo <ChevronRight className="h-4 w-4" />
+                      </Link>
+                    )}
+                  </div>
+                </div>
+                <ol className="grid gap-2 border-t border-slate-200 p-3 sm:grid-cols-3">
+                  {systemSettingsSteps.map((step, index) => {
+                    const Icon = step.icon;
+                    const isCurrent = index === currentSystemSettingsIndex;
+                    return (
+                      <li key={step.path}>
+                        <Link
+                          href={step.path}
+                          aria-current={isCurrent ? 'step' : undefined}
+                          className={`flex h-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${isCurrent ? 'bg-red-50 font-semibold text-red-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}
+                        >
+                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-xs ring-1 ring-slate-200">{index + 1}</span>
+                          <Icon className="h-4 w-4 shrink-0" />
+                          <span>{step.label}</span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </nav>
+            )}
             {children}
           </div>
         </main>

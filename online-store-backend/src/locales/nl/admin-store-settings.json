@@ -23,6 +23,8 @@
   "table_value": "Waarde",
   "brand": "Huisstijl",
   "store_name": "Winkelnaam",
+  "site_domain": "Website-domein",
+  "site_domain_help": "Voer het hoofddomein van de winkel in, met of zonder https://. Gebruikt voor canonical- en deel-URL's, niet als Tunnel-origin.",
   "support_email": "E-mailadres voor support",
   "logo_main": "Hoofdlogo",
   "logo_dark": "Logo voor donkere achtergrond",

@@ -15,7 +15,7 @@ import { useRouter } from 'next/router';
 import { PageTransition } from "../components/PageTransition";
 import { HamsterLoader } from "../components/HamsterLoader";
 import AdminLayout from "../components/admin/_AdminLayout";
-import { DEFAULT_SITE_DESCRIPTION, DEFAULT_SITE_IMAGE, DEFAULT_SITE_TITLE, SITE_NAME } from '../lib/seo';
+import { DEFAULT_SITE_DESCRIPTION, DEFAULT_SITE_TITLE, SITE_NAME, SITE_URL, normalizeSiteUrl } from '../lib/seo';
 import { ProtectedAdminPage, type PagePermission } from "../components/admin/ProtectedAdminPage";
 import { useAuth } from '../lib/context/AuthContext';
 import { settingsAPI, type StoreSettingsRecord } from '../lib/api';
@@ -304,6 +304,16 @@ function AppContent({ Component, pageProps }: AppContentProps) {
 }
 
 function MyApp({ Component, pageProps }: AppProps) {
+  const [siteUrl, setSiteUrl] = useState(SITE_URL);
+
+  useEffect(() => {
+    let active = true;
+    settingsAPI.getPublic().then((settings) => {
+      if (active) setSiteUrl(normalizeSiteUrl(settings.branding.siteUrl));
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <Head>
@@ -313,7 +323,7 @@ function MyApp({ Component, pageProps }: AppProps) {
         <meta property="og:site_name" content={SITE_NAME} key="og-site-name" />
         <meta property="og:title" content={DEFAULT_SITE_TITLE} key="og-title" />
         <meta property="og:description" content={DEFAULT_SITE_DESCRIPTION} key="og-description" />
-        <meta property="og:image" content={DEFAULT_SITE_IMAGE} key="og-image" />
+        <meta property="og:image" content={`${siteUrl}/assets/branding/logo-cropped.png`} key="og-image" />
         <meta name="twitter:card" content="summary_large_image" key="twitter-card" />
         <link rel="icon" href="/favicon.ico" />
       </Head>

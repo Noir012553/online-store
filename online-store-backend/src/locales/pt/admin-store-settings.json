@@ -23,6 +23,8 @@
   "table_value": "Valor",
   "brand": "Identidade visual",
   "store_name": "Nome da loja",
+  "site_domain": "Domínio do site",
+  "site_domain_help": "Informe o domínio principal da loja, com ou sem https://. Usado em URLs canônicas e de compartilhamento, não como origem do Tunnel.",
   "support_email": "E-mail de suporte",
   "logo_main": "Logotipo principal",
   "logo_dark": "Logotipo para fundo escuro",

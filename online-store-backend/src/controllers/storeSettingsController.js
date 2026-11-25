@@ -6,6 +6,7 @@ const { uploadAsset } = require('../services/r2AssetService');
 const DEFAULT_SETTINGS = {
   branding: {
     storeName: '',
+    siteUrl: '',
     supportEmail: '',
     logoUrl: '',
     darkLogoUrl: '',
@@ -39,7 +40,12 @@ const ensureSettings = async () => {
 
 const getSettings = async () => {
   const settings = await StoreSettings.findOne({ key: 'storefront' }).lean();
-  return settings || DEFAULT_SETTINGS;
+  if (!settings) return DEFAULT_SETTINGS;
+  return {
+    ...settings,
+    branding: { ...DEFAULT_SETTINGS.branding, ...(settings.branding || {}) },
+    maintenance: { ...DEFAULT_SETTINGS.maintenance, ...(settings.maintenance || {}) },
+  };
 };
 
 const validateUrl = (value, field) => {
@@ -52,6 +58,22 @@ const validateUrl = (value, field) => {
   throw new Error(`INVALID_${field.toUpperCase()}`);
 };
 
+const normalizeSiteUrl = (value) => {
+  if (typeof value !== 'string' || value.length > 300) throw new Error('INVALID_SITE_URL');
+  const domain = value.trim();
+  if (!domain) return '';
+  let parsed;
+  try {
+    parsed = new URL(/^https:\/\//i.test(domain) ? domain : `https://${domain}`);
+  } catch {
+    throw new Error('INVALID_SITE_URL');
+  }
+  if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.pathname !== '/' || parsed.search || parsed.hash || !parsed.hostname.includes('.')) {
+    throw new Error('INVALID_SITE_URL');
+  }
+  return parsed.origin;
+};
+
 const validateBody = (body) => {
   const allowedSections = ['branding', 'maintenance'];
   if (!body || typeof body !== 'object' || Array.isArray(body)
@@ -61,7 +83,7 @@ const validateBody = (body) => {
 
   const updates = {};
   const changedFields = [];
-  const brandingFields = ['storeName', 'supportEmail', 'logoUrl', 'darkLogoUrl', 'faviconUrl'];
+  const brandingFields = ['storeName', 'siteUrl', 'supportEmail', 'logoUrl', 'darkLogoUrl', 'faviconUrl'];
   const maintenanceFields = ['enabled', 'message', 'scheduledStart', 'scheduledEnd'];
 
   for (const section of allowedSections) {
@@ -78,6 +100,11 @@ const validateBody = (body) => {
         if (typeof fieldValue !== 'string') throw new Error(`INVALID_${field.toUpperCase()}`);
         if (field === 'supportEmail' && fieldValue && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fieldValue)) {
           throw new Error('INVALID_SUPPORT_EMAIL');
+        }
+        if (field === 'siteUrl') {
+          updates[path] = normalizeSiteUrl(fieldValue);
+          changedFields.push(path);
+          continue;
         }
         if (['logoUrl', 'darkLogoUrl', 'faviconUrl'].includes(field)) validateUrl(fieldValue, field);
         if (field === 'storeName' && fieldValue.length > 120) throw new Error('INVALID_STORE_NAME');
@@ -114,8 +141,8 @@ exports.getPublicSettings = asyncHandler(async (_req, res) => {
   noStore(res);
   const settings = await getSettings();
   res.json({
-    branding: settings.branding || DEFAULT_SETTINGS.branding,
-    maintenance: settings.maintenance || DEFAULT_SETTINGS.maintenance,
+    branding: { ...DEFAULT_SETTINGS.branding, ...(settings.branding || {}) },
+    maintenance: { ...DEFAULT_SETTINGS.maintenance, ...(settings.maintenance || {}) },
   });
 });
 
@@ -213,6 +240,7 @@ exports.resetAdminSettings = asyncHandler(async (req, res) => {
     {
       $set: {
         'branding.storeName': '',
+        'branding.siteUrl': '',
         'branding.supportEmail': '',
         'branding.logoUrl': '',
         'branding.darkLogoUrl': '',

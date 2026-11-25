@@ -310,6 +310,30 @@ test("ordinary routing preserves path, query, method and body while selecting th
   });
 });
 
+test("WebSocket upgrade headers are forwarded to the selected upstream", async () => {
+  const { env } = setup("vercel-render");
+  await withFetch(async (input) => {
+    const upstream = input instanceof Request ? input : new Request(input);
+    assert.equal(upstream.url, "https://api.onrender.com/socket.io/?EIO=4&transport=websocket");
+    assert.equal(upstream.headers.get("upgrade"), "websocket");
+    assert.equal(upstream.headers.get("connection"), "Upgrade");
+    assert.equal(upstream.headers.get("sec-websocket-version"), "13");
+    assert.equal(upstream.headers.get("sec-websocket-key"), "dGhlIHNhbXBsZSBub25jZQ==");
+    return new Response("proxied");
+  }, async () => {
+    const response = await worker.fetch(new Request(
+      "https://backend.manln.online/socket.io/?EIO=4&transport=websocket",
+      { headers: {
+        connection: "keep-alive, Upgrade",
+        upgrade: "websocket",
+        "sec-websocket-version": "13",
+        "sec-websocket-key": "dGhlIHNhbXBsZSBub25jZQ==",
+      } },
+    ), env);
+    assert.equal(response.status, 200);
+  });
+});
+
 test("a user-supplied destination and unknown hosts never select an upstream", async () => {
   const { env } = setup();
   let calls = 0;

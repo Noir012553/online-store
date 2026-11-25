@@ -6,7 +6,7 @@ import { settingsAPI, type StoreSettingsRecord } from '../../lib/api';
 import { useTranslation } from '../../lib/i18n';
 
 const EMPTY_SETTINGS: StoreSettingsRecord = {
-  branding: { storeName: '', supportEmail: '', logoUrl: '', darkLogoUrl: '', faviconUrl: '' },
+  branding: { storeName: '', siteUrl: '', supportEmail: '', logoUrl: '', darkLogoUrl: '', faviconUrl: '' },
   maintenance: { enabled: false, message: '', scheduledStart: null, scheduledEnd: null },
   version: 1,
   updatedAt: null,
@@ -46,6 +46,7 @@ function SettingsAdminPage() {
       ...data,
       branding: {
         ...data.branding,
+        siteUrl: data.branding.siteUrl || '',
         storeName: data.branding.storeName || t('brand_name', 'common'),
         supportEmail: data.branding.supportEmail || t('contact_email', 'contact'),
       },
@@ -65,7 +66,7 @@ function SettingsAdminPage() {
       setLoadError(null);
     } catch (error) {
       const apiError = error as Error & { code?: string; status?: number };
-      setLoadError(apiError.code === 'ROUTE_NOT_FOUND' || apiError.status === 404 ? 'backend-missing' : 'load-failed');
+      setLoadError(apiError.code === 'ROUTE_NOT_FOUND' || apiError.code === 'INVALID_SETTINGS_FIELDS' || apiError.status === 404 ? 'backend-missing' : 'load-failed');
     } finally {
       setLoading(false);
     }
@@ -186,6 +187,14 @@ function SettingsAdminPage() {
                 <td className="px-4 py-3"><span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">{t('brand', 'admin-store-settings')}</span></td>
                 <th scope="row" className="px-4 py-3 text-sm font-medium text-slate-800"><label htmlFor="store-name">{t('store_name', 'admin-store-settings')}</label></th>
                 <td className="px-4 py-3"><input id="store-name" value={settings.branding.storeName} maxLength={120} onChange={(event) => updateBranding('storeName', event.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" /></td>
+              </tr>
+              <tr>
+                <td className="px-4 py-3"><span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">{t('brand', 'admin-store-settings')}</span></td>
+                <th scope="row" className="px-4 py-3 text-sm font-medium text-slate-800"><label htmlFor="store-site-url">{t('site_domain', 'admin-store-settings')}</label></th>
+                <td className="px-4 py-3">
+                  <input id="store-site-url" type="text" inputMode="url" autoCapitalize="none" value={settings.branding.siteUrl} maxLength={300} onChange={(event) => updateBranding('siteUrl', event.target.value)} placeholder="manln.online" className="w-full rounded-lg border border-slate-300 px-3 py-2.5 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" />
+                  <p className="mt-1 text-xs leading-5 text-slate-500">{t('site_domain_help', 'admin-store-settings')}</p>
+                </td>
               </tr>
               <tr>
                 <td className="px-4 py-3"><span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">{t('brand', 'admin-store-settings')}</span></td>

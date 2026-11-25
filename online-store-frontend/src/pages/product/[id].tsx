@@ -31,7 +31,7 @@ import { getUserFriendlyErrorMessage } from "../../lib/errorHandler";
 import { interpolateTranslation } from "../../lib/translationInterpolate";
 import type { Locale } from "../../lib/i18n/types";
 import { isNoInputTranslationResponse } from "../../lib/translationResponseGuard";
-import { DEFAULT_SITE_DESCRIPTION, DEFAULT_SITE_IMAGE, DEFAULT_SITE_TITLE, SITE_NAME, SITE_URL, getProductPath } from "../../lib/seo";
+import { DEFAULT_SITE_DESCRIPTION, DEFAULT_SITE_TITLE, SITE_NAME, SITE_URL, getProductPath, normalizeSiteUrl } from "../../lib/seo";
 
 const TAB_VALUES = ['description', 'promotions', 'reviews'] as const;
 type ProductTab = (typeof TAB_VALUES)[number];
@@ -82,6 +82,7 @@ interface ProductPageProps {
   routeLocale: Locale;
   canonicalSlug: string | null;
   initialError: string | null;
+  siteUrl: string;
 }
 
 export const getServerSideProps: GetServerSideProps<ProductPageProps> = async ({ params, query }) => {
@@ -93,6 +94,9 @@ export const getServerSideProps: GetServerSideProps<ProductPageProps> = async ({
   const endpoint = isLegacyId
     ? `/api/products/${segment}?${queryString.toString()}`
     : `/api/products/slug/${encodeURIComponent(segment)}?${queryString.toString()}`;
+  const siteUrlPromise = fetch(`${BACKEND_URL}/api/settings/public`)
+    .then(async (response) => response.ok ? normalizeSiteUrl((await response.json())?.branding?.siteUrl) : SITE_URL)
+    .catch(() => SITE_URL);
 
   try {
     const response = await fetch(`${BACKEND_URL}${endpoint}`);
@@ -103,6 +107,7 @@ export const getServerSideProps: GetServerSideProps<ProductPageProps> = async ({
           routeLocale: DEFAULT_LOCALE,
           canonicalSlug: null,
           initialError: 'error_server_overloaded',
+          siteUrl: await siteUrlPromise,
         },
       };
     }
@@ -126,6 +131,7 @@ export const getServerSideProps: GetServerSideProps<ProductPageProps> = async ({
           routeLocale: DEFAULT_LOCALE,
           canonicalSlug: null,
           initialError: null,
+          siteUrl: await siteUrlPromise,
         },
       };
     }
@@ -145,6 +151,7 @@ export const getServerSideProps: GetServerSideProps<ProductPageProps> = async ({
         routeLocale: payload.locale as Locale,
         canonicalSlug: payload.canonicalSlug as string,
         initialError: null,
+        siteUrl: await siteUrlPromise,
       },
     };
   } catch {
@@ -152,7 +159,7 @@ export const getServerSideProps: GetServerSideProps<ProductPageProps> = async ({
   }
 };
 
-export default function ProductDetail({ initialProduct, routeLocale, canonicalSlug, initialError }: ProductPageProps) {
+export default function ProductDetail({ initialProduct, routeLocale, canonicalSlug, initialError, siteUrl }: ProductPageProps) {
   const router = useRouter();
   const { id } = router.query;
   const { addToCart } = useCart();
@@ -661,9 +668,9 @@ export default function ProductDetail({ initialProduct, routeLocale, canonicalSl
     .slice(0, 160);
   const pageImage = typeof mainImage === 'string' && /^https?:\/\//i.test(mainImage)
     ? mainImage
-    : DEFAULT_SITE_IMAGE;
+    : `${siteUrl}/assets/branding/logo-cropped.png`;
   const canonicalPath = getProductPath(laptop, routeLocale) || `/product/${canonicalSlug || routeSegment}`;
-  const canonicalUrl = `${SITE_URL}${canonicalPath}`;
+  const canonicalUrl = `${siteUrl}${canonicalPath}`;
   const localizedSlugs = laptop.localizedSlugs || {};
   const defaultSlug = localizedSlugs[DEFAULT_LOCALE];
   const productStructuredData = {
@@ -696,9 +703,9 @@ export default function ProductDetail({ initialProduct, routeLocale, canonicalSl
         <meta property="og:url" content={canonicalUrl} key="og-url" />
         <link rel="canonical" href={canonicalUrl} key="canonical" />
         {Object.entries(localizedSlugs).map(([alternateLocale, slug]) => (
-          <link key={alternateLocale} rel="alternate" hrefLang={alternateLocale} href={`${SITE_URL}/product/${slug}`} />
+          <link key={alternateLocale} rel="alternate" hrefLang={alternateLocale} href={`${siteUrl}/product/${slug}`} />
         ))}
-        {defaultSlug && <link rel="alternate" hrefLang="x-default" href={`${SITE_URL}/product/${defaultSlug}`} />}
+        {defaultSlug && <link rel="alternate" hrefLang="x-default" href={`${siteUrl}/product/${defaultSlug}`} />}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(productStructuredData).replace(/</g, '\\u003c') }}

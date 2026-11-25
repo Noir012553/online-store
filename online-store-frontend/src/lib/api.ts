@@ -516,6 +516,7 @@ export async function apiCall<T = any>(
 export interface StoreSettingsRecord {
   branding: {
     storeName: string;
+    siteUrl: string;
     supportEmail: string;
     logoUrl: string;
     darkLogoUrl: string;
@@ -534,7 +535,7 @@ export interface StoreSettingsRecord {
 
 export const settingsAPI = {
   getPublic: () => apiCall<Pick<StoreSettingsRecord, 'branding' | 'maintenance'>>('/settings/public', { skipCache: true, skipErrorToast: true }),
-  getAdmin: () => apiCall<{ success: boolean; data: StoreSettingsRecord }>('/settings/admin', { skipCache: true }),
+  getAdmin: () => apiCall<{ success: boolean; data: StoreSettingsRecord }>('/settings/admin', { skipCache: true, skipErrorToast: true }),
   update: (data: Partial<Pick<StoreSettingsRecord, 'branding' | 'maintenance'>>) => apiCall<{ success: boolean; data: StoreSettingsRecord }>('/settings/admin', {
     method: 'PUT',
     body: JSON.stringify(data),
@@ -567,6 +568,21 @@ export const settingsAPI = {
 };
 
 export type ProviderCatalogCategory = 'email' | 'payment' | 'shipping' | 'deploy' | 'storage' | 'ai';
+
+export interface DeploymentRouterConfig {
+  routerUrl: string;
+  routerUrlSource: 'database' | 'environment' | 'unset';
+  controlTokenConfigured: boolean;
+  controlTokenValid: boolean;
+  controlTokenSource: 'database' | 'environment' | 'unset';
+  version: number;
+  storeAvailable: boolean;
+  workerOrigins: Record<'TUNNEL_FRONTEND_ORIGIN' | 'TUNNEL_BACKEND_ORIGIN' | 'VERCEL_FRONTEND_ORIGIN' | 'RENDER_BACKEND_ORIGIN', string>;
+  runnerId: string;
+  runnerTokenConfigured: boolean;
+  runnerTokenFilePath: string;
+  readinessChecklist: Record<'WORKER_DEPLOYED' | 'RUNNER_CONFIGURED' | 'STAGING_VERIFIED', boolean>;
+}
 
 export interface DeploymentStatus {
   mode: 'tunnel' | 'vercel-render';
@@ -607,6 +623,19 @@ export interface DeploymentControlPlaneEvent {
 }
 
 export const deploymentAPI = {
+  getConfig: () => apiCall<{ success: boolean; data: DeploymentRouterConfig }>('/admin/deployment/config', { skipCache: true, skipErrorToast: true }),
+  saveConfig: (data: {
+    routerUrl: string;
+    controlToken: string;
+    workerOrigins: DeploymentRouterConfig['workerOrigins'];
+    runnerId: string;
+    runnerToken: string;
+    runnerTokenFilePath: string;
+    readinessChecklist: DeploymentRouterConfig['readinessChecklist'];
+    password: string;
+  }) => apiCall<{ success: boolean; data: { version: number; routerUrl: string; controlTokenUpdated: boolean; runnerTokenUpdated: boolean } }>('/admin/deployment/config', {
+    method: 'PUT', body: JSON.stringify(data), skipCache: true, skipErrorToast: true,
+  }),
   getStatus: () => apiCall<DeploymentStatus>('/admin/deployment/status', { skipCache: true, skipErrorToast: true }),
   preflight: (mode: DeploymentStatus['mode']) => apiCall<{ mode: DeploymentStatus['mode']; passed: boolean }>('/admin/deployment/preflight', {
     method: 'POST', body: JSON.stringify({ mode }), skipErrorToast: true,

@@ -23,6 +23,8 @@
   "table_value": "Värde",
   "brand": "Varumärke",
   "store_name": "Butiksnamn",
+  "site_domain": "Webbplatsens domän",
+  "site_domain_help": "Ange butikens primära domän, med eller utan https://. Används för canonical- och delnings-URL:er, inte som Tunnel-origin.",
   "support_email": "Support-e-post",
   "logo_main": "Huvudlogotyp",
   "logo_dark": "Logotyp för mörk bakgrund",

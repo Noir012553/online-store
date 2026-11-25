@@ -23,6 +23,8 @@
   "table_value": "Value",
   "brand": "Branding",
   "store_name": "Store name",
+  "site_domain": "Website domain",
+  "site_domain_help": "Enter the storefront's primary domain, with or without https://. Used for canonical and sharing URLs, not as a Tunnel origin.",
   "support_email": "Support email",
   "logo_main": "Main logo",
   "logo_dark": "Dark-background logo",
