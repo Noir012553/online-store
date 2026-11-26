@@ -4,6 +4,8 @@ import worker, { DeploymentState } from "./worker.js";
 
 const TOKEN = "a-control-token-that-is-long-enough";
 const RUNNER_TOKEN = "a-runner-token-that-is-long-enough";
+const TUNNEL_ACCESS_CLIENT_ID = "access-client-id.example";
+const TUNNEL_ACCESS_CLIENT_SECRET = "a-tunnel-access-client-secret";
 const RUNNER_ID = "runner-1";
 const ORIGINS = {
   TUNNEL_FRONTEND_ORIGIN: "https://tunnel-frontend.example.net",
@@ -40,10 +42,14 @@ function setup(mode = "tunnel") {
   };
   const stateObject = new DeploymentState(serialState, {
     ...ORIGINS,
+    TUNNEL_ACCESS_CLIENT_ID,
+    TUNNEL_ACCESS_CLIENT_SECRET,
     NODE_ENV: "production",
   });
   const env = {
     ...ORIGINS,
+    TUNNEL_ACCESS_CLIENT_ID,
+    TUNNEL_ACCESS_CLIENT_SECRET,
     NODE_ENV: "production",
     DEPLOYMENT_CONTROL_TOKEN: TOKEN,
     DEPLOYMENT_RUNNER_TOKEN: RUNNER_TOKEN,
@@ -97,14 +103,34 @@ test("missing bindings fail closed before proxying or exposing status", async ()
   assert.equal(response.status, 503);
 });
 
-test("preflight endpoint reports failed health checks", async () => {
+test("preflight endpoint reports failed health checks and authenticates Tunnel origins", async () => {
   const { env } = setup();
-  await withFetch(async () => new Response("unhealthy", { status: 503 }), async () => {
+  await withFetch(async (_input, init) => {
+    assert.equal(new Headers(init?.headers).get("CF-Access-Client-Id"), TUNNEL_ACCESS_CLIENT_ID);
+    assert.equal(new Headers(init?.headers).get("CF-Access-Client-Secret"), TUNNEL_ACCESS_CLIENT_SECRET);
+    return new Response("unhealthy", { status: 503 });
+  }, async () => {
     const response = await worker.fetch(request("/__deployment/preflight", {
       method: "POST", body: { mode: "tunnel" },
     }), env);
     assert.equal(response.status, 502);
     assert.deepEqual(await response.json(), { mode: "tunnel", passed: false });
+  });
+});
+
+test("Vercel and Render preflight never sends Tunnel Access credentials", async () => {
+  const { env } = setup();
+  await withFetch(async (_input, init) => {
+    const headers = new Headers(init?.headers);
+    assert.equal(headers.has("CF-Access-Client-Id"), false);
+    assert.equal(headers.has("CF-Access-Client-Secret"), false);
+    return new Response("ok");
+  }, async () => {
+    const response = await worker.fetch(request("/__deployment/preflight", {
+      method: "POST", body: { mode: "vercel-render" },
+    }), env);
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), { mode: "vercel-render", passed: true });
   });
 });
 
@@ -345,6 +371,8 @@ test("WebSocket upgrade headers are forwarded to the selected upstream", async (
     assert.equal(upstream.headers.get("connection"), "Upgrade");
     assert.equal(upstream.headers.get("sec-websocket-version"), "13");
     assert.equal(upstream.headers.get("sec-websocket-key"), "dGhlIHNhbXBsZSBub25jZQ==");
+    assert.equal(upstream.headers.has("CF-Access-Client-Id"), false);
+    assert.equal(upstream.headers.has("CF-Access-Client-Secret"), false);
     return new Response("proxied");
   }, async () => {
     const response = await worker.fetch(new Request(
@@ -366,14 +394,37 @@ test("a user-supplied destination and unknown hosts never select an upstream", a
   await withFetch(async (input) => {
     calls++;
     assert.equal(input.url, "https://tunnel-frontend.example.net/anything?url=https%3A%2F%2Fevil.example");
+    assert.equal(input.headers.get("CF-Access-Client-Id"), TUNNEL_ACCESS_CLIENT_ID);
+    assert.equal(input.headers.get("CF-Access-Client-Secret"), TUNNEL_ACCESS_CLIENT_SECRET);
     return new Response("ok");
   }, async () => {
-    const queryAttempt = await worker.fetch(request("/anything?url=https%3A%2F%2Fevil.example"), env);
+    const queryAttempt = await worker.fetch(request("/anything?url=https%3A%2F%2Fevil.example", {
+      headers: {
+        "CF-Access-Client-Id": "forged-client-id",
+        "CF-Access-Client-Secret": "forged-client-secret",
+      },
+    }), env);
     const unknownHost = await worker.fetch(request("/anything", { host: "evil.example" }), env);
     assert.equal(queryAttempt.status, 200);
     assert.equal(unknownHost.status, 421);
     assert.equal(calls, 1);
   });
+});
+
+test("Tunnel routes fail closed without a complete Access service token", async () => {
+  const { env } = setup();
+  delete env.TUNNEL_ACCESS_CLIENT_ID;
+  delete env.TUNNEL_ACCESS_CLIENT_SECRET;
+  let calls = 0;
+  await withFetch(async () => { calls++; return new Response("unexpected"); }, async () => {
+    const response = await worker.fetch(request("/"), env);
+    assert.equal(response.status, 503);
+    assert.equal(calls, 0);
+  });
+
+  env.TUNNEL_ACCESS_CLIENT_ID = TUNNEL_ACCESS_CLIENT_ID;
+  const partial = await worker.fetch(request("/__deployment/status"), env);
+  assert.equal(partial.status, 503);
 });
 
 test("non-HTTPS origins are rejected in production", async () => {

@@ -492,7 +492,7 @@ function DeploymentAdminPage() {
           <ol className="grid gap-4 md:grid-cols-2">
             <li className="rounded-lg border border-slate-200 p-4">
               <h3 className="font-semibold text-slate-900">1. Cloudflare Worker</h3>
-              <p className="mt-1 text-sm text-slate-600">Nhập HTTPS origins và secrets cho Worker <code>deployment-router</code>. Durable Object binding <code>DEPLOYMENT_STATE</code> vẫn được quản lý qua Wrangler.</p>
+              <p className="mt-1 text-sm text-slate-600">Nhập HTTPS origins và cấu hình secrets cho Worker <code>deployment-router</code>. Tunnel origins phải có Cloudflare Access policy và Worker Secrets <code>TUNNEL_ACCESS_CLIENT_ID</code>/<code>TUNNEL_ACCESS_CLIENT_SECRET</code>; Durable Object binding <code>DEPLOYMENT_STATE</code> vẫn được quản lý qua Wrangler.</p>
               <div className="mt-3 grid gap-3">
                 <label className="block text-sm font-medium text-slate-800">Tên miền gốc Tunnel
                   <SuggestionInput type="text" value={tunnelDomain} suggestions={storeDomainHost ? [{ value: storeDomainHost, label: 'Domain website — chỉ dùng nếu đã trỏ trực tiếp tới Tunnel' }] : []} onChange={(value) => {
@@ -516,7 +516,7 @@ function DeploymentAdminPage() {
                 ] as const).map(([key, label]) => (
                   <label key={key} className="block text-sm font-medium text-slate-800">{label}
                     <SuggestionInput type="url" value={workerOrigins[key]} suggestions={originSuggestions[key]} onChange={(value) => setWorkerOrigins((current) => ({ ...current, [key]: value }))} onValueBlur={(value) => rememberSuggestion(key, value)} placeholder="HTTPS origin đã provision" className="w-full rounded-lg border border-slate-300 px-3 py-2 font-normal outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100" />
-                    <span className="mt-1 block text-xs font-normal text-slate-500">HTTPS origin riêng, không có path/query. Tunnel phải được provision; Vercel/Render lấy URL thật từ dashboard.</span>
+                    <span className="mt-1 block text-xs font-normal text-slate-500">HTTPS origin riêng, không có path/query. Tunnel cần DNS/ingress đã provision và được bảo vệ bằng Cloudflare Access; Vercel/Render lấy URL thật từ dashboard.</span>
                   </label>
                 ))}
                 <label className="block text-sm font-medium text-slate-800">DEPLOYMENT_RUNNER_ID
