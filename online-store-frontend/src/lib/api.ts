@@ -875,8 +875,10 @@ async function executeRequest<T = any>(
       let errorFields: string[] | undefined;
       try {
         const errorData = await response.json();
-        if (errorData && errorData.message) {
+        if (typeof errorData?.message === 'string') {
           errorMessage = errorData.message;
+        } else if (typeof errorData?.error === 'string') {
+          errorMessage = errorData.error;
         }
         errorCode = errorData?.code;
         errorParams = errorData?.params;
@@ -2056,7 +2058,7 @@ export const couponAPI = {
  * Banner API endpoints
  */
 export const bannerAPI = {
-  getBanners: async (slot?: string, activeOnly = true, pageNumber = 1, pageSize = 10, lang?: Locale) => {
+  getBanners: async (slot?: string, activeOnly = true, pageNumber = 1, pageSize = 10, lang?: Locale, requestOptions?: Pick<FetchOptions, 'skipErrorToast'>) => {
     const params = new URLSearchParams();
     params.append('pageNumber', pageNumber.toString());
     params.append('pageSize', pageSize.toString());
@@ -2064,7 +2066,7 @@ export const bannerAPI = {
     if (slot) params.append('slot', slot);
     const endpoint = `/banners?${params.toString()}`;
     const finalEndpoint = lang ? `${endpoint}&lang=${lang}` : buildLocalizedUrl(endpoint);
-    return apiCall(finalEndpoint);
+    return apiCall(finalEndpoint, requestOptions);
   },
 
   getBannerById: async (id: string, lang?: Locale) => {
@@ -2210,6 +2212,7 @@ export const orderAPI = {
     locale?: string,
     currencyCode?: string,
     filters: { keyword?: string; status?: string; paymentMethod?: string } = {},
+    requestOptions?: Pick<FetchOptions, 'skipErrorToast'>,
   ) => {
     const params = new URLSearchParams();
     if (pageNumber) params.append('pageNumber', pageNumber.toString());
@@ -2220,7 +2223,7 @@ export const orderAPI = {
     if (filters.status && filters.status !== 'all') params.append('status', filters.status);
     if (filters.paymentMethod && filters.paymentMethod !== 'all') params.append('paymentMethod', filters.paymentMethod);
     const query = params.toString();
-    return apiCall(`/orders${query ? `?${query}` : ''}`);
+    return apiCall(`/orders${query ? `?${query}` : ''}`, requestOptions);
   },
 
   /**

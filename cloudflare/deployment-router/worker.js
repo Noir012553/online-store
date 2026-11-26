@@ -11,7 +11,10 @@ const RUNNER_HEARTBEAT_MAX_AGE_MS = 90_000;
 const ACTIVE_JOB_STORAGE_KEY = "activeJob";
 const AUDIT_STORAGE_KEY = "auditEvents";
 const RUNNER_HEARTBEAT_STORAGE_KEY = "runnerHeartbeat";
-const PUBLIC_HOSTS = new Set(["manln.online", "backend.manln.online"]);
+const DEFAULT_PUBLIC_HOSTS = {
+  frontend: "manln.online",
+  backend: "backend.manln.online",
+};
 const HEALTH_PATHS = {
   tunnelFrontend: "/",
   tunnelBackend: "/readyz",
@@ -44,7 +47,17 @@ function json(data, status = 200) {
   });
 }
 
-function validOrigin(value, name, production) {
+function publicHostname(value, fallback, name) {
+  const candidate = value === undefined || value === "" ? fallback : value;
+  if (typeof candidate !== "string") throw new ConfigurationError(`Invalid ${name}`);
+  const hostname = candidate.trim().toLowerCase();
+  if (!/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))*$/.test(hostname)) {
+    throw new ConfigurationError(`Invalid ${name}`);
+  }
+  return hostname;
+}
+
+function validOrigin(value, name, production, publicHosts) {
   if (typeof value !== "string" || !value.trim()) {
     throw new ConfigurationError(`Missing ${name}`);
   }
@@ -70,7 +83,7 @@ function validOrigin(value, name, production) {
   }
 
   const hostname = parsed.hostname.toLowerCase();
-  if (PUBLIC_HOSTS.has(hostname)) {
+  if (publicHosts.has(hostname)) {
     throw new ConfigurationError(`${name} must not use a Worker public hostname`);
   }
   return parsed.origin;
@@ -86,12 +99,31 @@ function healthPath(value, fallback, name) {
 
 function getRoutingConfig(env) {
   const production = env.NODE_ENV !== "development" && env.NODE_ENV !== "test";
+  const publicHosts = {
+    frontend: publicHostname(env.DEPLOYMENT_PUBLIC_FRONTEND_HOST, DEFAULT_PUBLIC_HOSTS.frontend, "DEPLOYMENT_PUBLIC_FRONTEND_HOST"),
+    backend: publicHostname(env.DEPLOYMENT_PUBLIC_BACKEND_HOST, DEFAULT_PUBLIC_HOSTS.backend, "DEPLOYMENT_PUBLIC_BACKEND_HOST"),
+  };
+  if (publicHosts.frontend === publicHosts.backend) throw new ConfigurationError("Public frontend and backend hosts must differ");
+  const publicHostSet = new Set(Object.values(publicHosts));
+  const tunnelAccessClientId = env.TUNNEL_ACCESS_CLIENT_ID;
+  const tunnelAccessClientSecret = env.TUNNEL_ACCESS_CLIENT_SECRET;
+  const hasTunnelAccessClientId = typeof tunnelAccessClientId === "string" && tunnelAccessClientId.length > 0;
+  const hasTunnelAccessClientSecret = typeof tunnelAccessClientSecret === "string" && tunnelAccessClientSecret.length > 0;
+  if (hasTunnelAccessClientId !== hasTunnelAccessClientSecret ||
+      (tunnelAccessClientId !== undefined && !hasTunnelAccessClientId) ||
+      (tunnelAccessClientSecret !== undefined && !hasTunnelAccessClientSecret)) {
+    throw new ConfigurationError("Tunnel Access service token must include both client ID and secret");
+  }
   return {
+    publicHosts,
+    tunnelAccess: hasTunnelAccessClientId
+      ? { clientId: tunnelAccessClientId, clientSecret: tunnelAccessClientSecret }
+      : null,
     origins: {
-      tunnelFrontend: validOrigin(env.TUNNEL_FRONTEND_ORIGIN, "TUNNEL_FRONTEND_ORIGIN", production),
-      tunnelBackend: validOrigin(env.TUNNEL_BACKEND_ORIGIN, "TUNNEL_BACKEND_ORIGIN", production),
-      vercelFrontend: validOrigin(env.VERCEL_FRONTEND_ORIGIN, "VERCEL_FRONTEND_ORIGIN", production),
-      renderBackend: validOrigin(env.RENDER_BACKEND_ORIGIN, "RENDER_BACKEND_ORIGIN", production),
+      tunnelFrontend: validOrigin(env.TUNNEL_FRONTEND_ORIGIN, "TUNNEL_FRONTEND_ORIGIN", production, publicHostSet),
+      tunnelBackend: validOrigin(env.TUNNEL_BACKEND_ORIGIN, "TUNNEL_BACKEND_ORIGIN", production, publicHostSet),
+      vercelFrontend: validOrigin(env.VERCEL_FRONTEND_ORIGIN, "VERCEL_FRONTEND_ORIGIN", production, publicHostSet),
+      renderBackend: validOrigin(env.RENDER_BACKEND_ORIGIN, "RENDER_BACKEND_ORIGIN", production, publicHostSet),
     },
     healthPaths: {
       tunnelFrontend: healthPath(env.TUNNEL_FRONTEND_HEALTH_PATH, HEALTH_PATHS.tunnelFrontend, "TUNNEL_FRONTEND_HEALTH_PATH"),
@@ -158,11 +190,15 @@ function modeOrigins(mode, origins) {
   return null;
 }
 
-async function preflight(mode, origins, healthPaths) {
+async function preflight(mode, origins, healthPaths, tunnelAccess) {
   const selected = modeOrigins(mode, origins);
-  if (!selected) return false;
+  if (!selected || (mode === "tunnel" && !tunnelAccess)) return false;
   const frontendKey = mode === "tunnel" ? "tunnelFrontend" : "vercelFrontend";
   const backendKey = mode === "tunnel" ? "tunnelBackend" : "renderBackend";
+  const accessHeaders = mode === "tunnel" ? {
+    "CF-Access-Client-Id": tunnelAccess.clientId,
+    "CF-Access-Client-Secret": tunnelAccess.clientSecret,
+  } : undefined;
   const checks = [
     [selected.frontend, healthPaths[frontendKey]],
     [selected.backend, healthPaths[backendKey]],
@@ -172,6 +208,7 @@ async function preflight(mode, origins, healthPaths) {
     try {
       const response = await fetch(`${origin}${path}`, {
         method: "GET",
+        headers: accessHeaders,
         redirect: "manual",
         signal: AbortSignal.timeout(5000),
       });
@@ -318,7 +355,7 @@ export class DeploymentState {
           }
           await this.state.storage.delete(ACTIVE_JOB_STORAGE_KEY);
         }
-        const passed = await preflight("vercel-render", this.config.origins, this.config.healthPaths);
+        const passed = await preflight("vercel-render", this.config.origins, this.config.healthPaths, this.config.tunnelAccess);
         if (!passed) return json({ error: "Target preflight failed; no job was created" }, 502);
         const id = crypto.randomUUID();
         const job = {
@@ -438,7 +475,7 @@ export class DeploymentState {
         }
         const mode = await this.state.storage.get(MODE_STORAGE_KEY);
         const expectedMode = job.action === "stopTunnelApps" || job.recovery ? "tunnel" : "vercel-render";
-        const passed = mode === expectedMode && await preflight(job.target, this.config.origins, this.config.healthPaths);
+        const passed = mode === expectedMode && await preflight(job.target, this.config.origins, this.config.healthPaths, this.config.tunnelAccess);
         if (!passed) {
           if (job.action === "stopTunnelApps") {
             const recoveryJob = { ...job, status: "queued", action: "startTunnelApps", target: "tunnel", recovery: true, leaseExpiresAt: null };
@@ -499,7 +536,7 @@ export class DeploymentState {
           !MODES.has(body.mode) || (body.actorId !== null && body.actorId !== undefined && typeof body.actorId !== "string")) {
         return json({ error: "Invalid preflight request" }, 400);
       }
-      const passed = await preflight(body.mode, this.config.origins, this.config.healthPaths);
+      const passed = await preflight(body.mode, this.config.origins, this.config.healthPaths, this.config.tunnelAccess);
       await this.recordEvent("preflight", { actorId: body.actorId || null, mode: body.mode, passed });
       return json({ mode: body.mode, passed }, passed ? 200 : 502);
     }
@@ -520,13 +557,19 @@ function stripUnsafeHeaders(headers) {
   }
 }
 
-async function proxy(request, origin) {
+async function proxy(request, origin, tunnelAccess) {
   if (request.method === "CONNECT") return json({ error: "Unsupported method" }, 405);
   const incomingUrl = new URL(request.url);
   const targetUrl = `${origin}${incomingUrl.pathname}${incomingUrl.search}`;
   const headers = new Headers(request.headers);
   const isWebSocketUpgrade = headers.get("upgrade")?.toLowerCase() === "websocket";
   stripUnsafeHeaders(headers);
+  headers.delete("cf-access-client-id");
+  headers.delete("cf-access-client-secret");
+  if (tunnelAccess) {
+    headers.set("CF-Access-Client-Id", tunnelAccess.clientId);
+    headers.set("CF-Access-Client-Secret", tunnelAccess.clientSecret);
+  }
   if (isWebSocketUpgrade) {
     headers.set("upgrade", "websocket");
     headers.set("connection", "Upgrade");
@@ -583,8 +626,8 @@ export default {
 
     const hostname = url.hostname.toLowerCase().replace(/\.$/, "");
     let route;
-    if (hostname === "manln.online") route = "frontend";
-    else if (hostname === "backend.manln.online") route = "backend";
+    if (hostname === config.publicHosts.frontend) route = "frontend";
+    else if (hostname === config.publicHosts.backend) route = "backend";
     else return json({ error: "Unknown host" }, 421);
 
     try {
@@ -593,7 +636,10 @@ export default {
       const { mode } = await modeResponse.json();
       const selected = modeOrigins(mode, config.origins);
       if (!selected) return json({ error: "Deployment mode is not configured" }, 503);
-      return await proxy(request, selected[route]);
+      if (mode === "tunnel" && !config.tunnelAccess) {
+        return json({ error: "Tunnel origin access is not configured" }, 503);
+      }
+      return await proxy(request, selected[route], mode === "tunnel" ? config.tunnelAccess : null);
     } catch {
       return json({ error: "Upstream request failed" }, 502);
     }

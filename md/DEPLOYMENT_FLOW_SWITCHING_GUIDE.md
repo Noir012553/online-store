@@ -17,11 +17,21 @@ Mục tiêu vận hành là giữ hostname công khai ổn định và chuyển 
 - Giá trị mặc định tại `online-store-frontend/src/config.ts` là `https://backend.manln.online`.
 - Một Cloudflare Tunnel tên `online-store` hiện có hai route ứng dụng: `manln.online` → `http://127.0.0.1:3000` (frontend) và `backend.manln.online` → `http://127.0.0.1:5000` (backend); DNS `cdn.manln.online` dùng R2. Không thay đổi DNS, Tunnel ingress, hostname hoặc port trong quá trình chuẩn bị các nền tảng khác.
 - Provider Catalog có metadata cho Vercel, Render và Cloudflare Tunnel nhưng chưa tự deploy ứng dụng hay quản lý routing.
-- Nếu Cloudflare Worker đứng trước `manln.online`, cần một hostname origin riêng trỏ trực tiếp tới frontend Tunnel; Worker không được forward về chính hostname production đang chạy Worker vì sẽ tạo vòng lặp. Chưa tạo hostname này.
+- Nếu Cloudflare Worker đứng trước `manln.online`, cần một hostname origin riêng trỏ trực tiếp tới frontend Tunnel; Worker không được forward về chính hostname production đang chạy Worker vì sẽ tạo vòng lặp. Các gợi ý `tunnel-frontend.manln.online` và `tunnel-backend.manln.online` chưa tồn tại trong DNS cho tới khi được provision; không dùng làm origin trước khi có ingress thật.
 - Source hiện có API/UI Super Admin và Worker control plane cho `tunnel` ↔ `vercel-render`, nhưng chưa cấu hình hoặc triển khai trên Cloudflare/Render, chưa cài runner Windows và mặc định `DEPLOYMENT_SWITCH_ENABLED` tắt. Vì vậy hiện chưa có công tắc production khả dụng.
 - Source có cấu hình **tên miền website** tại `/admin/settings` → Cấu hình cửa hàng → Thương hiệu. Đây là domain canonical/SEO, không phải Tunnel origin. Preview hiện ghi nhận `GET /api/settings/admin` trả `400 INVALID_SETTINGS_FIELDS`; backend source hiện tại không trả mã này từ GET, nên phải đồng bộ/xác minh backend runtime trước khi tin rằng form đã tải hoặc lưu được.
 
 ## Tên miền website và Tunnel origins
+
+### Bảo vệ Tunnel origins bằng Cloudflare Access
+
+- Tạo riêng hai hostname Tunnel trỏ trực tiếp tới frontend và backend; thêm DNS/ingress tới đúng service. Không dùng `manln.online` hoặc `backend.manln.online` làm origin vì chúng đi qua Worker và có thể tạo vòng lặp.
+- Bảo vệ cả hai hostname bằng Cloudflare Access policy chỉ chấp nhận Service Auth của một Service Token chuyên dụng; không mở public access cho origin.
+- Lưu Client ID và Client Secret của Service Token vào Worker Secrets `TUNNEL_ACCESS_CLIENT_ID` và `TUNNEL_ACCESS_CLIENT_SECRET`. Đây là cặp secret riêng, không phải `DEPLOYMENT_CONTROL_TOKEN` hoặc `DEPLOYMENT_RUNNER_TOKEN`; không đưa chúng vào form backend, vars thường, Git hoặc chat.
+- Worker chỉ gửi hai header `CF-Access-Client-Id`/`CF-Access-Client-Secret` tới Tunnel origins cho proxy và health checks; nó xóa các header cùng tên do client gửi. Vercel/Render upstream không nhận các secret này.
+- Khi một hoặc cả hai Worker Secrets chưa được cấu hình, routing tới mode `tunnel` và preflight Tunnel sẽ fail closed. Sau khi provision Access policy, Tunnel ingress/DNS và secrets, chạy preflight để xác nhận cả frontend `/` lẫn backend `/readyz` trả 2xx.
+
+### Cấu hình domain website
 
 - Nhập domain website tại `/admin/settings` → nhóm Thương hiệu, ví dụ `manln.online` hoặc `https://manln.online/`. Backend chuẩn hóa về HTTPS origin (`https://manln.online`) và public settings cung cấp giá trị này cho storefront.
 - Domain website là nguồn canonical, hreflang và URL SEO/share; product metadata lấy setting ở SSR và sitemap đọc trực tiếp Store Settings. Khi setting trống hoặc API public lỗi, frontend dùng `NEXT_PUBLIC_SITE_URL` nếu được cấu hình; nếu không, không xuất canonical/hreflang có hostname suy đoán. Sitemap dùng `FRONTEND_URL` khi setting trống và trả 503 nếu không có URL hợp lệ. Cấu hình các fallback về cùng website công khai và triển khai lại frontend khi đổi `NEXT_PUBLIC_SITE_URL`.
@@ -80,7 +90,7 @@ Worker đặt trước hostname production và Durable Object state/queue đã �
 - **`tunnel`**: chuyển website tới frontend hiện tại; API và các dịch vụ liên quan tiếp tục dùng backend/Tunnel hiện tại.
 - **`vercel-render`**: chuyển website tới frontend Vercel; API `/api/*` của frontend Vercel được rewrite tới backend Render.
 
-Worker chuyển cả hostname website và API theo một mode duy nhất, khóa job đồng thời, ghi sự kiện Durable Object, kiểm tra health trước/sau và chỉ đổi mode sau khi thao tác service hoàn tất. Khi stop thất bại hoặc health check candidate thất bại, Worker xếp job `startTunnelApps` để phục hồi. Nếu runner offline, cần xử lý thủ công trên Windows; không coi recovery tự động là bảo đảm khi runner/control plane mất kết nối. `netlify-railway` chưa được Worker hỗ trợ.
+Worker mặc định nhận hostname website `manln.online` và API `backend.manln.online`; có thể cấu hình `DEPLOYMENT_PUBLIC_FRONTEND_HOST` và `DEPLOYMENT_PUBLIC_BACKEND_HOST` trong Wrangler cho môi trường khác. Hai hostname phải khác nhau và không được dùng làm upstream origin để tránh vòng lặp. Worker chuyển cả hostname website và API theo một mode duy nhất, khóa job đồng thời, ghi sự kiện Durable Object, kiểm tra health trước/sau và chỉ đổi mode sau khi thao tác service hoàn tất. Khi stop thất bại hoặc health check candidate thất bại, Worker xếp job `startTunnelApps` để phục hồi. Nếu runner offline, cần xử lý thủ công trên Windows; không coi recovery tự động là bảo đảm khi runner/control plane mất kết nối. `netlify-railway` chưa được Worker hỗ trợ. Cấu hình hostname linh hoạt không tự thêm mode VPS hoặc runner Linux.
 
 ### Nút dừng dịch vụ Tunnel
 
@@ -91,7 +101,7 @@ Worker chuyển cả hostname website và API theo một mode duy nhất, khóa 
 - Preflight Worker mặc định dùng `/readyz` cho backend. Job queue và trạng thái nằm trong Durable Object độc lập với backend Tunnel; heartbeat stale chặn tạo job mới. Không để backend API tự chạy shell/npm rồi tự dừng.
 - Không bật switch cho tới khi URL/origin, Worker staging route, secrets, DO binding, runner service và luồng rollback được cấu hình, kiểm thử trên staging; route health đơn thuần không xác minh cookies, websocket, upload, callback hay tương thích Next.js.
 
-Trước khi bật cơ chế này, cần có URL đã xác minh cho frontend/backend Vercel + Render; một hostname origin riêng cho frontend Tunnel; và một hostname staging cho Worker. Phải kiểm tra cách chuyển tiếp `Host`, HTTPS/TLS, header, cookie, websocket, body upload, timeout, cache và các đường dẫn callback. Không tạo Worker route production hay chỉnh DNS chỉ dựa trên ví dụ trong tài liệu; cần kiểm thử trên hostname staging trước. Không gửi token/secret qua chat hoặc ghi vào Markdown.
+Trước khi bật cơ chế này, cần có URL đã xác minh cho frontend/backend Vercel + Render; hostname riêng cho frontend/backend Tunnel được bảo vệ bằng Cloudflare Access; và hostname staging cho Worker. Phải kiểm tra cách chuyển tiếp `Host`, HTTPS/TLS, header, cookie, websocket, body upload, timeout, cache và các đường dẫn callback. Với Tunnel origins, xác minh Access policy chỉ cấp Service Auth và Worker secrets chỉ được cấu hình cho đúng Worker deployment. Không tạo Worker route production hay chỉnh DNS chỉ dựa trên ví dụ trong tài liệu; cần kiểm thử trên hostname staging trước. Không gửi token/secret qua chat hoặc ghi vào Markdown.
 
 ### Tạo và sử dụng runner token
 
