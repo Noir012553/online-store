@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState, type InputHTMLAttributes } fr
 import { toast } from 'sonner';
 import { withAdminLayout } from '../../components/admin/withAdminLayout';
 import { Button } from '../../components/ui/button';
+import { API_BASE_PATH } from '../../config';
 import { deploymentAPI, settingsAPI, type DeploymentAuditEvent, type DeploymentControlPlaneEvent, type DeploymentJob, type DeploymentRouterConfig, type DeploymentStatus } from '../../lib/api';
 import { normalizeSiteUrl } from '../../lib/seo';
 
@@ -115,11 +116,31 @@ function SuggestionInput({ value, suggestions, onChange, onValueBlur, className,
 }
 
 const getDeploymentErrorMessage = (error: unknown, fallback: string) => {
-  const code = error && typeof error === 'object' && 'code' in error ? error.code : null;
-  const status = error && typeof error === 'object' && 'status' in error ? error.status : null;
+  const details = error && typeof error === 'object' ? error as {
+    code?: unknown;
+    status?: unknown;
+    endpoint?: unknown;
+    method?: unknown;
+    contentType?: unknown;
+    server?: unknown;
+    cfRay?: unknown;
+    upstreamRequestId?: unknown;
+    occurredAt?: unknown;
+  } : {};
+  const code = details.code;
+  const status = details.status;
   const message = error instanceof Error ? error.message : '';
   if (status === 502 && message === 'http_error') {
-    return 'API trả HTTP 502 nhưng không có JSON từ backend. Đây chưa phải lỗi đăng nhập hay xác nhận token; kiểm tra kết nối proxy tới backend và log backend/Worker để tìm upstream không phản hồi.';
+    const method = typeof details.method === 'string' ? details.method : 'unknown method';
+    const endpoint = typeof details.endpoint === 'string' ? `${API_BASE_PATH}${details.endpoint.split('?')[0]}` : `${API_BASE_PATH}/admin/deployment`;
+    const contentType = typeof details.contentType === 'string' ? details.contentType : 'không có content-type';
+    const server = typeof details.server === 'string' ? ` · Server: ${details.server}` : '';
+    const trace = [
+      typeof details.cfRay === 'string' ? `CF-Ray ${details.cfRay}` : '',
+      typeof details.upstreamRequestId === 'string' ? `Request ID ${details.upstreamRequestId}` : '',
+    ].filter(Boolean).join(' · ') || 'không có request ID trong response';
+    const occurredAt = typeof details.occurredAt === 'string' ? details.occurredAt : new Date().toISOString();
+    return `HTTP 502 · ${method} ${endpoint} · Response: ${contentType}${server} · ${trace} · UTC: ${occurredAt}. Response không phải JSON nên chưa có lỗi từ backend để phân loại. Đối chiếu Cloudflare/Worker theo CF-Ray và cùng thời điểm với log backend: không có request backend thì kiểm tra proxy/upstream; có request thì xem status/timeout backend.`;
   }
   if (code === 'DEPLOYMENT_ROUTER_NOT_CONFIGURED') {
     return 'Cloudflare Tunnel hiện tại vẫn có; phần chưa cấu hình là Worker deployment router (DEPLOYMENT_ROUTER_URL và DEPLOYMENT_CONTROL_TOKEN ở backend). Vì vậy trang chưa đọc được trạng thái điều phối và cutover/rollback vẫn bị khóa.';
