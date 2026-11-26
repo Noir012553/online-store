@@ -116,6 +116,11 @@ function SuggestionInput({ value, suggestions, onChange, onValueBlur, className,
 
 const getDeploymentErrorMessage = (error: unknown, fallback: string) => {
   const code = error && typeof error === 'object' && 'code' in error ? error.code : null;
+  const status = error && typeof error === 'object' && 'status' in error ? error.status : null;
+  const message = error instanceof Error ? error.message : '';
+  if (status === 502 && message === 'http_error') {
+    return 'API trả HTTP 502 nhưng không có JSON từ backend. Đây chưa phải lỗi đăng nhập hay xác nhận token; kiểm tra kết nối proxy tới backend và log backend/Worker để tìm upstream không phản hồi.';
+  }
   if (code === 'DEPLOYMENT_ROUTER_NOT_CONFIGURED') {
     return 'Cloudflare Tunnel hiện tại vẫn có; phần chưa cấu hình là Worker deployment router (DEPLOYMENT_ROUTER_URL và DEPLOYMENT_CONTROL_TOKEN ở backend). Vì vậy trang chưa đọc được trạng thái điều phối và cutover/rollback vẫn bị khóa.';
   }
