@@ -287,6 +287,7 @@ function DeploymentAdminPage() {
       setAudit(events.data || []);
       setControlPlaneEvents(events.controlPlaneEvents || []);
     } catch (requestError) {
+      setStatus(null);
       setError(getDeploymentErrorMessage(requestError, 'Không thể tải trạng thái deploy.'));
     } finally {
       setLoading(false);
@@ -294,6 +295,36 @@ function DeploymentAdminPage() {
   }, []);
 
   useEffect(() => { void loadData(); }, [loadData]);
+
+  useEffect(() => {
+    let active = true;
+    let refreshing = false;
+    const refreshStatus = async () => {
+      if (refreshing) return;
+      refreshing = true;
+      try {
+        const current = await deploymentAPI.getStatus();
+        if (active) {
+          setStatus(current);
+          setJob(current.activeJob);
+        }
+      } catch {
+        if (active) setStatus(null);
+      } finally {
+        refreshing = false;
+      }
+    };
+    const interval = window.setInterval(() => { void refreshStatus(); }, 30_000);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') void refreshStatus();
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -615,8 +646,8 @@ function DeploymentAdminPage() {
         </div>
         <div className="rounded-xl border bg-white p-5 shadow-sm">
           <p className="text-sm text-slate-500">Windows runner</p>
-          <p className={`mt-2 text-xl font-semibold ${status?.runnerOnline ? 'text-emerald-700' : 'text-red-700'}`}>{loading ? 'Đang kiểm tra…' : status?.runnerOnline ? 'Đang trực tuyến' : 'Ngoại tuyến'}</p>
-          <p className="mt-1 text-xs text-slate-500">Heartbeat: {formatTime(status?.lastRunnerHeartbeatAt)}</p>
+          <p className={`mt-2 text-xl font-semibold ${status?.runnerOnline ? 'text-emerald-700' : status ? 'text-red-700' : 'text-slate-500'}`}>{loading ? 'Đang kiểm tra…' : status ? status.runnerOnline ? 'Đang trực tuyến' : 'Ngoại tuyến' : 'Không khả dụng'}</p>
+          <p className="mt-1 text-xs text-slate-500">Heartbeat: {status ? formatTime(status.lastRunnerHeartbeatAt) : loading ? 'Đang tải…' : 'Không có dữ liệu'}</p>
         </div>
         <div className="rounded-xl border bg-white p-5 shadow-sm">
           <p className="text-sm text-slate-500">Job gần nhất</p>
