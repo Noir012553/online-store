@@ -907,11 +907,25 @@ async function executeRequest<T = any>(
         status?: number;
         retryAfter?: number;
         fields?: string[];
+        endpoint?: string;
+        method?: string;
+        contentType?: string;
+        server?: string;
+        cfRay?: string;
+        upstreamRequestId?: string;
+        occurredAt?: string;
       };
       apiError.code = errorCode;
       apiError.params = errorParams;
       apiError.fields = errorFields;
       apiError.status = response.status;
+      apiError.endpoint = endpointName;
+      apiError.method = methodName;
+      apiError.contentType = response.headers.get('content-type')?.slice(0, 120) || undefined;
+      apiError.server = response.headers.get('server')?.slice(0, 80) || undefined;
+      apiError.cfRay = response.headers.get('cf-ray')?.slice(0, 128) || undefined;
+      apiError.upstreamRequestId = (response.headers.get('x-request-id') || response.headers.get('x-correlation-id') || response.headers.get('request-id'))?.slice(0, 128);
+      apiError.occurredAt = new Date().toISOString();
       const retryAfter = Number(response.headers.get('Retry-After'));
       if (Number.isFinite(retryAfter) && retryAfter > 0) {
         apiError.retryAfter = retryAfter;

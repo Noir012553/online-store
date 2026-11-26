@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState, type InputHTMLAttributes } fr
 import { toast } from 'sonner';
 import { withAdminLayout } from '../../components/admin/withAdminLayout';
 import { Button } from '../../components/ui/button';
+import { API_BASE_PATH } from '../../config';
 import { deploymentAPI, settingsAPI, type DeploymentAuditEvent, type DeploymentControlPlaneEvent, type DeploymentJob, type DeploymentRouterConfig, type DeploymentStatus } from '../../lib/api';
 import { normalizeSiteUrl } from '../../lib/seo';
 
@@ -115,11 +116,31 @@ function SuggestionInput({ value, suggestions, onChange, onValueBlur, className,
 }
 
 const getDeploymentErrorMessage = (error: unknown, fallback: string) => {
-  const code = error && typeof error === 'object' && 'code' in error ? error.code : null;
-  const status = error && typeof error === 'object' && 'status' in error ? error.status : null;
+  const details = error && typeof error === 'object' ? error as {
+    code?: unknown;
+    status?: unknown;
+    endpoint?: unknown;
+    method?: unknown;
+    contentType?: unknown;
+    server?: unknown;
+    cfRay?: unknown;
+    upstreamRequestId?: unknown;
+    occurredAt?: unknown;
+  } : {};
+  const code = details.code;
+  const status = details.status;
   const message = error instanceof Error ? error.message : '';
   if (status === 502 && message === 'http_error') {
-    return 'API trả HTTP 502 nhưng không có JSON từ backend. Đây chưa phải lỗi đăng nhập hay xác nhận token; kiểm tra kết nối proxy tới backend và log backend/Worker để tìm upstream không phản hồi.';
+    const method = typeof details.method === 'string' ? details.method : 'unknown method';
+    const endpoint = typeof details.endpoint === 'string' ? `${API_BASE_PATH}${details.endpoint.split('?')[0]}` : `${API_BASE_PATH}/admin/deployment`;
+    const contentType = typeof details.contentType === 'string' ? details.contentType : 'không có content-type';
+    const server = typeof details.server === 'string' ? ` · Server: ${details.server}` : '';
+    const trace = [
+      typeof details.cfRay === 'string' ? `CF-Ray ${details.cfRay}` : '',
+      typeof details.upstreamRequestId === 'string' ? `Request ID ${details.upstreamRequestId}` : '',
+    ].filter(Boolean).join(' · ') || 'không có request ID trong response';
+    const occurredAt = typeof details.occurredAt === 'string' ? details.occurredAt : new Date().toISOString();
+    return `HTTP 502 · ${method} ${endpoint} · Response: ${contentType}${server} · ${trace} · UTC: ${occurredAt}. Response không phải JSON nên chưa có lỗi từ backend để phân loại. Đối chiếu Cloudflare/Worker theo CF-Ray và cùng thời điểm với log backend: không có request backend thì kiểm tra proxy/upstream; có request thì xem status/timeout backend.`;
   }
   if (code === 'DEPLOYMENT_ROUTER_NOT_CONFIGURED') {
     return 'Cloudflare Tunnel hiện tại vẫn có; phần chưa cấu hình là Worker deployment router (DEPLOYMENT_ROUTER_URL và DEPLOYMENT_CONTROL_TOKEN ở backend). Vì vậy trang chưa đọc được trạng thái điều phối và cutover/rollback vẫn bị khóa.';
@@ -287,6 +308,7 @@ function DeploymentAdminPage() {
       setAudit(events.data || []);
       setControlPlaneEvents(events.controlPlaneEvents || []);
     } catch (requestError) {
+      setStatus(null);
       setError(getDeploymentErrorMessage(requestError, 'Không thể tải trạng thái deploy.'));
     } finally {
       setLoading(false);
@@ -294,6 +316,36 @@ function DeploymentAdminPage() {
   }, []);
 
   useEffect(() => { void loadData(); }, [loadData]);
+
+  useEffect(() => {
+    let active = true;
+    let refreshing = false;
+    const refreshStatus = async () => {
+      if (refreshing) return;
+      refreshing = true;
+      try {
+        const current = await deploymentAPI.getStatus();
+        if (active) {
+          setStatus(current);
+          setJob(current.activeJob);
+        }
+      } catch {
+        if (active) setStatus(null);
+      } finally {
+        refreshing = false;
+      }
+    };
+    const interval = window.setInterval(() => { void refreshStatus(); }, 30_000);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') void refreshStatus();
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -615,8 +667,8 @@ function DeploymentAdminPage() {
         </div>
         <div className="rounded-xl border bg-white p-5 shadow-sm">
           <p className="text-sm text-slate-500">Windows runner</p>
-          <p className={`mt-2 text-xl font-semibold ${status?.runnerOnline ? 'text-emerald-700' : 'text-red-700'}`}>{loading ? 'Đang kiểm tra…' : status?.runnerOnline ? 'Đang trực tuyến' : 'Ngoại tuyến'}</p>
-          <p className="mt-1 text-xs text-slate-500">Heartbeat: {formatTime(status?.lastRunnerHeartbeatAt)}</p>
+          <p className={`mt-2 text-xl font-semibold ${status?.runnerOnline ? 'text-emerald-700' : status ? 'text-red-700' : 'text-slate-500'}`}>{loading ? 'Đang kiểm tra…' : status ? status.runnerOnline ? 'Đang trực tuyến' : 'Ngoại tuyến' : 'Không khả dụng'}</p>
+          <p className="mt-1 text-xs text-slate-500">Heartbeat: {status ? formatTime(status.lastRunnerHeartbeatAt) : loading ? 'Đang tải…' : 'Không có dữ liệu'}</p>
         </div>
         <div className="rounded-xl border bg-white p-5 shadow-sm">
           <p className="text-sm text-slate-500">Job gần nhất</p>
