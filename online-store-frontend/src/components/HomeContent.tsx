@@ -398,55 +398,65 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
     const flashSaleCategoryIds = new Set(flashSaleCategories.map((category) => category._id));
 
     const fetchCategoryProducts = async (category: HomeCategory) => {
-      const response = await productAPI.getFeaturedProducts(
-        1,
-        undefined,
-        category._id,
-        undefined,
-        8,
-        undefined,
-        undefined,
-        true,
-        locale,
-        locale,
-        currencyCode,
-        true,
-        undefined,
-        undefined,
-        true,
-        undefined,
-        undefined,
-        { skipErrorToast: true, signal: requestController.signal },
-      );
+      try {
+        const response = await productAPI.getFeaturedProducts(
+          1,
+          undefined,
+          category._id,
+          undefined,
+          8,
+          undefined,
+          undefined,
+          true,
+          locale,
+          locale,
+          currencyCode,
+          true,
+          undefined,
+          undefined,
+          true,
+          undefined,
+          undefined,
+          { skipErrorToast: true, signal: requestController.signal },
+        );
 
-      return [category._id, response.products || []] as const;
+        return [category._id, response.products || []] as const;
+      } catch (error) {
+        if (requestController.signal.aborted) return [category._id, []] as const;
+        throw error;
+      }
     };
 
     const fetchFlashSaleProducts = async (category: HomeCategory) => {
-      const response = await productAPI.getFeaturedProducts(
-        1,
-        undefined,
-        category._id,
-        undefined,
-        8,
-        undefined,
-        undefined,
-        true,
-        locale,
-        locale,
-        currencyCode,
-        true,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        { skipErrorToast: true, signal: requestController.signal },
-        true,
-        1,
-      );
+      try {
+        const response = await productAPI.getFeaturedProducts(
+          1,
+          undefined,
+          category._id,
+          undefined,
+          8,
+          undefined,
+          undefined,
+          true,
+          locale,
+          locale,
+          currencyCode,
+          true,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          { skipErrorToast: true, signal: requestController.signal },
+          true,
+          1,
+        );
 
-      return response.products || [];
+        return response.products || [];
+      } catch (error) {
+        if (requestController.signal.aborted) return [];
+        throw error;
+      }
     };
 
     const fetchData = async () => {
@@ -509,7 +519,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
     void fetchData();
     return () => {
       isMounted = false;
-      requestController.abort();
+      requestController.abort(new DOMException('Homepage product requests cancelled', 'AbortError'));
     };
   }, [categories, currencyCode, isHydrated, isLoadingCategories, locale, productRetryKey]);
 
