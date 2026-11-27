@@ -101,6 +101,15 @@ Worker mặc định nhận hostname website `manln.online` và API `backend.man
 - Preflight Worker mặc định dùng `/readyz` cho backend. Job queue và trạng thái nằm trong Durable Object độc lập với backend Tunnel; heartbeat stale chặn tạo job mới. Không để backend API tự chạy shell/npm rồi tự dừng.
 - Không bật switch cho tới khi URL/origin, Worker staging route, secrets, DO binding, runner service và luồng rollback được cấu hình, kiểm thử trên staging; route health đơn thuần không xác minh cookies, websocket, upload, callback hay tương thích Next.js.
 
+### Blocker: cách quản lý tiến trình trên máy Tunnel
+
+- Yêu cầu hiện tại là không dùng file `.ps1` trong code; nếu cần lệnh PowerShell cho operator setup thì chỉ cung cấp inline, không tạo file mới.
+- Runner trong source hiện gọi `stop-tunnel-apps.ps1` và `start-tunnel-apps.ps1`, chỉ điều khiển WinSW services `LaptopStoreBackend` và `LaptopStoreFrontend`. Chúng không quản lý tiến trình Node được khởi chạy trực tiếp.
+- Kiểm tra trên máy Windows Tunnel cho thấy Node đang nghe cổng `3000` và `5000`, nhưng không có hai WinSW services nói trên. Log `npm run tunnel` xác nhận Cloudflare Tunnel forward tới hai cổng đó. Vì vậy scripts hiện tại không thể dừng/khởi động ứng dụng đang chạy trên máy này.
+- Chưa tạo tài khoản Windows runner, file token DPAPI hoặc cài runner service. Không tạo/cấu hình các mục này cho tới khi chọn và kiểm thử cách quản lý tiến trình phù hợp.
+- Các hướng cần quyết định: process manager Node tương thích Windows với tên tiến trình cố định; quy trình cutover thủ công có xác nhận và guard tương ứng ở cả UI/backend; hoặc điều phối qua API của nền tảng hosting. Không lựa chọn nào đã được triển khai hoặc phê duyệt.
+- Giữ `DEPLOYMENT_SWITCH_ENABLED=false` và không cutover cho tới khi cách quản lý tiến trình, quyền thao tác, heartbeat/gate và rollback được kiểm thử trên staging.
+
 Trước khi bật cơ chế này, cần có URL đã xác minh cho frontend/backend Vercel + Render; hostname riêng cho frontend/backend Tunnel được bảo vệ bằng Cloudflare Access; và hostname staging cho Worker. Phải kiểm tra cách chuyển tiếp `Host`, HTTPS/TLS, header, cookie, websocket, body upload, timeout, cache và các đường dẫn callback. Với Tunnel origins, xác minh Access policy chỉ cấp Service Auth và Worker secrets chỉ được cấu hình cho đúng Worker deployment. Không tạo Worker route production hay chỉnh DNS chỉ dựa trên ví dụ trong tài liệu; cần kiểm thử trên hostname staging trước. Không gửi token/secret qua chat hoặc ghi vào Markdown.
 
 ### Tạo và sử dụng runner token
