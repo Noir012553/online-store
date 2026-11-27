@@ -1,5 +1,3 @@
-[CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
-[CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
 param(
   [Parameter(Mandatory = $true)]
   [string]$WinSWPath,
