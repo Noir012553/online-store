@@ -7,6 +7,11 @@ $ErrorActionPreference = 'Stop'
 if ($env:OS -ne 'Windows_NT') { throw 'Run this operation on the Windows host.' }
 if (-not $ConfirmStop) { throw 'Pass -ConfirmStop only after the deployment preflight and administrator confirmation succeed.' }
 
+$isAdministrator = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
+  [Security.Principal.WindowsBuiltInRole]::Administrator
+)
+if (-not $isAdministrator) { throw 'Run with the deployment runner service identity.' }
+
 $serviceRoot = Join-Path $env:ProgramData 'LaptopStore\services'
 $serviceIds = @('LaptopStoreBackend', 'LaptopStoreFrontend')
 $verifiedServices = @()
