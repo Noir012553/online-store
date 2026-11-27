@@ -508,7 +508,7 @@ function DeploymentAdminPage() {
         <div>
           <p className="text-sm font-semibold uppercase tracking-wide text-red-600">Super Admin</p>
           <h1 className="mt-1 text-3xl font-bold text-slate-900">Chuyển luồng triển khai</h1>
-          <p className="mt-2 max-w-3xl text-sm text-slate-600">Điều khiển routing Vercel + Render qua control plane độc lập. Màn hình này không thay đổi DNS hoặc cấu hình nhà cung cấp.</p>
+          <p className="mt-2 max-w-3xl text-sm text-slate-600">Điều khiển routing qua control plane độc lập. Mode trong Durable Object chỉ phản ánh traffic production nếu hostname production đã được gắn Worker route; màn hình này không thay đổi DNS hoặc cấu hình nhà cung cấp.</p>
         </div>
         <Button variant="outline" onClick={() => void loadData()} disabled={loading || Boolean(busy)}>
           {loading ? <LoaderCircle className="animate-spin" /> : <RefreshCw />} Tải lại
@@ -645,9 +645,9 @@ function DeploymentAdminPage() {
 
       <section className="grid gap-4 md:grid-cols-3">
         <div className="rounded-xl border bg-white p-5 shadow-sm">
-          <p className="text-sm text-slate-500">Luồng đang hoạt động</p>
-          <p className="mt-2 text-xl font-semibold text-slate-900">{loading ? 'Đang kiểm tra…' : status?.mode || 'Không khả dụng'}</p>
-          <p className="mt-1 text-xs text-slate-500">Nguồn trạng thái: Durable Object</p>
+          <p className="text-sm text-slate-500">Mode trong control plane</p>
+          <p className="mt-2 text-xl font-semibold text-slate-900">{loading ? 'Đang kiểm tra…' : status?.mode === 'tunnel' ? 'Cloudflare Tunnel' : status?.mode === 'vercel-render' ? 'Vercel + Render' : 'Không khả dụng'}</p>
+          <p className="mt-1 text-xs text-slate-500">Đọc từ Durable Object; không xác nhận hostname production đã đi qua Worker.</p>
         </div>
         <div className="rounded-xl border bg-white p-5 shadow-sm">
           <p className="text-sm text-slate-500">Windows runner</p>
@@ -662,17 +662,17 @@ function DeploymentAdminPage() {
       </section>
 
       <section className="rounded-xl border bg-white p-5 shadow-sm">
-        <div className="flex items-center gap-2"><ShieldCheck className="size-5 text-slate-700" /><h2 className="text-lg font-semibold">Preflight</h2></div>
-        <p className="mt-1 text-sm text-slate-600">Chỉ kiểm tra health endpoint đã cấu hình; đây không thay thế kiểm thử staging các luồng đăng nhập, thanh toán, callback và websocket.</p>
+        <div className="flex items-center gap-2"><ShieldCheck className="size-5 text-slate-700" /><h2 className="text-lg font-semibold">Kiểm tra health (preflight)</h2></div>
+        <p className="mt-1 text-sm text-slate-600">Preflight chỉ gọi health endpoint đã cấu hình; không deploy và không đổi traffic. “Chưa kiểm tra” là chưa chạy preflight trong phiên này, không có nghĩa target chưa được triển khai. Kết quả này cũng không thay thế kiểm thử staging đăng nhập, thanh toán, callback và websocket.</p>
         <div className="mt-4 flex flex-wrap gap-3">
-          {(['vercel-render', 'tunnel'] as const).map((mode) => (
+          {([['vercel-render', 'Vercel + Render'], ['tunnel', 'Cloudflare Tunnel']] as const).map(([mode, label]) => (
             <div key={mode} className="flex items-center gap-3 rounded-lg border p-3">
-              <span className="font-medium">{mode}</span>
+              <span className="font-medium">{label}</span>
               <span className={`text-sm ${preflight[mode] === true ? 'text-emerald-700' : preflight[mode] === false ? 'text-red-700' : 'text-slate-400'}`}>
-                {preflight[mode] === true ? 'Đạt' : preflight[mode] === false ? 'Không đạt' : 'Chưa chạy'}
+                {preflight[mode] === true ? 'Health đạt' : preflight[mode] === false ? 'Health không đạt' : 'Chưa kiểm tra'}
               </span>
               <Button size="sm" variant="outline" disabled={Boolean(busy)} onClick={() => void runPreflight(mode)}>
-                {busy === `preflight:${mode}` && <LoaderCircle className="animate-spin" />} Kiểm tra
+                {busy === `preflight:${mode}` && <LoaderCircle className="animate-spin" />} Kiểm tra health
               </Button>
             </div>
           ))}
