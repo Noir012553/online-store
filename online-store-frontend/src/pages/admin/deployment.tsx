@@ -461,7 +461,7 @@ function DeploymentAdminPage() {
   };
 
   const startRollback = async () => {
-    if (!window.confirm('Trước tiên hãy dừng backend Render trong dashboard của nhà cung cấp để tránh hai backend cùng ghi database. Bạn xác nhận Render đã dừng và muốn khởi động lại frontend/backend Tunnel?')) return;
+    if (!window.confirm('Trước tiên hãy dừng backend Render trong dashboard của nhà cung cấp để tránh hai backend cùng ghi vào cùng MongoDB production. Bạn xác nhận Render đã dừng và muốn khởi động lại frontend/backend Tunnel?')) return;
     setBusy('rollback');
     try {
       const created = await deploymentAPI.rollback();
