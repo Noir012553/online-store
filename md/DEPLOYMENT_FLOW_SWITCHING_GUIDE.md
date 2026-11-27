@@ -101,11 +101,22 @@ Worker mặc định nhận hostname website `manln.online` và API `backend.man
 - Preflight Worker mặc định dùng `/readyz` cho backend. Job queue và trạng thái nằm trong Durable Object độc lập với backend Tunnel; heartbeat stale chặn tạo job mới. Không để backend API tự chạy shell/npm rồi tự dừng.
 - Không bật switch cho tới khi URL/origin, Worker staging route, secrets, DO binding, runner service và luồng rollback được cấu hình, kiểm thử trên staging; route health đơn thuần không xác minh cookies, websocket, upload, callback hay tương thích Next.js.
 
+### Hướng đã chọn: điều phối qua API nhà cung cấp, không duy trì máy runner
+
+- Mục tiêu là bỏ Windows runner và gọi API Vercel/Render từ backend; không dùng file `.ps1` trong code. Render được chọn làm backend đích; hiện chưa triển khai tích hợp API.
+- Bước đầu dùng Render Free cho staging và preflight. Render Free ngủ sau 15 phút không có traffic, có thể mất khoảng một phút để khởi động lại và không được Render khuyến nghị cho production; health check không giữ service thức. Không cấp quyền ghi production hoặc cutover production khi backend đích vẫn chạy gói Free.
+- Backend cần dùng credential API riêng, quyền tối thiểu, lưu trong secret store phía server; không gửi credential xuống frontend, không ghi vào response/log. Tác vụ phải có allowlist, audit, timeout, retry có giới hạn và chống tạo job trùng.
+- API Vercel/Render chỉ điều khiển tài nguyên tương ứng trên nhà cung cấp; chúng không dừng các tiến trình Node đang chạy cục bộ qua Cloudflare Tunnel. Máy Windows hiện có Node nghe cổng `3000` và `5000`, Tunnel đang forward tới hai cổng này; chưa có WinSW services. Cần thiết kế chuyển tiếp/fencing rõ ràng để backend Tunnel không tiếp tục ghi vào cùng MongoDB khi Render được cấp quyền ghi.
+- Không tạo tài khoản Windows runner, file token DPAPI hoặc cài runner service cho hướng này. Runner và Worker actions hiện có vẫn còn trong source; cần thay đổi UI/backend/Worker đồng bộ trước khi bật đường đi mới.
+- Candidate Render dùng cùng MongoDB production với credential chỉ đọc trong kiểm thử; không tạo database mới. Cần xác minh quy trình chuyển quyền ghi trong maintenance window và rollback để tại mọi thời điểm chỉ một backend được phép ghi.
+- Giữ `DEPLOYMENT_SWITCH_ENABLED=false` và không cutover cho tới khi tích hợp API, quyền truy cập, fencing, preflight và rollback được kiểm thử trên staging. Chỉ xem xét cutover production sau khi chọn cấu hình Render phù hợp cho production và kiểm thử được fencing/rollback.
+
+
 Trước khi bật cơ chế này, cần có URL đã xác minh cho frontend/backend Vercel + Render; hostname riêng cho frontend/backend Tunnel được bảo vệ bằng Cloudflare Access; và hostname staging cho Worker. Phải kiểm tra cách chuyển tiếp `Host`, HTTPS/TLS, header, cookie, websocket, body upload, timeout, cache và các đường dẫn callback. Với Tunnel origins, xác minh Access policy chỉ cấp Service Auth và Worker secrets chỉ được cấu hình cho đúng Worker deployment. Không tạo Worker route production hay chỉnh DNS chỉ dựa trên ví dụ trong tài liệu; cần kiểm thử trên hostname staging trước. Không gửi token/secret qua chat hoặc ghi vào Markdown.
 
-### Tạo và sử dụng runner token
+### Runner token cho kiến trúc hiện tại
 
-`DEPLOYMENT_RUNNER_TOKEN` là bí mật do người vận hành tự tạo, không phải Tunnel token do Cloudflare cấp và không phải `DEPLOYMENT_CONTROL_TOKEN`. Tại `/admin/deployment`, chọn **Tạo token ngẫu nhiên 256-bit**, sao chép giá trị và lưu cấu hình bằng mật khẩu Super Admin. Form lưu cùng cấu hình Worker nên cần Worker URL hợp lệ, control token hợp lệ và khóa mã hóa backend trước khi lưu. Có thể xem lại token đã lưu bằng mật khẩu Super Admin; đóng phần xem sau khi sử dụng. Token được tạo một lần nhưng được runner dùng nhiều lần cho đến khi thay thế, không phải mã OTP.
+Phần này chỉ áp dụng cho runner hiện có trong source; hướng điều phối API nhà cung cấp ở trên không cần `DEPLOYMENT_RUNNER_TOKEN`. `DEPLOYMENT_RUNNER_TOKEN` là bí mật riêng của Worker runner, không phải Tunnel token hay `DEPLOYMENT_CONTROL_TOKEN`. Không provision token runner mới cho đến khi hướng mới được triển khai hoặc quyết định quay lại kiến trúc runner.
 
 Có thể tự tạo bằng Node.js trên máy tin cậy nếu không dùng nút trên giao diện:
 

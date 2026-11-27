@@ -3,7 +3,6 @@ import { useCallback, useEffect, useRef, useState, type InputHTMLAttributes } fr
 import { toast } from 'sonner';
 import { withAdminLayout } from '../../components/admin/withAdminLayout';
 import { Button } from '../../components/ui/button';
-import { API_BASE_PATH } from '../../config';
 import { deploymentAPI, settingsAPI, type DeploymentAuditEvent, type DeploymentControlPlaneEvent, type DeploymentJob, type DeploymentRouterConfig, type DeploymentStatus } from '../../lib/api';
 import { normalizeSiteUrl } from '../../lib/seo';
 
@@ -119,29 +118,8 @@ const getDeploymentErrorMessage = (error: unknown, fallback: string) => {
   const details = error && typeof error === 'object' ? error as {
     code?: unknown;
     status?: unknown;
-    endpoint?: unknown;
-    method?: unknown;
-    contentType?: unknown;
-    server?: unknown;
-    cfRay?: unknown;
-    upstreamRequestId?: unknown;
-    occurredAt?: unknown;
   } : {};
   const code = details.code;
-  const status = details.status;
-  const message = error instanceof Error ? error.message : '';
-  if (status === 502 && message === 'http_error') {
-    const method = typeof details.method === 'string' ? details.method : 'unknown method';
-    const endpoint = typeof details.endpoint === 'string' ? `${API_BASE_PATH}${details.endpoint.split('?')[0]}` : `${API_BASE_PATH}/admin/deployment`;
-    const contentType = typeof details.contentType === 'string' ? details.contentType : 'không có content-type';
-    const server = typeof details.server === 'string' ? ` · Server: ${details.server}` : '';
-    const trace = [
-      typeof details.cfRay === 'string' ? `CF-Ray ${details.cfRay}` : '',
-      typeof details.upstreamRequestId === 'string' ? `Request ID ${details.upstreamRequestId}` : '',
-    ].filter(Boolean).join(' · ') || 'không có request ID trong response';
-    const occurredAt = typeof details.occurredAt === 'string' ? details.occurredAt : new Date().toISOString();
-    return `HTTP 502 · ${method} ${endpoint} · Response: ${contentType}${server} · ${trace} · UTC: ${occurredAt}. Response không phải JSON nên chưa có lỗi từ backend để phân loại. Đối chiếu Cloudflare/Worker theo CF-Ray và cùng thời điểm với log backend: không có request backend thì kiểm tra proxy/upstream; có request thì xem status/timeout backend.`;
-  }
   if (code === 'DEPLOYMENT_ROUTER_NOT_CONFIGURED') {
     return 'Cloudflare Tunnel hiện tại vẫn có; phần chưa cấu hình là Worker deployment router (DEPLOYMENT_ROUTER_URL và DEPLOYMENT_CONTROL_TOKEN ở backend). Vì vậy trang chưa đọc được trạng thái điều phối và cutover/rollback vẫn bị khóa.';
   }
@@ -168,7 +146,7 @@ const getDeploymentErrorMessage = (error: unknown, fallback: string) => {
   if (code === 'INVALID_DEPLOYMENT_CHECKLIST') return 'Giá trị checklist không hợp lệ.';
   if (code === 'ROUTE_NOT_FOUND') return 'Backend đang chạy chưa có API cấu hình deployment. Cần triển khai phiên bản backend có /api/admin/deployment/config.';
   if (code === 'REAUTHENTICATION_FAILED') return 'Mật khẩu Super Admin không chính xác.';
-  return error instanceof Error ? error.message : fallback;
+  return error instanceof Error && !['http_error', 'api_error'].includes(error.message) ? error.message : fallback;
 };
 
 const createRandomToken = () => {
@@ -452,10 +430,16 @@ function DeploymentAdminPage() {
     try {
       const result = await deploymentAPI.preflight(mode);
       setPreflight((current) => ({ ...current, [mode]: result.passed }));
-      toast[result.passed ? 'success' : 'error'](result.passed ? `Preflight ${mode} đạt.` : `Preflight ${mode} không đạt.`);
+      const renderHint = mode === 'vercel-render' ? ' Hãy kiểm tra trạng thái Render; dịch vụ miễn phí có thể đang ngủ.' : '';
+      toast[result.passed ? 'success' : 'error'](result.passed ? `Preflight ${mode} đạt.` : `Preflight ${mode} không đạt.${renderHint}`);
     } catch (requestError) {
       setPreflight((current) => ({ ...current, [mode]: false }));
-      toast.error(getDeploymentErrorMessage(requestError, 'Preflight thất bại.'));
+      const details = requestError && typeof requestError === 'object' ? requestError as { status?: unknown; code?: unknown } : {};
+      const codes = [typeof details.status === 'number' ? `HTTP ${details.status}` : '', typeof details.code === 'string' ? details.code : ''].filter(Boolean).join(' · ');
+      const renderHint = mode === 'vercel-render' && [502, 503, 504].includes(Number(details.status))
+        ? ' Hãy kiểm tra trạng thái Render; dịch vụ miễn phí có thể đang ngủ.'
+        : '';
+      toast.error(`${codes ? `${codes} · ` : ''}${getDeploymentErrorMessage(requestError, 'Preflight thất bại.')}${renderHint}`);
     } finally {
       setBusy(null);
     }
@@ -477,7 +461,7 @@ function DeploymentAdminPage() {
   };
 
   const startRollback = async () => {
-    if (!window.confirm('Trước tiên hãy dừng backend Render trong dashboard của nhà cung cấp để tránh hai backend cùng ghi database. Bạn xác nhận Render đã dừng và muốn khởi động lại frontend/backend Tunnel?')) return;
+    if (!window.confirm('Trước tiên hãy dừng backend Render trong dashboard của nhà cung cấp để tránh hai backend cùng ghi vào cùng MongoDB production. Bạn xác nhận Render đã dừng và muốn khởi động lại frontend/backend Tunnel?')) return;
     setBusy('rollback');
     try {
       const created = await deploymentAPI.rollback();
