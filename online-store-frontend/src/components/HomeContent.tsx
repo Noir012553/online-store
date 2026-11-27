@@ -392,71 +392,60 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
     }
 
     let isMounted = true;
-    const requestController = new AbortController();
     const contentCategories = Array.isArray(categories) ? categories : [];
     const flashSaleCategories = contentCategories.filter(isFlashSaleCategory);
     const flashSaleCategoryIds = new Set(flashSaleCategories.map((category) => category._id));
 
     const fetchCategoryProducts = async (category: HomeCategory) => {
-      try {
-        const response = await productAPI.getFeaturedProducts(
-          1,
-          undefined,
-          category._id,
-          undefined,
-          8,
-          undefined,
-          undefined,
-          true,
-          locale,
-          locale,
-          currencyCode,
-          true,
-          undefined,
-          undefined,
-          true,
-          undefined,
-          undefined,
-          { skipErrorToast: true, signal: requestController.signal },
-        );
+      const response = await productAPI.getFeaturedProducts(
+        1,
+        undefined,
+        category._id,
+        undefined,
+        8,
+        undefined,
+        undefined,
+        true,
+        locale,
+        locale,
+        currencyCode,
+        true,
+        undefined,
+        undefined,
+        true,
+        undefined,
+        undefined,
+        { skipErrorToast: true },
+      );
 
-        return [category._id, response.products || []] as const;
-      } catch (error) {
-        if (requestController.signal.aborted) return [category._id, []] as const;
-        throw error;
-      }
+      return [category._id, response.products || []] as const;
     };
 
     const fetchFlashSaleProducts = async (category: HomeCategory) => {
-      try {
-        const response = await productAPI.getFeaturedProducts(
-          1,
-          undefined,
-          category._id,
-          undefined,
-          8,
-          undefined,
-          undefined,
-          true,
-          locale,
-          locale,
-          currencyCode,
-          true,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          { skipErrorToast: true, signal: requestController.signal },
-          true,
-          1,
-        );
+      const response = await productAPI.getFeaturedProducts(
+        1,
+        undefined,
+        category._id,
+        undefined,
+        8,
+        undefined,
+        undefined,
+        true,
+        locale,
+        locale,
+        currencyCode,
+        true,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { skipErrorToast: true },
+        true,
+        1,
+      );
 
-        return response.products || [];
-      } catch (error) {
-        if (requestController.signal.aborted) return [];
-        throw error;
-      }
+      return response.products || [];
     };
 
     const fetchData = async () => {
@@ -506,7 +495,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
         setDealProducts(deals);
         setProductLoadError(hasRequestFailure);
       } catch {
-        if (isMounted && !requestController.signal.aborted) {
+        if (isMounted) {
           setCategoryProducts({});
           setDealProducts([]);
           setProductLoadError(true);
@@ -519,7 +508,6 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
     void fetchData();
     return () => {
       isMounted = false;
-      requestController.abort(new DOMException('Homepage product requests cancelled', 'AbortError'));
     };
   }, [categories, currencyCode, isHydrated, isLoadingCategories, locale, productRetryKey]);
 
