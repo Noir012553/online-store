@@ -31,6 +31,7 @@ Một thao tác Super Admin có preflight và xác nhận, dùng runner độc l
 
 ## Phạm vi cài đặt WinSW trên host Windows
 
+- Theo xác nhận mới nhất, checkout `24-9-26 copy 176` đã cài đủ; checkout `24-9-27` chưa cài đủ. Trạng thái cài đặt của `24-9-27` không đồng nghĩa với trạng thái services đang chạy.
 - Các service đăng ký trong Windows Service Control Manager là machine-wide, nhưng chúng phụ thuộc checkout cụ thể `E:\dev-camp\24-9-26 copy 176`. `LaptopStoreBackend` và `LaptopStoreFrontend` chạy `C:\Program Files\nodejs\node.exe` với working directory/source trong checkout đó; dependencies Node nằm trong `node_modules` của từng project, không cài npm packages global. Tải code vào thư mục khác không tự chuyển service.
 - `C:\ProgramData\LaptopStore` chứa WinSW executable/XML cho bốn service, helper Tunnel/Runner được copy, log và secret DPAPI (`secrets\tunnel\tunnel-token.dpapi`, `secrets\runner\runner-token.dpapi`). Không lưu plaintext token tại đây.
 - Installer cấp ACL cho source Backend/Frontend và `.env` để service accounts truy cập, đồng thời tạo ACL backup trong thư mục temp đã in ở trên. Nó từ chối cài đè khi service hoặc `C:\ProgramData\LaptopStore` đã tồn tại; không dùng lại installer như quy trình update.
