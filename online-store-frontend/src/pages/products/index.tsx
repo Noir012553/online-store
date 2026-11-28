@@ -42,7 +42,6 @@ export default function AllProductsPage() {
 
   useEffect(() => {
     const requestId = ++searchRequestIdRef.current;
-    const controller = new AbortController();
     const query = typeof search === 'string' ? search.trim() : '';
     const brandFilter = typeof brand === 'string' ? brand.trim() : '';
     const isSearchRequest = Boolean(query || brandFilter);
@@ -71,21 +70,20 @@ export default function AllProductsPage() {
             locale,
             locale,
             undefined,
-            { signal: controller.signal },
           );
 
-          if (controller.signal.aborted || requestId !== searchRequestIdRef.current) return;
+          if (requestId !== searchRequestIdRef.current) return;
           setSearchResults(response.products || []);
           setSearchTotal(response.total || 0);
           setSearchPages(response.pages || 0);
-        } catch (error) {
-          if (controller.signal.aborted || requestId !== searchRequestIdRef.current) return;
+        } catch {
+          if (requestId !== searchRequestIdRef.current) return;
           setSearchResults([]);
           setSearchTotal(0);
           setSearchPages(0);
           setHasSearchError(true);
         } finally {
-          if (!controller.signal.aborted && requestId === searchRequestIdRef.current) {
+          if (requestId === searchRequestIdRef.current) {
             setIsSearchLoading(false);
           }
         }
@@ -116,13 +114,12 @@ export default function AllProductsPage() {
           locale,
           locale,
           undefined,
-          { signal: controller.signal },
         );
-        if (!controller.signal.aborted && requestId === searchRequestIdRef.current) {
+        if (requestId === searchRequestIdRef.current) {
           setTotalProducts(productsResponse?.pages || productsResponse?.total || 0);
         }
-      } catch (error) {
-        if (!controller.signal.aborted && requestId === searchRequestIdRef.current) {
+      } catch {
+        if (requestId === searchRequestIdRef.current) {
           setTotalProducts(0);
         }
       }
@@ -132,7 +129,6 @@ export default function AllProductsPage() {
 
     return () => {
       searchRequestIdRef.current += 1;
-      controller.abort();
     };
   }, [search, brand, locale, searchPage]);
 

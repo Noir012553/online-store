@@ -3,7 +3,8 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { execFileSync, spawn } = require('child_process');
+const { spawn } = require('node:child_process');
+const { readDpapiSecret } = require('./deployment-windows');
 
 const backendRoot = path.resolve(process.env.LAPTOP_STORE_BACKEND_ROOT || path.join(__dirname, '..'));
 const isWindows = process.platform === 'win32';
@@ -64,12 +65,6 @@ const resolveExecutable = () => {
     `${reason}Alternatively, install a valid cloudflared.exe, set CLOUDFLARED_BIN to its path, or add it to PATH.`,
   );
 };
-
-const readDpapiSecret = filePath => execFileSync(
-  path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'),
-  ['-NoLogo', '-NoProfile', '-NonInteractive', '-File', path.join(__dirname, 'read-dpapi-secret.ps1'), filePath],
-  { encoding: 'utf8', windowsHide: true },
-).trim();
 
 const startTunnel = () => {
   const executable = resolveExecutable();

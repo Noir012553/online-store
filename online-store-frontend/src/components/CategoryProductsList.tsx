@@ -194,7 +194,7 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
     const listingKey = `${categoryId}:${locale}:${currencyCode}`;
     if (!categoryId || !hasRestoredFilters || loadedListingKey !== listingKey) return;
 
-    const controller = new AbortController();
+    let isCurrent = true;
     const fetchInitialProducts = async () => {
       try {
         const response = await productAPI.getProducts(
@@ -215,16 +215,17 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
           locale,
           locale,
           currencyCode,
-          { signal: controller.signal },
         );
-        if (!controller.signal.aborted) setAllProducts(response.products || []);
+        if (isCurrent) setAllProducts(response.products || []);
       } catch {
-        if (!controller.signal.aborted) setAllProducts([]);
+        if (isCurrent) setAllProducts([]);
       }
     };
 
     void fetchInitialProducts();
-    return () => controller.abort();
+    return () => {
+      isCurrent = false;
+    };
   }, [categoryId, currencyCode, hasRestoredFilters, loadedListingKey, locale]);
 
   // Extract stats and brands from products
@@ -267,7 +268,7 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
   useEffect(() => {
     if (!hasRestoredFilters) return;
 
-    const controller = new AbortController();
+    let isCurrent = true;
 
     const fetchFilteredProducts = async () => {
       try {
@@ -304,31 +305,33 @@ export function CategoryProductsList({ categoryId, categoryName }: CategoryProdu
           locale,
           locale,
           currencyCode,
-          { signal: controller.signal },
+          undefined,
           sortBy,
           filters.shockDealOnly
         );
 
-        if (controller.signal.aborted) return;
+        if (!isCurrent) return;
 
         const nextTotalPages = response.pages || 1;
         setProducts(response.products || []);
         setTotalPages(nextTotalPages);
         if (page > nextTotalPages) setPage(nextTotalPages);
-      } catch (err) {
-        if (controller.signal.aborted) return;
+      } catch {
+        if (!isCurrent) return;
         setProducts([]);
         setTotalPages(1);
       } finally {
-        if (!controller.signal.aborted) {
+        if (isCurrent) {
           setIsLoading(false);
           setLoadedListingKey(`${categoryId}:${locale}:${currencyCode}`);
         }
       }
     };
 
-    fetchFilteredProducts();
-    return () => controller.abort();
+    void fetchFilteredProducts();
+    return () => {
+      isCurrent = false;
+    };
   }, [categoryId, currencyCode, page, filters, hasRestoredFilters, locale, sortBy]);
 
   const sortedProducts = products;

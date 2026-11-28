@@ -392,7 +392,6 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
     }
 
     let isMounted = true;
-    const requestController = new AbortController();
     const contentCategories = Array.isArray(categories) ? categories : [];
     const flashSaleCategories = contentCategories.filter(isFlashSaleCategory);
     const flashSaleCategoryIds = new Set(flashSaleCategories.map((category) => category._id));
@@ -416,7 +415,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
         true,
         undefined,
         undefined,
-        { skipErrorToast: true, signal: requestController.signal },
+        { skipErrorToast: true },
       );
 
       return [category._id, response.products || []] as const;
@@ -441,7 +440,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
         undefined,
         undefined,
         undefined,
-        { skipErrorToast: true, signal: requestController.signal },
+        { skipErrorToast: true },
         true,
         1,
       );
@@ -496,7 +495,7 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
         setDealProducts(deals);
         setProductLoadError(hasRequestFailure);
       } catch {
-        if (isMounted && !requestController.signal.aborted) {
+        if (isMounted) {
           setCategoryProducts({});
           setDealProducts([]);
           setProductLoadError(true);
@@ -509,7 +508,6 @@ export default function Home({ initialHeroBanners }: HomeContentProps) {
     void fetchData();
     return () => {
       isMounted = false;
-      requestController.abort();
     };
   }, [categories, currencyCode, isHydrated, isLoadingCategories, locale, productRetryKey]);
 
