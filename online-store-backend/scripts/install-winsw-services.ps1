@@ -169,9 +169,7 @@ try {
     $tunnelEnvironment = ''
     if ($service.Runner) {
       Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'deployment-runner.js') -Destination (Join-Path $directory 'deployment-runner.js')
-      Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'read-dpapi-secret.ps1') -Destination (Join-Path $directory 'read-dpapi-secret.ps1')
-      Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'stop-tunnel-apps.ps1') -Destination (Join-Path $directory 'stop-tunnel-apps.ps1')
-      Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'start-tunnel-apps.ps1') -Destination (Join-Path $directory 'start-tunnel-apps.ps1')
+      Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'deployment-windows.js') -Destination (Join-Path $directory 'deployment-windows.js')
       $tunnelEnvironment = @"
   <env name="DEPLOYMENT_ROUTER_URL" value="$([Security.SecurityElement]::Escape($routerUri.Origin))" />
   <env name="DEPLOYMENT_RUNNER_ID" value="$([Security.SecurityElement]::Escape($RunnerId))" />
@@ -180,7 +178,7 @@ try {
     }
     if ($service.Tunnel) {
       Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'tunnel.js') -Destination (Join-Path $directory 'tunnel.js')
-      Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'read-dpapi-secret.ps1') -Destination (Join-Path $directory 'read-dpapi-secret.ps1')
+      Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'deployment-windows.js') -Destination (Join-Path $directory 'deployment-windows.js')
       $cloudflaredServicePath = Join-Path $directory 'cloudflared.exe'
       Copy-Item -LiteralPath $cloudflared.Source -Destination $cloudflaredServicePath
       $tunnelEnvironment = @"

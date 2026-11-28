@@ -1,28 +1,21 @@
-const { execFile, execFileSync } = require('node:child_process');
-const { promisify } = require('node:util');
+const { execFileSync } = require('node:child_process');
 const path = require('node:path');
+const { readDpapiSecret, startTunnelApps, stopTunnelApps } = require('./deployment-windows');
 
-const execFileAsync = promisify(execFile);
 const POLL_INTERVAL_MS = 10_000;
 const RUNNER_ID_PATTERN = /^[A-Za-z0-9._-]{1,128}$/;
 const JOB_ID_PATTERN = /^[0-9a-f-]{36}$/i;
 const sleep = (delay) => new Promise((resolve) => setTimeout(resolve, delay));
 
 const assertManagedAppsConfigured = () => {
-  const command = `
-$ErrorActionPreference = 'Stop'
-$serviceRoot = Join-Path $env:ProgramData 'LaptopStore\\services'
-foreach ($name in @('LaptopStoreBackend', 'LaptopStoreFrontend')) {
-  $expectedExecutable = Join-Path (Join-Path $serviceRoot $name) ($name + '.exe')
-  $query = & sc.exe qc $name
-  if ($LASTEXITCODE -ne 0 -or -not (($query -join ' ') -match [regex]::Escape($expectedExecutable))) {
-    throw "Required WinSW service is missing or points to another executable: $name"
+  const serviceRoot = path.join(process.env.ProgramData || 'C:\\ProgramData', 'LaptopStore', 'services');
+  for (const name of ['LaptopStoreBackend', 'LaptopStoreFrontend']) {
+    const expectedExecutable = path.join(serviceRoot, name, `${name}.exe`);
+    const query = execFileSync('sc.exe', ['qc', name], { encoding: 'utf8', windowsHide: true });
+    if (!query.toLowerCase().includes(expectedExecutable.toLowerCase())) {
+      throw new Error(`Required WinSW service is missing or points to another executable: ${name}`);
+    }
   }
-}
-`;
-  execFileSync('powershell.exe', [
-    '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', command,
-  ], { encoding: 'utf8', windowsHide: true, stdio: 'ignore' });
 };
 
 const readConfig = () => {
@@ -41,10 +34,7 @@ const readConfig = () => {
   if (!RUNNER_ID_PATTERN.test(runnerId || '') || !tokenPath || !path.isAbsolute(tokenPath)) {
     throw new Error('Deployment runner configuration is invalid.');
   }
-  const token = execFileSync('powershell.exe', [
-    '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File',
-    path.join(__dirname, 'read-dpapi-secret.ps1'), '-Path', tokenPath,
-  ], { encoding: 'utf8', windowsHide: true }).trim();
+  const token = readDpapiSecret(tokenPath);
   if (token.length < 16) throw new Error('Deployment runner token is invalid.');
   return { routerOrigin: parsed.origin, runnerId, token };
 };
@@ -68,16 +58,10 @@ const requestControlPlane = async (config, route, options = {}) => {
 };
 
 const runFixedAction = async (action) => {
-  const scripts = {
-    stopTunnelApps: ['stop-tunnel-apps.ps1', '-ConfirmStop'],
-    startTunnelApps: ['start-tunnel-apps.ps1', '-ConfirmStart'],
-  };
-  const selected = scripts[action];
+  const actions = { stopTunnelApps, startTunnelApps };
+  const selected = actions[action];
   if (!selected) throw new Error('Runner received a non-allowlisted action.');
-  const scriptPath = path.join(__dirname, selected[0]);
-  await execFileAsync('powershell.exe', [
-    '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', scriptPath, selected[1],
-  ], { windowsHide: true, timeout: 120_000, maxBuffer: 64 * 1024 });
+  await selected();
 };
 
 const processJob = async (config, job) => {
