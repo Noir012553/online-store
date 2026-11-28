@@ -2,12 +2,23 @@
 
 ## Mục tiêu
 
-Một thao tác Super Admin có preflight và xác nhận, dùng runner độc lập dừng hai service WinSW cũ rồi chuyển mode đồng bộ sang Vercel + Render. Nếu stop hoặc health check target thất bại, Worker xếp job start để phục hồi Tunnel. Source đã có phần lớn control flow, nhưng chưa được cấu hình hoặc chạy trên hạ tầng thật.
+Một thao tác Super Admin có preflight và xác nhận, dùng runner độc lập dừng hai service WinSW cũ rồi chuyển mode đồng bộ sang Vercel + Render. Nếu stop hoặc health check target thất bại, Worker xếp job start để phục hồi Tunnel.
+
+## Cập nhật vận hành — 2026-11-28
+
+- Production đang ở Worker mode `vercel-render`; Worker status gần nhất báo `activeJob: null`, `runnerOnline: false`. Cả bốn WinSW service local đang dừng có chủ đích.
+- Worker production `online-store.noir012553.workers.dev` có hai route trong zone `manln.online`: `manln.online/*` và `backend.manln.online/*`; failure mode mặc định là fail closed.
+- Vercel `https://online-store-three-chi.vercel.app/` trả HTTP 200. Render `https://online-store-dmj4.onrender.com/readyz` từng trả 503 khi Render Free đang ngủ (`startupReady:false`), sau đó trả 200 (`startupReady:true`). Worker preflight `vercel-render` gần nhất trả `passed:true`.
+- Sau khi thêm hai Worker routes, `https://manln.online/` và `https://backend.manln.online/readyz` đều trả HTTP 200, có `CF-Ray`. Đây là xác nhận routing/readiness cơ bản, chưa thay thế smoke test auth, checkout, upload, payment callback, Socket.IO/WebSocket.
+- WinSW XML Backend/Frontend đã đổi working directory sang `E:\dev-camp\24-9-27\online-store-backend` và `E:\dev-camp\24-9-27\online-store-frontend`; Tunnel env `LAPTOP_STORE_BACKEND_ROOT` cũng trỏ tới Backend trong `24-9-27`. ACL service accounts trên source, thư mục ghi cần thiết và Backend `.env` đã được áp dụng. XML/ACL backup: `C:\Users\noir0\AppData\Local\Temp\LaptopStore-switch-24-9-27-20261128-170924`.
+- Process Node thủ công PID 19376 (Frontend) và PID 4924 (Backend) đã được dừng; kiểm tra sau đó không còn listener trên cổng 3000/5000. Local services vẫn dừng, nên hiện máy `24-9-27` chưa phục vụ traffic production.
+- Worker route trước khi được gắn, public URLs trả 502 dù upstream Vercel/Render có thể khỏe. Sau khi gắn route, public URLs trả 200. `/api/admin/deployment/status` từng trả 502; chưa xác minh lại sau khi gắn route.
+- Probe PowerShell dùng `System.Net.Http.HttpClient` thất bại vì type không khả dụng trong phiên PowerShell đó; các kết quả lỗi từ probe ấy không phải lỗi của upstream.
 
 ## Đã xác minh
 
 - Cloudflare Tunnel `online-store` có hai route: `manln.online` → `http://127.0.0.1:3000` và `backend.manln.online` → `http://127.0.0.1:5000`.
-- Kiểm tra PowerShell trực tiếp `https://online-store.noir012553.workers.dev/__deployment/status` trả HTTP 200 với control token nhập ẩn; Worker trả `mode: tunnel`, `runnerOnline: false`, `lastRunnerHeartbeatAt: null`, `activeJob: null`. Điều này xác nhận Worker chấp nhận token được kiểm tra và Durable Object status hoạt động; chưa xác nhận token backend đã lưu trùng Worker Secret.
+- Kiểm tra PowerShell ban đầu tới `https://online-store.noir012553.workers.dev/__deployment/status` trả HTTP 200 với control token nhập ẩn; snapshot ban đầu là `mode: tunnel`, Runner offline, `activeJob: null`. Trạng thái mới nhất được ghi ở phần cập nhật vận hành đầu tài liệu.
 - WinSW service IDs đã xác nhận: `LaptopStoreFrontend` và `LaptopStoreBackend`; `LaptopStoreTunnel` phải được giữ để rollback.
 - Backend Node.js đọc cổng từ `PORT` và bind `0.0.0.0`.
 - Frontend rewrite `/api/*` theo `NEXT_PUBLIC_API_BASE_URL`; mặc định trỏ tới `https://backend.manln.online`.
@@ -31,46 +42,46 @@ Một thao tác Super Admin có preflight và xác nhận, dùng runner độc l
 
 ## Phạm vi cài đặt WinSW trên host Windows
 
-- Theo xác nhận mới nhất, checkout `24-9-26 copy 176` đã cài đủ; checkout `24-9-27` chưa cài đủ. `package.json` trong `24-9-27` ghi backend `1.0.0` và frontend `0.1.0`; `git rev-parse` không chạy được vì thư mục đó không phải Git working tree, nên chưa xác định được mã commit/source revision.
-- Windows Service Manager là machine-wide, nhưng cấu hình WinSW hiện trỏ ứng dụng vào checkout `E:\dev-camp\24-9-26 copy 176`: Backend working directory `E:\dev-camp\24-9-26 copy 176\online-store-backend`; Frontend working directory `E:\dev-camp\24-9-26 copy 176\online-store-frontend`. Checkout `24-9-27` hiện không được hai service này sử dụng. Hai service chạy Node từ `C:\Program Files\nodejs\node.exe`; dependencies Node lấy từ `node_modules` của từng project, không cài npm packages global. Tải code vào thư mục khác không tự chuyển service.
-- Kết quả `Get-CimInstance Win32_Service` mới nhất: `LaptopStoreBackend`, `LaptopStoreFrontend` và `LaptopStoreTunnel` đang `Stopped`; `LaptopStoreDeploymentRunner` đang `Running`. Trạng thái service không chứng minh runner heartbeat/job hiện tại hay mode production.
+- `24-9-27` có backend package `1.0.0`, frontend `0.1.0`, `node_modules`, lockfiles, backend `.env` và frontend production build. Thư mục không phải Git working tree nên không có commit hash để đối chiếu.
+- WinSW XML đã chuyển Backend sang `E:\dev-camp\24-9-27\online-store-backend`, Frontend sang `E:\dev-camp\24-9-27\online-store-frontend`; Tunnel env `LAPTOP_STORE_BACKEND_ROOT` trỏ tới Backend mới. Services dùng Node từ `C:\Program Files\nodejs\node.exe`, dependencies từ `node_modules` trong từng project.
+- Lần kiểm tra gần nhất xác nhận cả bốn service Backend, Frontend, Tunnel và Deployment Runner đều `Stopped`; cổng 3000/5000 không còn listener. Đây là trạng thái có chủ đích khi production ở Vercel + Render.
 - `C:\ProgramData\LaptopStore` chứa WinSW executable/XML cho bốn service, helper Tunnel/Runner được copy, log và secret DPAPI (`secrets\tunnel\tunnel-token.dpapi`, `secrets\runner\runner-token.dpapi`). Không lưu plaintext token tại đây.
 - Installer cấp ACL cho source Backend/Frontend và `.env` để service accounts truy cập, đồng thời tạo ACL backup trong thư mục temp đã in ở trên. Nó từ chối cài đè khi service hoặc `C:\ProgramData\LaptopStore` đã tồn tại; không dùng lại installer như quy trình update.
 - Khi tải source mới đè đúng checkout, Backend/Frontend dùng source mới sau khi restart; các helper đã copy vào ProgramData không tự được cập nhật. Khi đổi checkout hoặc cập nhật helper, cần quy trình cập nhật service/path/ACL riêng. WinSW executable và Node/cloudflared nằm ngoài source; bản WinSW hiện ở `C:\Users\noir0\Downloads\WinSW-x64-v2.12.0.exe`.
 - Thao tác PowerShell sửa installer đã tạo backup source tại `online-store-backend/scripts/install-winsw-services.js.20261128-124304.bak`; đây là file backup riêng, không phải thành phần do WinSW installer cài.
-- Người dùng tạo job `0a2053c0-3085-4081-bbc4-fa90852382b0` sau khi bật runner; action, trạng thái job và mode sau xử lý chưa được xác nhận. Không tạo job khác cho tới khi kiểm tra job này trên `/admin/deployment`.
+- Job `0a2053c0-3085-4081-bbc4-fa90852382b0` từng được tạo; Worker status mới nhất sau đó trả `activeJob: null`.
 
 ## Xác minh cài đặt trên host
 
 - Các lần cài trước thất bại và rollback sạch: lỗi ACL 1332 xảy ra khi cấp quyền Tunnel account trước khi account được đăng ký; lỗi `sc.exe config` 1057 ban đầu chưa đủ diagnostics để kết luận nguyên nhân. Installer đã được chỉnh để cấp ACL sau khi service được cài và cấu hình virtual account không truyền password rỗng.
-- Lần cài sau trên `copy 176` hoàn tất: bốn service được đăng ký, đều `Manual`; `sc.exe qc` xác nhận account tương ứng `NT SERVICE\<service-id>` và `sc.exe qsidtype` báo `UNRESTRICTED`. Lần kiểm tra ban đầu cho thấy cả bốn `Stopped`; kết quả PowerShell mới nhất xác nhận `LaptopStoreBackend`, `LaptopStoreFrontend` và `LaptopStoreTunnel` `Stopped`, còn `LaptopStoreDeploymentRunner` `Running`.
-- XML WinSW mới nhất xác nhận Backend và Frontend vẫn dùng working directory trong `24-9-26 copy 176`, không phải `24-9-27`.
-- ACL runner token file đã kiểm tra: chỉ runner service, Administrators và SYSTEM có quyền đọc/đầy đủ theo ACL. Hai tiến trình Node cũ vẫn giữ cổng 3000 (PID 17896) và 5000 (PID 10576); chưa xác nhận chuyển app sang WinSW.
+- Bốn service được đăng ký từ lần cài trên `copy 176`, startup `Manual`; account là `NT SERVICE\<service-id>` và SID type `UNRESTRICTED`.
+- XML WinSW Backend/Frontend và Tunnel backend root đã cập nhật sang `24-9-27`; các service hiện dừng có chủ đích.
+- Hai process Node thủ công PID 19376 (Frontend) và PID 4924 (Backend) đã dừng; PowerShell kiểm tra sau đó xác nhận cổng 3000/5000 không còn listener.
 - Khi cài, installer đã in ACL backup directory `C:\Users\noir0\AppData\Local\Temp\LaptopStoreAcl-9cce4ef9fbb1418fa91cb7a5f1670e6c`; giữ lại để có thể khôi phục ACL source nếu cần. Không có plaintext token được ghi trong output.
 
-## Chưa hoàn tất
+## Còn cần xác minh
 
-- Người dùng đã thêm hai Published applications vào Cloudflare Tunnel: `tunnel-frontend.manln.online` → `http://127.0.0.1:3000` và `tunnel-backend.manln.online` → `http://127.0.0.1:5000`, bên cạnh hai hostname hiện hữu. Worker Access Client ID/Secret đã được cấu hình riêng dưới dạng Worker Secrets. Tunnel preflight đạt trên giao diện, xác nhận health checks của Tunnel origins hoạt động qua Worker; cần tiếp tục xác minh cấu hình production và runner.
-- Trạng thái đã phân biệt: PowerShell gọi trực tiếp Worker `POST /__deployment/preflight` với `mode=tunnel` trả HTTP 200 `{"mode":"tunnel","passed":true}`; health checks Tunnel origins đạt. Gọi API backend/public không đăng nhập trả 401 JSON như dự kiến. Tuy nhiên, Playwright đăng nhập thủ công rồi bấm Preflight qua `https://manln.online/api/admin/deployment/preflight` nhận HTTP 502, `text/html` Cloudflare, Ray ID `a607fcba2cd8095c-HKG`. Đây là lỗi trên đường production API, khác với preflight trực tiếp Worker; chưa xác định được hop gây lỗi. Cần đối chiếu Audit API và log backend/Cloudflare Tunnel tại cùng thời điểm. Đây là trạng thái từ lần kiểm tra trước; trạng thái switch hiện tại cần xác nhận trên `/admin/deployment`.
+- Tunnel origins riêng `tunnel-frontend.manln.online` → `http://127.0.0.1:3000` và `tunnel-backend.manln.online` → `http://127.0.0.1:5000` đã được provision; Worker Access Client ID/Secret cấu hình riêng trong Worker Secrets. Local Tunnel service hiện dừng có chủ đích.
+- `/api/admin/deployment/status` và preflight UI từng trả 502 trước khi gắn Worker routes. Public routes hiện trả 200, nhưng admin API chưa được kiểm tra lại sau thay đổi; cần xác minh trong phiên Super Admin.
 - Cấp `MONGO_READ_ONLY_URI` với quyền đọc cho candidate; xác minh `DEPLOYMENT_CANDIDATE_READ_ONLY` trên Render và hoàn tất audit side effect cho các GET endpoint/background tasks.
 - Worker giữ header `Upgrade`/`Connection: Upgrade` khi proxy handshake WebSocket; test offline xác nhận header được chuyển tiếp nhưng chưa chứng minh kết nối WebSocket hoạt động trên Cloudflare runtime. Cần kiểm thử Socket.IO/WebSocket thực tế trên staging trước cutover.
 - Kiểm thử trên Windows và integration trên staging: Host/TLS/cookie/websocket/upload/callback, stop/start partial failure, recovery và job theo dõi khi backend Tunnel đã dừng.
-- Chưa có xác nhận Vercel/Render build/runtime tương thích và URL/service ID thực tế.
+- URL Vercel/Render thực tế đã xác nhận và Worker preflight đạt; chưa có smoke test đầy đủ cho các luồng ứng dụng ngoài health check.
 - Chưa xác minh end-to-end trường domain website bằng phiên Super Admin: preview hiện trả `GET /api/settings/admin` → `400 INVALID_SETTINGS_FIELDS`. Mã backend trong source hiện tại không validate GET request này; cần xác minh preview đang proxy tới backend nào và triển khai/đồng bộ backend tương ứng. Frontend chỉ bỏ toast `api_error` chung và hiển thị trạng thái backend không tương thích; việc đó không sửa lỗi API runtime.
 - Chưa xác nhận lưu `https://manln.online`, giá trị trả về từ `/api/settings/public`, hay canonical/hreflang/OG thực tế. Preview hiện chuyển về `/login`, nên chưa kiểm tra được form với quyền Super Admin hoặc xác nhận trực quan lỗi 401 sau deploy bản sửa.
 
-## Blocker trước khi cutover production
+## Giới hạn còn lại sau khi chuyển public routes
 
-- Chưa xác minh URL/service ID Render và URL Vercel hoặc đạt preflight `vercel-render`. Tunnel origins riêng đã được thêm và Tunnel preflight đạt, nhưng vẫn cần staging integration và xác nhận runner trước cutover.
-- Chưa xác minh đầy đủ Worker bindings/production route và backend env. Tunnel Access Service Token đã được cấu hình dưới dạng Worker Secrets; form admin chỉ lưu cấu hình tham chiếu và mã hóa tokens ở backend, không tự deploy Worker, ghi secrets lên Cloudflare hoặc thay thế cấu hình runner Windows.
-- Backend runtime phục vụ preview chưa được xác minh đồng bộ với frontend cho `/api/settings/admin`; xử lý blocker này trước khi coi cấu hình Store Settings/domain website đã hoạt động. Giao diện deployment hiện ghi nhận Tunnel preflight thành công; nếu `/api/admin/deployment/status` tiếp tục lỗi, cần kiểm tra response/log backend đã loại bỏ secrets.
-- Runner service đã cài và được khởi động trên host Windows; status UI `runnerOnline`, heartbeat mới nhất và action/status của job vừa tạo vẫn cần xác nhận. Test runner/Worker end-to-end trên Windows chưa hoàn tất.
+- Vercel/Render origins đã xác minh; Worker preflight `vercel-render` đạt và public hostnames trả 200. Chưa kiểm tra các luồng sản phẩm ngoài health endpoints.
+- Worker production routes đã được gắn; Tunnel Access Service Token nằm trong Worker Secrets. Form admin chỉ lưu cấu hình tham chiếu, không tự cập nhật Cloudflare hoặc WinSW.
+- `/api/admin/deployment/status` từng trả 502 trước khi gắn Worker routes; chưa có kết quả kiểm tra lại sau khi public hostnames trả 200. Preview Store Settings từng trả `400 INVALID_SETTINGS_FIELDS`; cần xác minh riêng nếu cấu hình domain website còn trong phạm vi.
+- Runner service hiện `Stopped`; Worker status gần nhất báo `runnerOnline:false` và `activeJob:null`. Job orchestration end-to-end qua Runner chưa được kiểm thử trong lần chuyển public route này.
 - Chưa xác minh Mongo read-only user, candidate gate hoặc thứ tự chuyển credential production mà không chạy hai backend ghi cùng lúc.
-- Đã chạy PowerShell trực tiếp tới Worker; control token được xác nhận hợp lệ và Tunnel preflight trả HTTP 200 `passed:true`. Kiểm tra từ Windows cũng cho `backend.manln.online/readyz` HTTP 200; POST preflight chưa đăng nhập tới backend và `manln.online` trả 401 JSON. Playwright kiểm tra luồng production đã đăng nhập ghi nhận HTTP 502 HTML Cloudflare ở preflight, nhưng chưa có kết quả Audit API hoặc log backend/`cloudflared` cùng thời điểm. Chưa chạy PowerShell tests của runner hoặc hostname staging integration. Test router backend tập trung đạt 3/3 và frontend typecheck đạt; bộ `test:deployment` đầy đủ bị chặn bởi thiếu dependency `express` trong môi trường kiểm tra. Môi trường trợ lý không có PowerShell hay quyền quản lý DNS/Cloudflare/Render/Vercel.
+- Các lỗi 502 public xuất hiện trước khi thêm Worker routes; sau khi thêm routes, hai public health URL trả 200. Chưa chạy lại test Runner end-to-end trên Windows hoặc smoke test staging.
 
 ## An toàn vận hành
 
 - Không tạo database staging theo yêu cầu vận hành. Candidate read-only chỉ được dùng cùng database production khi có credential Mongo chỉ đọc đã xác minh; không dùng `MONGO_URI` ghi trên Preview.
 - Không khởi động đồng thời Tunnel và Render có quyền ghi vào cùng database. Chưa xác định được quy trình chuyển từ read-only candidate sang write-enabled production backend; cần runbook vận hành và xác nhận trước cutover.
-- Chưa có xác nhận về mode production sau job vừa tạo. Không suy ra trạng thái cutover/rollback từ toast “Đã tạo job”; cần xem action, job status, mode và heartbeat trên `/admin/deployment`.
-- Không khởi động ba service Backend/Frontend/Tunnel còn lại hoặc tạo thêm job cho đến khi biết kết quả job hiện tại. Hai app console cũ đang giữ ports 3000/5000; cần maintenance window để chuyển chúng sang service, tránh bind trùng port.
+- Snapshot gần nhất: production mode `vercel-render`, `activeJob:null`, Runner offline; cần kiểm tra lại trước thao tác vận hành mới.
+- Giữ service local ở trạng thái dừng khi production vẫn chạy trên Vercel + Render. Process thủ công đã dừng, ports 3000/5000 trống.
