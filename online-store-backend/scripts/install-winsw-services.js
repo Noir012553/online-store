@@ -86,13 +86,17 @@ const setRestrictedDirectoryAcl = directory => invokeIcacls([
 ]);
 
 const configureServiceAccount = serviceId => {
+  if (!serviceExists(serviceId)) throw new Error(`WinSW did not register service ${serviceId} before account configuration.`);
   const result = spawnSync('sc.exe', [
-    'config', serviceId, 'obj=', `NT SERVICE\\${serviceId}`, 'password=', '',
+    'config', serviceId, 'obj=', `NT SERVICE\\${serviceId}`,
   ], { encoding: 'utf8', windowsHide: true });
   if (result.error) throw result.error;
   if (result.status !== 0) {
     const details = [result.stderr, result.stdout].filter(Boolean).join('\n').trim();
-    throw new Error(`Could not configure service account for ${serviceId} (sc.exe exit ${result.status})${details ? `: ${details}` : ''}`);
+    const cause = result.status === 1057
+      ? `Windows rejected the virtual service account NT SERVICE\\${serviceId}; virtual accounts do not use a password. Verify that the registered service ID matches exactly.`
+      : `Could not configure virtual service account NT SERVICE\\${serviceId}`;
+    throw new Error(`${cause} (sc.exe exit ${result.status})${details ? `: ${details}` : ''}`);
   }
 };
 
