@@ -93,10 +93,22 @@ const configureServiceAccount = serviceId => {
   if (result.error) throw result.error;
   if (result.status !== 0) {
     const details = [result.stderr, result.stdout].filter(Boolean).join('\n').trim();
+    const serviceConfig = spawnSync('sc.exe', ['qc', serviceId], { encoding: 'utf8', windowsHide: true });
+    const sidType = spawnSync('sc.exe', ['qsidtype', serviceId], { encoding: 'utf8', windowsHide: true });
+    const encodedAccount = Buffer.from(`NT SERVICE\\${serviceId}`, 'utf8').toString('base64');
+    const resolution = spawnSync('powershell.exe', [
+      '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command',
+      `$account = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${encodedAccount}')); try { ([Security.Principal.NTAccount]$account).Translate([Security.Principal.SecurityIdentifier]).Value } catch { 'UNRESOLVED: ' + $_.Exception.Message; exit 2 }`,
+    ], { encoding: 'utf8', windowsHide: true });
+    const diagnostics = [
+      `sc.exe qc (exit ${serviceConfig.status}): ${[serviceConfig.stdout, serviceConfig.stderr].filter(Boolean).join(' ').trim()}`,
+      `sc.exe qsidtype (exit ${sidType.status}): ${[sidType.stdout, sidType.stderr].filter(Boolean).join(' ').trim()}`,
+      `Account SID lookup (exit ${resolution.status}): ${[resolution.stdout, resolution.stderr].filter(Boolean).join(' ').trim()}`,
+    ].join('\n');
     const cause = result.status === 1057
-      ? `Windows rejected the virtual service account NT SERVICE\\${serviceId}; virtual accounts do not use a password. Verify that the registered service ID matches exactly.`
+      ? `Windows rejected account NT SERVICE\\${serviceId}; compare the service name, current SERVICE_START_NAME, service SID type, and account SID lookup below.`
       : `Could not configure virtual service account NT SERVICE\\${serviceId}`;
-    throw new Error(`${cause} (sc.exe exit ${result.status})${details ? `: ${details}` : ''}`);
+    throw new Error(`${cause} (sc.exe config exit ${result.status})${details ? `: ${details}` : ''}\n${diagnostics}`);
   }
 };
 
