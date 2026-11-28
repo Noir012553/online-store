@@ -33,58 +33,38 @@ const escapeXml = value => String(value).replace(/[<>&'\"]/g, character => ({
   '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;',
 })[character]);
 
-const getHiddenInput = prompt => new Promise((resolve, reject) => {
-  if (!process.stdin.isTTY || typeof process.stdin.setRawMode !== 'function') {
-    reject(new Error('Secret input requires an interactive terminal.'));
-    return;
-  }
-  process.stdout.write(`${prompt}: `);
-  process.stdin.setRawMode(true);
-  process.stdin.resume();
-  const bytes = [];
-  const finish = value => {
-    process.stdin.setRawMode(false);
-    process.stdin.pause();
-    process.stdin.removeListener('data', onData);
-    process.stdout.write('\n');
-    resolve(value);
-  };
-  const onData = chunk => {
-    for (const byte of chunk) {
-      if (byte === 3) {
-        process.stdin.setRawMode(false);
-        process.stdin.pause();
-        process.stdin.removeListener('data', onData);
-        process.stdout.write('\n');
-        reject(new Error('Input cancelled.'));
-        return;
-      }
-      if (byte === 13 || byte === 10) {
-        const secret = Buffer.from(bytes);
-        bytes.fill(0);
-        finish(secret);
-        return;
-      }
-      if (byte === 8 || byte === 127) bytes.pop();
-      else if (byte >= 32) bytes.push(byte);
-    }
-  };
-  process.stdin.on('data', onData);
-});
-
-const protectSecret = secret => {
-  const script = [
-    'Add-Type -AssemblyName System.Security',
-    '$plain = [Console]::In.ReadToEnd()',
-    '$bytes = [Text.Encoding]::UTF8.GetBytes($plain)',
-    'try { [Convert]::ToBase64String([Security.Cryptography.ProtectedData]::Protect($bytes, $null, [Security.Cryptography.DataProtectionScope]::LocalMachine)) } finally { [Array]::Clear($bytes, 0, $bytes.Length); $plain = $null }',
-  ].join('; ');
+const promptAndProtectSecret = (prompt, minLength, maxLength) => {
+  const encodedPrompt = Buffer.from(prompt, 'utf8').toString('base64');
+  const script = `
+Add-Type -AssemblyName System.Security
+$prompt = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${encodedPrompt}'))
+$secure = Read-Host -Prompt $prompt -AsSecureString
+$pointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
+$plain = $null
+$bytes = $null
+$protected = $null
+try {
+  $plain = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($pointer)
+  if ($plain.Length -lt ${minLength} -or $plain.Length -gt ${maxLength}) { throw 'Secret length is invalid.' }
+  $bytes = [Text.Encoding]::UTF8.GetBytes($plain)
+  $protected = [Security.Cryptography.ProtectedData]::Protect($bytes, $null, [Security.Cryptography.DataProtectionScope]::LocalMachine)
+  [Console]::Out.Write([Convert]::ToBase64String($protected))
+} finally {
+  [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($pointer)
+  if ($bytes) { [Array]::Clear($bytes, 0, $bytes.Length) }
+  if ($protected) { [Array]::Clear($protected, 0, $protected.Length) }
+  if ($secure) { $secure.Dispose() }
+  $plain = $null
+}
+`;
   const result = spawnSync('powershell.exe', [
-    '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script,
-  ], { input: secret, encoding: 'utf8', windowsHide: true });
+    '-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', script,
+  ], { encoding: 'utf8', windowsHide: false, stdio: ['inherit', 'pipe', 'inherit'] });
   if (result.error) throw result.error;
-  if (result.status !== 0) throw new Error('Could not protect a secret with Windows DPAPI.');
-  return Buffer.from(result.stdout.trim(), 'base64');
+  if (result.status !== 0) throw new Error('Secret input was cancelled or invalid; no installation changes were made.');
+  const protectedSecret = Buffer.from(result.stdout.trim(), 'base64');
+  if (!protectedSecret.length) throw new Error('Windows DPAPI returned an empty protected secret.');
+  return protectedSecret;
 };
 
 const invokeIcacls = args => {
@@ -217,24 +197,14 @@ const runInstaller = async () => {
     throw new Error('Run with Administrator privileges to install services.');
   }
 
-  const tunnelToken = await getHiddenInput('Paste the Cloudflare Tunnel token (input is hidden)');
-  if (!tunnelToken.length) {
-    tunnelToken.fill(0);
-    throw new Error('Tunnel token cannot be empty.');
-  }
-  let protectedTunnelToken;
-  try { protectedTunnelToken = protectSecret(tunnelToken); } finally { tunnelToken.fill(0); }
-  const runnerToken = await getHiddenInput('Paste the existing DEPLOYMENT_RUNNER_TOKEN (input is hidden)');
-  if (runnerToken.length < 16 || runnerToken.length > 2048) {
-    runnerToken.fill(0);
-    protectedTunnelToken.fill(0);
-    throw new Error('Runner token length is invalid.');
-  }
+  const protectedTunnelToken = promptAndProtectSecret('Paste the Cloudflare Tunnel token', 1, 8192);
   let protectedRunnerToken;
-  try { protectedRunnerToken = protectSecret(runnerToken); } catch (error) {
+  try {
+    protectedRunnerToken = promptAndProtectSecret('Paste the existing DEPLOYMENT_RUNNER_TOKEN', 16, 2048);
+  } catch (error) {
     protectedTunnelToken.fill(0);
     throw error;
-  } finally { runnerToken.fill(0); }
+  }
 
   const aclBackupDirectory = path.join(os.tmpdir(), `LaptopStoreAcl-${require('node:crypto').randomUUID().replace(/-/g, '')}`);
   const backendAclBackup = path.join(aclBackupDirectory, 'backend.acl');
