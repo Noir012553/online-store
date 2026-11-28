@@ -8,6 +8,23 @@ const RUNNER_ID_PATTERN = /^[A-Za-z0-9._-]{1,128}$/;
 const JOB_ID_PATTERN = /^[0-9a-f-]{36}$/i;
 const sleep = (delay) => new Promise((resolve) => setTimeout(resolve, delay));
 
+const assertManagedAppsConfigured = () => {
+  const command = `
+$ErrorActionPreference = 'Stop'
+$serviceRoot = Join-Path $env:ProgramData 'LaptopStore\\services'
+foreach ($name in @('LaptopStoreBackend', 'LaptopStoreFrontend')) {
+  $expectedExecutable = Join-Path (Join-Path $serviceRoot $name) ($name + '.exe')
+  $query = & sc.exe qc $name
+  if ($LASTEXITCODE -ne 0 -or -not (($query -join ' ') -match [regex]::Escape($expectedExecutable))) {
+    throw "Required WinSW service is missing or points to another executable: $name"
+  }
+}
+`;
+  execFileSync('powershell.exe', [
+    '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', command,
+  ], { encoding: 'utf8', windowsHide: true, stdio: 'ignore' });
+};
+
 const readConfig = () => {
   const routerUrl = process.env.DEPLOYMENT_ROUTER_URL;
   const runnerId = process.env.DEPLOYMENT_RUNNER_ID;
@@ -87,6 +104,7 @@ const processJob = async (config, job) => {
 
 const run = async () => {
   if (process.platform !== 'win32') throw new Error('Deployment runner must run on Windows.');
+  assertManagedAppsConfigured();
   const config = readConfig();
   while (true) {
     try {
@@ -107,4 +125,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { readConfig, requestControlPlane, runFixedAction, processJob };
+module.exports = { assertManagedAppsConfigured, readConfig, requestControlPlane, runFixedAction, processJob };

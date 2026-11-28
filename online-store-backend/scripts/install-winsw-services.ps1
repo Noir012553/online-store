@@ -259,7 +259,7 @@ $tunnelEnvironment</service>
     $serviceSecurityBackups[$serviceId] = $originalSddl
     $descriptor = [System.Security.AccessControl.RawSecurityDescriptor]::new($originalSddl)
     if (-not $descriptor.DiscretionaryAcl) { throw "Refusing to modify a null DACL on $serviceId." }
-    $serviceRights = 0x34
+    $serviceRights = 0x35
     $runnerAce = [System.Security.AccessControl.CommonAce]::new(
       [System.Security.AccessControl.AceFlags]::None,
       [System.Security.AccessControl.AceQualifier]::AccessAllowed,
@@ -276,6 +276,7 @@ $tunnelEnvironment</service>
 
 } catch {
   $rollbackFailures = @()
+  $aclRestoreFailures = @()
   for ($index = $createdServices.Count - 1; $index -ge 0; $index -= 1) {
     $service = $createdServices[$index]
     try {
@@ -288,10 +289,16 @@ $tunnelEnvironment</service>
       Write-Warning "Could not remove $($service.Id); preserving its files and ACLs for manual recovery."
     }
   }
-  if ($rollbackFailures.Count -eq 0) {
-    foreach ($serviceId in $serviceSecurityBackups.Keys) {
-      try { & sc.exe sdset $serviceId $serviceSecurityBackups[$serviceId] | Out-Null } catch {}
+  foreach ($serviceId in $serviceSecurityBackups.Keys) {
+    if (Get-Service -Name $serviceId -ErrorAction SilentlyContinue) {
+      & sc.exe sdset $serviceId $serviceSecurityBackups[$serviceId] | Out-Null
+      if ($LASTEXITCODE -ne 0) {
+        $aclRestoreFailures += $serviceId
+        Write-Warning "Could not restore the original service permissions for $serviceId."
+      }
     }
+  }
+  if ($rollbackFailures.Count -eq 0 -and $aclRestoreFailures.Count -eq 0) {
     foreach ($envFile in $envFiles) {
       if ($envAclBackups.ContainsKey($envFile.FullName)) {
         try { Set-Acl -LiteralPath $envFile.FullName -AclObject $envAclBackups[$envFile.FullName] } catch {}
@@ -303,7 +310,8 @@ $tunnelEnvironment</service>
       Remove-Item -LiteralPath $programDataRoot -Recurse -Force -ErrorAction SilentlyContinue
     }
   } else {
-    Write-Warning ('Manual recovery required for: {0}. Service files and current ACLs were preserved.' -f ($rollbackFailures -join ', '))
+    $manualRecovery = @($rollbackFailures + $aclRestoreFailures)
+    Write-Warning ('Manual recovery required for: {0}. Service files and current ACLs were preserved.' -f ($manualRecovery -join ', '))
   }
   throw
 } finally {
