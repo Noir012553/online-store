@@ -93,6 +93,14 @@ const invokeIcacls = args => {
   if (result.status !== 0) throw new Error(`icacls failed (${result.status}): ${args.join(' ')}`);
 };
 
+const serviceExists = serviceId => {
+  const result = spawnSync('sc.exe', ['query', serviceId], { windowsHide: true, stdio: 'ignore' });
+  if (result.error) throw result.error;
+  if (result.status === 0) return true;
+  if (result.status === 1060 || result.status === 1) return false;
+  throw new Error(`Could not determine whether service ${serviceId} exists.`);
+};
+
 const setRestrictedDirectoryAcl = directory => invokeIcacls([
   directory, '/inheritance:r', '/grant:r', '*S-1-5-18:(OI)(CI)F', '*S-1-5-32-544:(OI)(CI)F',
 ]);
@@ -344,7 +352,9 @@ const runInstaller = async () => {
       }
     }
     for (const [serviceId, sddl] of serviceSecurityBackups) {
-      try { run('sc.exe', ['sdset', serviceId, sddl], { stdio: 'ignore' }); } catch {
+      try {
+        if (serviceExists(serviceId)) run('sc.exe', ['sdset', serviceId, sddl], { stdio: 'ignore' });
+      } catch {
         aclRestoreFailures.push(serviceId);
         console.warn(`Could not restore the original service permissions for ${serviceId}.`);
       }
