@@ -222,7 +222,7 @@ const runInstaller = async () => {
     for (const directory of [serviceRoot, logRoot, secretRoot, tunnelSecretRoot, runnerSecretRoot]) fs.mkdirSync(directory, { recursive: true });
     for (const directory of [programDataRoot, serviceRoot, logRoot, secretRoot, tunnelSecretRoot, runnerSecretRoot]) setRestrictedDirectoryAcl(directory);
     fs.writeFileSync(tunnelTokenPath, protectedTunnelToken);
-    invokeIcacls([tunnelTokenPath, '/inheritance:r', '/grant:r', '*S-1-5-18:F', '*S-1-5-32-544:F', 'NT SERVICE\\LaptopStoreTunnel:R']);
+    invokeIcacls([tunnelTokenPath, '/inheritance:r', '/grant:r', '*S-1-5-18:F', '*S-1-5-32-544:F']);
     fs.writeFileSync(runnerTokenPath, protectedRunnerToken);
 
     const envFiles = fs.readdirSync(backendRoot, { withFileTypes: true })
