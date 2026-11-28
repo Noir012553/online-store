@@ -85,6 +85,17 @@ const setRestrictedDirectoryAcl = directory => invokeIcacls([
   directory, '/inheritance:r', '/grant:r', '*S-1-5-18:(OI)(CI)F', '*S-1-5-32-544:(OI)(CI)F',
 ]);
 
+const configureServiceAccount = serviceId => {
+  const result = spawnSync('sc.exe', [
+    'config', serviceId, 'obj=', `NT SERVICE\\${serviceId}`, 'password=', '',
+  ], { encoding: 'utf8', windowsHide: true });
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    const details = [result.stderr, result.stdout].filter(Boolean).join('\n').trim();
+    throw new Error(`Could not configure service account for ${serviceId} (sc.exe exit ${result.status})${details ? `: ${details}` : ''}`);
+  }
+};
+
 const setServiceRunnerRights = (serviceId, account) => {
   const encodedAccount = Buffer.from(account, 'utf8').toString('base64');
   const script = [
@@ -267,7 +278,7 @@ const runInstaller = async () => {
       setRestrictedDirectoryAcl(service.logPath);
       createdServices.push({ id: service.id, exePath, xmlPath });
       run(exePath, ['install', xmlPath], { stdio: 'ignore' });
-      run('sc.exe', ['config', service.id, 'obj=', `NT SERVICE\\${service.id}`, 'password=', ''], { stdio: 'ignore' });
+      configureServiceAccount(service.id);
       run('sc.exe', ['config', service.id, 'start=', 'demand'], { stdio: 'ignore' });
       run('sc.exe', ['sidtype', service.id, 'unrestricted'], { stdio: 'ignore' });
 
