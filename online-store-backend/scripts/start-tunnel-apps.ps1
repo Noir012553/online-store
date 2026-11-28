@@ -7,30 +7,16 @@ $ErrorActionPreference = 'Stop'
 if ($env:OS -ne 'Windows_NT') { throw 'Run this operation on the Windows host.' }
 if (-not $ConfirmStart) { throw 'Pass -ConfirmStart only after routing has been returned to Tunnel.' }
 
-$isAdministrator = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
-  [Security.Principal.WindowsBuiltInRole]::Administrator
-)
-if (-not $isAdministrator) { throw 'Run with the deployment runner service identity.' }
-
-$serviceRoot = Join-Path $env:ProgramData 'LaptopStore\services'
 $serviceIds = @('LaptopStoreBackend', 'LaptopStoreFrontend')
 $verifiedServices = @()
 
 foreach ($serviceId in $serviceIds) {
-  $service = Get-CimInstance Win32_Service -Filter "Name = '$serviceId'"
-  if (-not $service) { throw "Required WinSW service is not installed: $serviceId" }
-
-  $expectedExecutable = Join-Path (Join-Path $serviceRoot $serviceId) ($serviceId + '.exe')
-  $expectedCommandPrefix = '"{0}"' -f [IO.Path]::GetFullPath($expectedExecutable)
-  if (-not $service.PathName.StartsWith($expectedCommandPrefix, [StringComparison]::OrdinalIgnoreCase)) {
-    throw "Refusing to control a service not installed from the LaptopStore WinSW directory: $serviceId"
+  $service = Get-Service -Name $serviceId -ErrorAction Stop
+  if ($service.Status -notin @('Running', 'Stopped')) {
+    throw "Service $serviceId is in an unexpected state: $($service.Status)"
   }
 
-  if ($service.State -notin @('Running', 'Stopped')) {
-    throw "Service $serviceId is in an unexpected state: $($service.State)"
-  }
-
-  $verifiedServices += [PSCustomObject]@{ Id = $serviceId; State = $service.State }
+  $verifiedServices += [PSCustomObject]@{ Id = $serviceId; State = [string]$service.Status }
 }
 
 $startedServices = @()

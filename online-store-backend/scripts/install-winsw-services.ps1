@@ -3,6 +3,8 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$WinSWPath,
   [string]$WinSWSha256,
+  [string]$DeploymentRouterUrl,
+  [string]$RunnerId = 'laptop-store-windows-01',
   [switch]$InstallServices
 )
 
@@ -18,7 +20,20 @@ $serviceRoot = Join-Path $programDataRoot 'services'
 $logRoot = Join-Path $programDataRoot 'logs'
 $secretRoot = Join-Path $programDataRoot 'secrets'
 $tunnelSecretRoot = Join-Path $secretRoot 'tunnel'
+$runnerSecretRoot = Join-Path $secretRoot 'runner'
 $tokenPath = Join-Path $tunnelSecretRoot 'tunnel-token.dpapi'
+$runnerTokenPath = Join-Path $runnerSecretRoot 'runner-token.dpapi'
+$runnerServiceId = 'LaptopStoreDeploymentRunner'
+$runnerServiceAccount = "NT SERVICE\$runnerServiceId"
+
+if ($RunnerId -notmatch '^[A-Za-z0-9._-]{1,128}$') { throw 'Runner ID is invalid.' }
+if ($InstallServices) {
+  $routerUri = $null
+  if (-not [Uri]::TryCreate($DeploymentRouterUrl, [UriKind]::Absolute, [ref]$routerUri)
+    -or $routerUri.Scheme -ne 'https' -or $routerUri.UserInfo -or $routerUri.AbsolutePath -ne '/' -or $routerUri.Query -or $routerUri.Fragment) {
+    throw 'Pass the Worker HTTPS origin as -DeploymentRouterUrl.'
+  }
+}
 $winswSource = (Resolve-Path $WinSWPath).Path
 $winswHash = (Get-FileHash -LiteralPath $winswSource -Algorithm SHA256).Hash
 if ($WinSWSha256 -and $winswHash -ne $WinSWSha256.ToUpperInvariant()) { throw 'WinSW SHA-256 checksum does not match.' }
@@ -37,7 +52,8 @@ if ($frontendEnvFiles.Count -gt 0) { throw 'Frontend root contains .env files; r
 $services = @(
   @{ Id = 'LaptopStoreBackend'; Name = 'Laptop Store Backend'; Executable = $node.Source; Arguments = '--max-old-space-size=1024 src/app.js'; WorkingDirectory = $backendRoot; LogPath = Join-Path $logRoot 'backend'; ReadPath = $backendRoot; WritePaths = @((Join-Path $backendRoot 'uploads'), (Join-Path $backendRoot '.retranslate-progress'), (Join-Path $backendRoot 'reports')) },
   @{ Id = 'LaptopStoreFrontend'; Name = 'Laptop Store Frontend'; Executable = $node.Source; Arguments = 'node_modules/next/dist/bin/next start'; WorkingDirectory = $frontendRoot; LogPath = Join-Path $logRoot 'frontend'; ReadPath = $frontendRoot; WritePaths = @((Join-Path $frontendRoot '.next\cache')) },
-  @{ Id = 'LaptopStoreTunnel'; Name = 'Laptop Store Cloudflare Tunnel'; Executable = $node.Source; Arguments = 'tunnel.js'; WorkingDirectory = Join-Path $serviceRoot 'LaptopStoreTunnel'; LogPath = Join-Path $logRoot 'tunnel'; ReadPath = Join-Path $serviceRoot 'LaptopStoreTunnel'; WritePaths = @(); Tunnel = $true }
+  @{ Id = 'LaptopStoreTunnel'; Name = 'Laptop Store Cloudflare Tunnel'; Executable = $node.Source; Arguments = 'tunnel.js'; WorkingDirectory = Join-Path $serviceRoot 'LaptopStoreTunnel'; LogPath = Join-Path $logRoot 'tunnel'; ReadPath = Join-Path $serviceRoot 'LaptopStoreTunnel'; WritePaths = @(); Tunnel = $true },
+  @{ Id = $runnerServiceId; Name = 'Laptop Store Deployment Runner'; Executable = $node.Source; Arguments = 'deployment-runner.js'; WorkingDirectory = Join-Path $serviceRoot $runnerServiceId; LogPath = Join-Path $logRoot 'runner'; ReadPath = Join-Path $serviceRoot $runnerServiceId; WritePaths = @(); Runner = $true }
 )
 
 foreach ($service in $services) {
@@ -64,7 +80,7 @@ $isAdministrator = ([Security.Principal.WindowsPrincipal] [Security.Principal.Wi
   [Security.Principal.WindowsBuiltInRole]::Administrator
 )
 if (-not $isAdministrator) { throw 'Run with Administrator privileges to install services.' }
-if (-not $PSCmdlet.ShouldProcess('Windows host', 'Install three stopped WinSW services and protect the Tunnel token')) { return }
+if (-not $PSCmdlet.ShouldProcess('Windows host', 'Install four stopped WinSW services and protect Tunnel/runner tokens')) { return }
 
 Add-Type -AssemblyName System.Security
 $secureToken = Read-Host 'Paste the Cloudflare Tunnel token (input is hidden)' -AsSecureString
@@ -73,6 +89,7 @@ $tokenBytes = $null
 $protectedToken = $null
 $createdServices = @()
 $createdProgramData = $false
+$serviceSecurityBackups = @{}
 $aclBackupDirectory = Join-Path $env:TEMP ('LaptopStoreAcl-' + [guid]::NewGuid().ToString('N'))
 $backendAclBackup = Join-Path $aclBackupDirectory 'backend.acl'
 $frontendAclBackup = Join-Path $aclBackupDirectory 'frontend.acl'
@@ -113,14 +130,34 @@ try {
   $operatorAccount = [Security.Principal.WindowsIdentity]::GetCurrent().Name
   New-Item -ItemType Directory -Path $programDataRoot -Force | Out-Null
   $createdProgramData = $true
-  New-Item -ItemType Directory -Path $serviceRoot, $logRoot, $secretRoot, $tunnelSecretRoot -Force | Out-Null
+  New-Item -ItemType Directory -Path $serviceRoot, $logRoot, $secretRoot, $tunnelSecretRoot, $runnerSecretRoot -Force | Out-Null
   Set-RestrictedDirectoryAcl $programDataRoot @()
   Set-RestrictedDirectoryAcl $serviceRoot @()
   Set-RestrictedDirectoryAcl $logRoot @()
   Set-RestrictedDirectoryAcl $secretRoot @()
   Set-RestrictedDirectoryAcl $tunnelSecretRoot @()
+  Set-RestrictedDirectoryAcl $runnerSecretRoot @()
   [IO.File]::WriteAllBytes($tokenPath, $protectedToken)
   Invoke-Icacls @($tokenPath, '/inheritance:r', '/grant:r', '*S-1-5-18:F', '*S-1-5-32-544:F', 'NT SERVICE\LaptopStoreTunnel:R')
+
+  $secureRunnerToken = Read-Host 'Paste the existing DEPLOYMENT_RUNNER_TOKEN (input is hidden)' -AsSecureString
+  $runnerBstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secureRunnerToken)
+  try {
+    $plainRunnerToken = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($runnerBstr)
+    if ($plainRunnerToken.Length -lt 16 -or $plainRunnerToken.Length -gt 2048) { throw 'Runner token length is invalid.' }
+    $runnerTokenBytes = [Text.Encoding]::UTF8.GetBytes($plainRunnerToken)
+    $protectedRunnerToken = [Security.Cryptography.ProtectedData]::Protect(
+      $runnerTokenBytes,
+      $null,
+      [Security.Cryptography.DataProtectionScope]::LocalMachine
+    )
+    [IO.File]::WriteAllBytes($runnerTokenPath, $protectedRunnerToken)
+  } finally {
+    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($runnerBstr)
+    if ($runnerTokenBytes) { [Array]::Clear($runnerTokenBytes, 0, $runnerTokenBytes.Length) }
+    if ($protectedRunnerToken) { [Array]::Clear($protectedRunnerToken, 0, $protectedRunnerToken.Length) }
+    $plainRunnerToken = $null
+  }
 
   foreach ($service in $services) {
     $directory = Join-Path $serviceRoot $service.Id
@@ -130,6 +167,17 @@ try {
     Copy-Item -LiteralPath $winswSource -Destination $exePath
 
     $tunnelEnvironment = ''
+    if ($service.Runner) {
+      Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'deployment-runner.js') -Destination (Join-Path $directory 'deployment-runner.js')
+      Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'read-dpapi-secret.ps1') -Destination (Join-Path $directory 'read-dpapi-secret.ps1')
+      Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'stop-tunnel-apps.ps1') -Destination (Join-Path $directory 'stop-tunnel-apps.ps1')
+      Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'start-tunnel-apps.ps1') -Destination (Join-Path $directory 'start-tunnel-apps.ps1')
+      $tunnelEnvironment = @"
+  <env name="DEPLOYMENT_ROUTER_URL" value="$([Security.SecurityElement]::Escape($routerUri.Origin))" />
+  <env name="DEPLOYMENT_RUNNER_ID" value="$([Security.SecurityElement]::Escape($RunnerId))" />
+  <env name="DEPLOYMENT_RUNNER_TOKEN_DPAPI_FILE" value="$([Security.SecurityElement]::Escape($runnerTokenPath))" />
+"@
+    }
     if ($service.Tunnel) {
       Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'tunnel.js') -Destination (Join-Path $directory 'tunnel.js')
       Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'read-dpapi-secret.ps1') -Destination (Join-Path $directory 'read-dpapi-secret.ps1')
@@ -168,6 +216,8 @@ $tunnelEnvironment</service>
     if ($LASTEXITCODE -ne 0) { throw "Could not assign the virtual service account to $($service.Id)." }
     & sc.exe config $service.Id 'start=' 'demand' | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Could not keep $($service.Id) stopped until cutover." }
+    & sc.exe sidtype $service.Id unrestricted | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Could not enable the service SID for $($service.Id)." }
 
     $account = "NT SERVICE\$($service.Id)"
     Invoke-Icacls @($programDataRoot, '/grant', "$account`:(RX)")
@@ -188,11 +238,40 @@ $tunnelEnvironment</service>
       Invoke-Icacls @($tunnelSecretRoot, '/grant', "$account`:(OI)(CI)RX")
       Invoke-Icacls @($tokenPath, '/grant', "$account`:R")
     }
+    if ($service.Runner) {
+      Invoke-Icacls @($secretRoot, '/grant', "$account`:(RX)")
+      Invoke-Icacls @($runnerSecretRoot, '/grant', "$account`:(OI)(CI)RX")
+      Invoke-Icacls @($runnerTokenPath, '/grant', "$account`:R")
+    }
     if ($service.Id -eq 'LaptopStoreBackend') {
       foreach ($envFile in $envFiles) {
         Invoke-Icacls @($envFile.FullName, '/inheritance:r', '/grant:r', '*S-1-5-18:F', '*S-1-5-32-544:F', "$operatorAccount`:R", "$account`:R")
       }
     }
+  }
+
+  $runnerSid = ([Security.Principal.NTAccount]$runnerServiceAccount).Translate([Security.Principal.SecurityIdentifier])
+  foreach ($serviceId in @('LaptopStoreBackend', 'LaptopStoreFrontend')) {
+    $sddlOutput = & sc.exe sdshow $serviceId
+    if ($LASTEXITCODE -ne 0) { throw "Could not read the security descriptor for $serviceId." }
+    $originalSddl = @($sddlOutput | ForEach-Object { $_.Trim() } | Where-Object { $_ -match '^(O:|G:|D:|S:)' } | Select-Object -Last 1)[0]
+    if (-not $originalSddl) { throw "Could not parse the security descriptor for $serviceId." }
+    $serviceSecurityBackups[$serviceId] = $originalSddl
+    $descriptor = [System.Security.AccessControl.RawSecurityDescriptor]::new($originalSddl)
+    if (-not $descriptor.DiscretionaryAcl) { throw "Refusing to modify a null DACL on $serviceId." }
+    $serviceRights = 0x34
+    $runnerAce = [System.Security.AccessControl.CommonAce]::new(
+      [System.Security.AccessControl.AceFlags]::None,
+      [System.Security.AccessControl.AceQualifier]::AccessAllowed,
+      $serviceRights,
+      $runnerSid,
+      $false,
+      $null
+    )
+    $descriptor.DiscretionaryAcl.InsertAce($descriptor.DiscretionaryAcl.Count, $runnerAce)
+    $updatedSddl = $descriptor.GetSddlForm([System.Security.AccessControl.AccessControlSections]::All)
+    & sc.exe sdset $serviceId $updatedSddl | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Could not grant limited service rights to $serviceId." }
   }
 
 } catch {
@@ -210,6 +289,9 @@ $tunnelEnvironment</service>
     }
   }
   if ($rollbackFailures.Count -eq 0) {
+    foreach ($serviceId in $serviceSecurityBackups.Keys) {
+      try { & sc.exe sdset $serviceId $serviceSecurityBackups[$serviceId] | Out-Null } catch {}
+    }
     foreach ($envFile in $envFiles) {
       if ($envAclBackups.ContainsKey($envFile.FullName)) {
         try { Set-Acl -LiteralPath $envFile.FullName -AclObject $envAclBackups[$envFile.FullName] } catch {}
@@ -228,10 +310,12 @@ $tunnelEnvironment</service>
   [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
   if ($tokenBytes) { [Array]::Clear($tokenBytes, 0, $tokenBytes.Length) }
   if ($protectedToken) { [Array]::Clear($protectedToken, 0, $protectedToken.Length) }
+  if ($secureRunnerToken) { $secureRunnerToken.Dispose() }
   $plainToken = $null
 }
 
-'Three WinSW services are installed with Manual startup and remain stopped; current listeners on ports 3000/5000 were not stopped.'
+'Four WinSW services are installed with Manual startup and remain stopped; current listeners on ports 3000/5000 were not stopped.'
+'After migrating the existing app processes, start the app/Tunnel services and verify health before starting the runner service.'
 'ACL backups are retained at: {0}' -f $aclBackupDirectory
 'After reviewing service status and ACLs, schedule a separate maintenance-window cutover to stop old consoles and start the services.'
 'No .env content or Tunnel token was printed.'
